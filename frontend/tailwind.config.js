@@ -1,8 +1,23 @@
 /** @type {import('tailwindcss').Config} */
-export default {
-  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+module.exports = {
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx,css}'],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        sans: ['Paperlogy', 'sans-serif'],
+      },
+      fontWeight: {
+        normal: '400',
+        semibold: '600',
+      },
+      backgroundImage: {
+        login: "url('/images/background/background_login.png')",
+        main: "url('/images/background/background_main.png')",
+        mypage: "url('/images/background/background_mypage.png')",
+        join: "url('/images/background/background_join.png')",
+        logo: "url('/images/logo/logo.png')",
+      },
+    },
   },
   plugins: [],
 };
