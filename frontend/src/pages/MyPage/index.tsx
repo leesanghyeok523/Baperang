@@ -2,17 +2,26 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../../components/ui/button';
 import InputCard from '../../components/ui/inputcard';
+import { userData } from '../../data/dummyData';
 
 const MyPage: React.FC = () => {
+  // 더미 데이터로 초기화
   const [formData, setFormData] = useState({
-    name: '홍길동',
-    school: '서울초등학교',
-    userId: 'user123',
-    password: '',
-    confirmPassword: '',
+    ...userData,
+    confirmPassword: userData.password, // 비밀번호 확인 필드
   });
 
   const navigate = useNavigate();
+
+  // 페이지 접근 시 로그인 상태 확인 (더미 데이터 사용 시에는 무조건 true)
+  // 실제 로그인 구현 후에는 주석 해제
+  /*
+  useEffect(() => {
+    if (!isLoggedIn()) {
+      navigate('/login');
+    }
+  }, [navigate]);
+  */
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -31,7 +40,7 @@ const MyPage: React.FC = () => {
 
     // 로그인 기능이 구현되면 아래 API 호출 코드 활성화
     // try {
-    //   const token = localStorage.getItem('token');
+    //   const token = localStorage.getItem('token'); // 또는 getToken() 사용
     //
     //   if (!token) {
     //     navigate('/login');
@@ -40,8 +49,9 @@ const MyPage: React.FC = () => {
     //
     //   // 필요한 데이터만 전송
     //   const updateData = {
-    //     name: formData.name,
-    //     school: formData.school,
+    //     nutritionistName: formData.nutritionistName,
+    //     city: formData.city,
+    //     schoolName: formData.schoolName,
     //   };
     //
     //   // 비밀번호가 입력된 경우에만 포함
@@ -81,22 +91,29 @@ const MyPage: React.FC = () => {
 
         <InputCard
           placeholder="이름을 입력하세요"
-          name="name"
-          value={formData.name}
+          name="nutritionistName"
+          value={formData.nutritionistName}
           onChange={handleChange}
         />
 
         <InputCard
           placeholder="학교명을 입력하세요"
-          name="school"
-          value={formData.school}
+          name="schoolName"
+          value={formData.schoolName}
+          onChange={handleChange}
+        />
+
+        <InputCard
+          placeholder="지역을 입력하세요"
+          name="city"
+          value={formData.city}
           onChange={handleChange}
         />
 
         <InputCard
           placeholder="아이디를 입력하세요"
-          name="userId"
-          value={formData.userId}
+          name="loginId"
+          value={formData.loginId}
           onChange={handleChange}
           disabled // 아이디는 변경 불가능하도록 설정
         />
