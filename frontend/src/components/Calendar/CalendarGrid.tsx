@@ -1,0 +1,101 @@
+import { CalendarDay } from '../../pages/Calendar/calendarUtils';
+import { MenuDataType } from '../../data/menuData';
+
+interface CalendarGridProps {
+  days: CalendarDay[];
+  weeksCount: number;
+  selectedYear: number;
+  selectedMonth: number;
+  selectedDate: string | null;
+  handleDateClick: (day: number) => void;
+  menuData: MenuDataType;
+}
+
+const CalendarGrid = ({
+  days,
+  weeksCount,
+  selectedYear,
+  selectedMonth,
+  selectedDate,
+  handleDateClick,
+  menuData,
+}: CalendarGridProps) => {
+  // 요일 표기
+  const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+
+  return (
+    <div className="w-4/5 flex flex-col h-full">
+      <div className="grid grid-cols-7 mb-2">
+        {weekdays.map((day, index) => (
+          <div
+            key={index}
+            className={`text-center text-lg font-semibold ${
+              index === 0 ? 'text-red-500' : index === 6 ? 'text-blue-500' : ''
+            }`}
+          >
+            {day}요일
+          </div>
+        ))}
+      </div>
+
+      <div
+        className="grid grid-cols-7 gap-1 flex-grow h-full"
+        style={{
+          gridTemplateRows: `repeat(${weeksCount}, 1fr)`,
+          height: weeksCount === 4 ? '450px' : weeksCount === 5 ? '450px' : '450px',
+        }}
+      >
+        {days.map((day, index) => (
+          <div
+            key={index}
+            onClick={() => day.type === 'current' && handleDateClick(day.date)}
+            className={`
+              border rounded-lg p-2 flex flex-col justify-start h-full
+              ${
+                day.type === 'prev' || day.type === 'next'
+                  ? 'bg-transparent text-gray-400'
+                  : 'bg-white/50'
+              }
+              ${day.type === 'current' && day.hasMenu ? 'cursor-pointer hover:bg-orange-50' : ''}
+              ${
+                day.type === 'current' &&
+                `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(
+                  day.date
+                ).padStart(2, '0')}` === selectedDate
+                  ? 'bg-orange-100 border-orange-400 border-2'
+                  : ''
+              }
+            `}
+          >
+            <div className="flex justify-between">
+              <span
+                className={`font-medium ${
+                  index % 7 === 0 ? 'text-red-500' : index % 7 === 6 ? 'text-blue-500' : ''
+                }`}
+              >
+                {day.date}
+              </span>
+              {day.type === 'current' && day.hasMenu && (
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              )}
+            </div>
+
+            {day.type === 'current' && day.hasMenu && (
+              <div className="text-xs mt-1 text-gray-600 overflow-hidden text-ellipsis">
+                {
+                  menuData[
+                    `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(
+                      day.date
+                    ).padStart(2, '0')}`
+                  ]?.menu[0]
+                }
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default CalendarGrid;
