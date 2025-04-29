@@ -4,7 +4,7 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Paperlogy', 'sans-serif'],
+        sans: ['Paperlogy', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       fontWeight: {
         normal: '400',

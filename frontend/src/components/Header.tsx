@@ -9,8 +9,8 @@ const Header = ({ isLoggedIn }: HeaderProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <header className="bg-transparent py-8 fixed top-0 left-0 right-0 z-50 w-full">
-      <div className="container ml-8 md:ml-10 flex justify-between items-center w-full">
+    <header className="bg-transparent py-10 fixed top-1 left-0 right-0 z-50 w-full">
+      <div className="flex justify-between items-center w-[93%] mx-auto">
         <div className="flex items-center">
           {/* 로고 이미지와 텍스트 */}
           <Link to="/" className="flex items-center">
