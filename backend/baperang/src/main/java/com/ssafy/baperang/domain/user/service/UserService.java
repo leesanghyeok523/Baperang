@@ -46,4 +46,9 @@ public class UserService {
                 .content(content)
                 .build();
     }
+
+    @Transactional(readOnly = true)
+    public boolean isLoginIdAvailable(String loginId) {
+        return !userRepository.existsByLoginId(loginId);
+    }
 }

@@ -1,7 +1,9 @@
 package com.ssafy.baperang.domain.user.controller;
 
 import com.ssafy.baperang.domain.user.dto.request.SignupRequestDto;
+import com.ssafy.baperang.domain.user.dto.request.ValidateIdRequestDto;
 import com.ssafy.baperang.domain.user.dto.response.SignupResponseDto;
+import com.ssafy.baperang.domain.user.dto.response.ValidateIdResponseDto;
 import com.ssafy.baperang.domain.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +24,17 @@ public class UserController {
         // ResponseEntity는 HTTP 응답의 상태 코드, 헤더, 본문을 포함하는 객체
         // RequestBody는 HTTP 요청 본문(JSON)을 SignupRequestDto 객체로 변환
         SignupResponseDto responseDto = userService.signup(requestDto);
+
+        return ResponseEntity.ok(responseDto);
+    }
+
+    @PostMapping("/validate-id")
+    public ResponseEntity<ValidateIdResponseDto> validateId(@RequestBody ValidateIdRequestDto requestDto) {
+        boolean isValid = userService.isLoginIdAvailable(requestDto.getLoginId());
+
+        ValidateIdResponseDto responseDto = ValidateIdResponseDto.builder()
+                .valid(isValid)
+                .build();
 
         return ResponseEntity.ok(responseDto);
     }
