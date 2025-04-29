@@ -7,6 +7,7 @@ import Calendar from './pages/Calendar';
 import Header from './components/Header';
 import InventoryPage from './pages/Inventory';
 import MyPage from './pages/MyPage';
+import CreateMeal from './pages/CreateMeal';
 import { isLoggedIn as checkLogin } from './data/dummyData';
 
 // 헤더를 포함하는 레이아웃 컴포넌트
@@ -44,7 +45,7 @@ function App() {
           <Route path="join" element={<JoinPage />} />
           <Route path="main" element={<MainPage />} />
           <Route path="calendar" element={<Calendar />} />
-          <Route path="diet" element={<div>식단생성 페이지</div>} />
+          <Route path="diet" element={<CreateMeal />} />
           <Route path="inventory" element={<InventoryPage />} />
           <Route path="mypage" element={<MyPage />} />
         </Route>
