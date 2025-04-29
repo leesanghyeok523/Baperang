@@ -23,7 +23,7 @@ WORKDIR /app
 COPY --from=builder /app/build/libs/*.jar app.jar
 
 # 컨테이너 내부 포트
-EXPOSE 8080
+EXPOSE 8000
 
 # 앱 실행
 ENTRYPOINT ["java","-jar","app.jar"]
