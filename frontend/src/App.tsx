@@ -6,6 +6,7 @@ import MainPage from './pages/Main';
 import Calendar from './pages/Calendar';
 import Header from './components/Header';
 import InventoryPage from './pages/Inventory';
+import MyPage from './pages/MyPage';
 
 // 헤더를 포함하는 레이아웃 컴포넌트
 const Layout = ({ isLoggedIn }: { isLoggedIn: boolean }) => {
@@ -37,7 +38,7 @@ function App() {
           <Route path="calendar" element={<Calendar />} />
           <Route path="diet" element={<div>식단생성 페이지</div>} />
           <Route path="inventory" element={<InventoryPage />} />
-          <Route path="mypage" element={<div>마이페이지</div>} />
+          <Route path="mypage" element={<MyPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
