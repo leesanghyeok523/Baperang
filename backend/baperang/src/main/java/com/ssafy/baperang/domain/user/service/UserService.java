@@ -34,7 +34,7 @@ public class UserService {
                 .schoolName(requestDto.getSchoolName())
                 .build();
 
-        userRepository.save(user); // 만든 User 객체를 DB에 저장
+        userRepository.saveAndFlush(user); // 만든 User 객체를 DB에 저장
 
         SignupResponseDto.SignupContent content = SignupResponseDto.SignupContent.builder()
                 .loginId(user.getLoginId())
