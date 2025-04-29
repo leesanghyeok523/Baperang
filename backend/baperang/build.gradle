@@ -43,6 +43,9 @@ dependencies {
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
     
+    // Environment Variables
+    implementation 'me.paulschwarz:spring-dotenv:4.0.0'
+    
     // // Development
     // developmentOnly 'org.springframework.boot:spring-boot-docker-compose'
     
