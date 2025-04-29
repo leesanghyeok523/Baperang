@@ -1,4 +1,4 @@
-# env로드
+# env 등 각종 자격 
 import os
 from dotenv import load_dotenv
 

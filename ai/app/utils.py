@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Any
 
 def get_leftover_data() -> Dict[str, float]:
     # PoC 용 더미 데이터

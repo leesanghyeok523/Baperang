@@ -1,19 +1,34 @@
 # 이미지 처리·Inference·부피·LLM 워크플로우 함수 모음
+import os
 from typing import Dict, List
-from langchain.chat_models import ChatOpenAI
-from langchain_anthropic import ChatAnthropic
-from prompts import make_waste_prompt, make_nutrition_prompt, integration_prompt
-from utils import get_leftover_data, get_nutrition_data
+from langchain.chat_models import ChatOpenAI, ChatAnthropic
+from dotenv import load_dotenv
+
+from app import config
+from app.prompts import make_waste_prompt, make_nutrition_prompt, make_integration_prompt
+from app.utils import get_leftover_data, get_nutrition_data
 
 # LLM 클라이언트 초기화
 llm_gpt4 = ChatOpenAI(
     model="gpt-4",
-    temperature=0.2
+    temperature=0.2,
+    openai_api_key=config.OPENAI_API_KEY,
     )
+print(os.getenv("OPENAI_API_KEY"))
 llm_claude = ChatAnthropic(
-    model="claude-2",
-    temperature=0.2
+    model="gpt-4",
+    temperature=0.2,
+    openai_api_key=config.OPENAI_API_KEY,
     )
+
+# 이미지 key를 받아서 잔반 반환 함수
+async def analyze_leftover(image_s3_key: str) -> Dict[str, float]:
+    """
+    실제라면 S3에서 이미지 내려받고 YOLO/Depth 분석을 하겠지만,
+    PoC 단계에서는 utils.get_dummy_leftover_data() 를 그대로 반환합니다.
+    """
+    # 나중에 S3 다운로드 + YOLO 추론 + 부피 계산 로직으로 대체
+    return get_leftover_data()
 
 async def generate_waste_plan() -> Dict[str, List[str]]:
     """
@@ -41,14 +56,14 @@ async def integrate_plans(waste: Dict[str, List[str]], nutrition: Dict[str, List
     """
     잔반율과 영양소를 통합하여 식단 생성
     """
-    prompt = integration_prompt(waste=waste, nutrition=nutrition)
+    prompt = make_integration_prompt(waste=waste, nutrition=nutrition)
     resp = await llm_gpt4.apredict(messages=[{"role": "user", "content": prompt}])
     return parse_plan_text(resp)
 
 
 # 파싱 함수
 def parse_plan_text(text: str) -> Dict[str, List[str]]:
-    plan = {}
+    plan: Dict[str, List[str]] = {}
     for line in text.splitlines():
         if ":" in line:
             date, menus = line.split(":")
@@ -57,11 +72,3 @@ def parse_plan_text(text: str) -> Dict[str, List[str]]:
     return plan
 
 
-# 이미지 key를 받아서 잔반 반환 함수
-async def analyze_leftover(image_s3_key: str) -> Dict[str, float]:
-    """
-    실제라면 S3에서 이미지 내려받고 YOLO/Depth 분석을 하겠지만,
-    PoC 단계에서는 utils.get_dummy_leftover_data() 를 그대로 반환합니다.
-    """
-    # 나중에 S3 다운로드 + YOLO 추론 + 부피 계산 로직으로 대체
-    return get_leftover_data()

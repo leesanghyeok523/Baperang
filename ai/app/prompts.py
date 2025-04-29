@@ -18,7 +18,7 @@ NUTRITION_TEMPLATE = """
 """
 
 # 통합 프롬프트
-integration_prompt = """
+INTEGRATION_TEMPLATE = """
 당신은 잔반 최소화 에이전트와 영양 균형 에이전트의 결과를 조화롭게 결합하는 관리자입니다.
 잔반 초안: {waste}
 영양소 초안: {nutrition}
@@ -33,3 +33,8 @@ def make_waste_prompt(data: Dict[str, float]) -> str:
 def make_nutrition_prompt(data: Dict[str, Any]) -> str:
     summary = ", ".join(f"{k}={v}" for k, v in data.items())
     return NUTRITION_TEMPLATE.format(data=summary)
+
+def make_integration_prompt(waste: str, nutrition: str) -> str:
+    return INTEGRATION_TEMPLATE.format(waste=waste, nutrition=nutrition)
+
+print(__file__)
