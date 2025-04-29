@@ -1,4 +1,65 @@
 package com.ssafy.baperang.domain.user.entity;
 
+
+import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.time.LocalDateTime;
+
+@Entity
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Table(name = "user")
+@EntityListeners(AuditingEntityListener.class)
 public class User {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "user_pk")
+    private Long id;
+
+    @Column(name = "login_id", unique = true, nullable = false, length = 20) // 중복값 허용x, null값 허용 x
+    private String loginId;
+
+    @Column(name = "password", nullable = false, length = 60)
+    private String password;
+
+    @Column(name = "nutritionist_name", nullable = false, length = 10)
+    private String nutritionistName;
+
+//    @ManyToOne(fetch = FetchType.LAZY)
+//    @JoinColumn(name = "school_pk", nullable = false)
+//    private School school;
+//    School 엔티티 만들면 주석 해제.
+
+
+    @Column(name = "school_name", nullable = false, length = 20)
+    private String schoolName;
+
+    @Column(name = "city", nullable = false, length = 20)
+    private String city;
+
+    @CreatedDate
+    @Column(updatable = false)
+    private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    @Builder
+    public User(String loginId, String password, String nutritionistName, String city, String schoolName) {
+        this.loginId = loginId;
+        this.password = password;
+        this.nutritionistName = nutritionistName;
+        this.city = city;
+        this.schoolName = schoolName;
+    }
 }
