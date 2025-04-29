@@ -3,16 +3,19 @@ package com.ssafy.baperang.domain.user.service;
 import com.ssafy.baperang.domain.school.entity.School;
 import com.ssafy.baperang.domain.school.repository.SchoolRepository;
 import com.ssafy.baperang.domain.user.dto.request.LoginRequestDto;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
 import com.ssafy.baperang.domain.user.dto.request.SignupRequestDto;
 import com.ssafy.baperang.domain.user.dto.response.LoginResponseDto;
 import com.ssafy.baperang.domain.user.dto.response.SignupResponseDto;
 import com.ssafy.baperang.domain.user.entity.User;
 import com.ssafy.baperang.domain.user.repository.UserRepository;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor // final로 선언된 필드를 매개변수로 받는 생성자를 자동으로 만듬
