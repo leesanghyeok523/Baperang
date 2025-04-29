@@ -29,6 +29,7 @@ public class User {
     @Column(name = "login_id", unique = true, nullable = false, length = 20) // 중복값 허용x, null값 허용 x
     private String loginId;
 
+    // 암호화 필요
     @Column(name = "password", nullable = false, length = 60)
     private String password;
 
