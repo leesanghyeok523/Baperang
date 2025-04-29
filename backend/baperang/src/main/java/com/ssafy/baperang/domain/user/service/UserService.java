@@ -1,6 +1,10 @@
 package com.ssafy.baperang.domain.user.service;
 
+import com.ssafy.baperang.domain.school.entity.School;
+import com.ssafy.baperang.domain.school.repository.SchoolRepository;
+import com.ssafy.baperang.domain.user.dto.request.LoginRequestDto;
 import com.ssafy.baperang.domain.user.dto.request.SignupRequestDto;
+import com.ssafy.baperang.domain.user.dto.response.LoginResponseDto;
 import com.ssafy.baperang.domain.user.dto.response.SignupResponseDto;
 import com.ssafy.baperang.domain.user.entity.User;
 import com.ssafy.baperang.domain.user.repository.UserRepository;
@@ -15,6 +19,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final SchoolRepository schoolRepository;
 
     @Transactional // 모든 데이터베이스 작업을 하나의 트랜잭션으로 묶음
     public SignupResponseDto signup(SignupRequestDto requestDto) {
@@ -24,21 +29,30 @@ public class UserService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 존재하는 이디입니다.");
         }
 
+        School school = schoolRepository.findBySchoolNameAndCity(
+                requestDto.getSchoolName(), requestDto.getCity())
+                .orElseGet(() -> {
+                    School newSchool = School.builder()
+                            .schoolName(requestDto.getSchoolName())
+                            .city(requestDto.getCity())
+                            .build();
+                    return schoolRepository.save(newSchool);
+                });
+
         User user = User.builder()
                 .loginId(requestDto.getLoginId())
                 .password(requestDto.getPassword())
                 .nutritionistName(requestDto.getNutritionistName())
-                .city(requestDto.getCity())
-                .schoolName(requestDto.getSchoolName())
+                .school(school)
                 .build();
 
-        userRepository.save(user); // 만든 User 객체를 DB에 저장
+        userRepository.saveAndFlush(user); // 만든 User 객체를 DB에 저장
 
         SignupResponseDto.SignupContent content = SignupResponseDto.SignupContent.builder()
                 .loginId(user.getLoginId())
                 .nutritionistName(user.getNutritionistName())
-                .city(user.getCity())
-                .schoolName(user.getSchoolName())
+                .city(user.getSchool().getCity())
+                .schoolName(user.getSchool().getSchoolName())
                 .build();
 
         return SignupResponseDto.builder()
@@ -50,5 +64,24 @@ public class UserService {
     @Transactional(readOnly = true)
     public boolean isLoginIdAvailable(String loginId) {
         return !userRepository.existsByLoginId(loginId);
+    }
+
+    @Transactional(readOnly = true)
+    public LoginResponseDto login(LoginRequestDto requestDto) {
+        User user = userRepository.findByLoginId(requestDto.getLoginId())
+                // 사용자가 존재하지 않으면 예외 발생
+                // HttpStatus.UNAUTHORIZED -> 401
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED, "아이디 또는 비밀번호가 일치하지 않습니다."));
+
+        if (!user.getPassword().equals(requestDto.getPassword())) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED, "아이디 또는 비밀번호가 일치하지 않습니다."
+            );
+        }
+
+        return LoginResponseDto.builder()
+                .userPk(user.getId())
+                .build();
     }
 }

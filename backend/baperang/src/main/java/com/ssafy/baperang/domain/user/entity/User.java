@@ -1,6 +1,7 @@
 package com.ssafy.baperang.domain.user.entity;
 
 
+import com.ssafy.baperang.domain.school.entity.School;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -34,17 +35,9 @@ public class User {
     @Column(name = "nutritionist_name", nullable = false, length = 10)
     private String nutritionistName;
 
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "school_pk", nullable = false)
-//    private School school;
-//    School 엔티티 만들면 주석 해제.
-
-
-    @Column(name = "school_name", nullable = false, length = 20)
-    private String schoolName;
-
-    @Column(name = "city", nullable = false, length = 20)
-    private String city;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "school_pk", nullable = false)
+    private School school;
 
     @CreatedDate
     @Column(updatable = false)
@@ -55,11 +48,10 @@ public class User {
     private LocalDateTime updatedAt;
 
     @Builder
-    public User(String loginId, String password, String nutritionistName, String city, String schoolName) {
+    public User(String loginId, String password, String nutritionistName, School school) {
         this.loginId = loginId;
         this.password = password;
         this.nutritionistName = nutritionistName;
-        this.city = city;
-        this.schoolName = schoolName;
+        this.school = school;
     }
 }

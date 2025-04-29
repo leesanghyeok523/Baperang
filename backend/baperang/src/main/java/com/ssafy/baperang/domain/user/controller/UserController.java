@@ -1,7 +1,9 @@
 package com.ssafy.baperang.domain.user.controller;
 
+import com.ssafy.baperang.domain.user.dto.request.LoginRequestDto;
 import com.ssafy.baperang.domain.user.dto.request.SignupRequestDto;
 import com.ssafy.baperang.domain.user.dto.request.ValidateIdRequestDto;
+import com.ssafy.baperang.domain.user.dto.response.LoginResponseDto;
 import com.ssafy.baperang.domain.user.dto.response.SignupResponseDto;
 import com.ssafy.baperang.domain.user.dto.response.ValidateIdResponseDto;
 import com.ssafy.baperang.domain.user.service.UserService;
@@ -35,6 +37,13 @@ public class UserController {
         ValidateIdResponseDto responseDto = ValidateIdResponseDto.builder()
                 .valid(isValid)
                 .build();
+
+        return ResponseEntity.ok(responseDto);
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponseDto> login(@RequestBody LoginRequestDto requestDto) {
+        LoginResponseDto responseDto = userService.login(requestDto);
 
         return ResponseEntity.ok(responseDto);
     }
