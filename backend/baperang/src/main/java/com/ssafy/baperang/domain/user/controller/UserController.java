@@ -3,6 +3,7 @@ package com.ssafy.baperang.domain.user.controller;
 import com.ssafy.baperang.domain.user.dto.request.LoginRequestDto;
 import com.ssafy.baperang.domain.user.dto.request.SignupRequestDto;
 import com.ssafy.baperang.domain.user.dto.request.ValidateIdRequestDto;
+import com.ssafy.baperang.domain.user.dto.response.ErrorResponseDto;
 import com.ssafy.baperang.domain.user.dto.response.LoginResponseDto;
 import com.ssafy.baperang.domain.user.dto.response.SignupResponseDto;
 import com.ssafy.baperang.domain.user.dto.response.ValidateIdResponseDto;
@@ -22,12 +23,15 @@ public class UserController {
     private final UserService userService;
 
     @PostMapping("/signup")
-    public ResponseEntity<SignupResponseDto> signup(@RequestBody SignupRequestDto requestDto) {
-        // ResponseEntity는 HTTP 응답의 상태 코드, 헤더, 본문을 포함하는 객체
-        // RequestBody는 HTTP 요청 본문(JSON)을 SignupRequestDto 객체로 변환
-        SignupResponseDto responseDto = userService.signup(requestDto);
+    public ResponseEntity<?> signup(@RequestBody SignupRequestDto requestDto) {
+        Object result = userService.signup(requestDto);
 
-        return ResponseEntity.ok(responseDto);
+        if (result instanceof ErrorResponseDto) {
+            ErrorResponseDto errorResponse = (ErrorResponseDto) result;
+            return ResponseEntity.status(errorResponse.getStatus()).body(result);
+        }
+
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping("/validate-id")
@@ -42,9 +46,14 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponseDto> login(@RequestBody LoginRequestDto requestDto) {
-        LoginResponseDto responseDto = userService.login(requestDto);
+    public ResponseEntity<?> login(@RequestBody LoginRequestDto requestDto) {
+        Object result = userService.login(requestDto);
 
-        return ResponseEntity.ok(responseDto);
+        if (result instanceof ErrorResponseDto) {
+            ErrorResponseDto errorResponse = (ErrorResponseDto) result;
+            return ResponseEntity.status(errorResponse.getStatus()).body(result);
+        }
+
+        return ResponseEntity.ok(result);
     }
 }
