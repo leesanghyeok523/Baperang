@@ -5,6 +5,7 @@ import com.ssafy.baperang.domain.school.repository.SchoolRepository;
 import com.ssafy.baperang.domain.user.dto.request.LoginRequestDto;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -23,13 +24,15 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final SchoolRepository schoolRepository;
+    // BCrypt
+    private final BCryptPasswordEncoder bCryptPasswordEncoder;
 
     @Transactional // 모든 데이터베이스 작업을 하나의 트랜잭션으로 묶음
     public SignupResponseDto signup(SignupRequestDto requestDto) {
         // SignupRequestDto - 클라이언트에서 받은 데이터 담음
         // SignupResponseDto - 클라이언트에게 돌려줄 응답
         if (userRepository.existsByLoginId(requestDto.getLoginId())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 존재하는 이디입니다.");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 존재하는 아이디입니다.");
         }
 
         School school = schoolRepository.findBySchoolNameAndCity(
@@ -42,9 +45,11 @@ public class UserService {
                     return schoolRepository.save(newSchool);
                 });
 
+        String encodedPassword = bCryptPasswordEncoder.encode((requestDto.getPassword()));
+
         User user = User.builder()
                 .loginId(requestDto.getLoginId())
-                .password(requestDto.getPassword())
+                .password(encodedPassword)
                 .nutritionistName(requestDto.getNutritionistName())
                 .school(school)
                 .build();
@@ -77,7 +82,8 @@ public class UserService {
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.UNAUTHORIZED, "아이디 또는 비밀번호가 일치하지 않습니다."));
 
-        if (!user.getPassword().equals(requestDto.getPassword())) {
+        // matches 사용시 평문 비밀번호 그 다음에 암호화된 비밀번호를 파라미터로 넣어야함
+        if (!bCryptPasswordEncoder.matches(requestDto.getPassword(), user.getPassword())) {
             throw new ResponseStatusException(
                     HttpStatus.UNAUTHORIZED, "아이디 또는 비밀번호가 일치하지 않습니다."
             );

@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController // REST API 컨트롤러임을 spring에 알려줌
-@RequestMapping("/api/v1") // 이 컨트롤러의 기본 URL 경로를 설정
+@RequestMapping("/api/v1/user") // 이 컨트롤러의 기본 URL 경로를 설정
 @RequiredArgsConstructor
 public class UserController {
 
