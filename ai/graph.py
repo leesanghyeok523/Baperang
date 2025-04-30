@@ -1,13 +1,17 @@
 # LangGraph 워크플로우 정의 (식단 에이전트)
-
-from langchain.chat_models import ChatOpenAI, ChatAnthropic
+import asyncio
+from langchain.chat_models import ChatOpenAI
 from langgraph import StateGraph, START
 from app.services import generate_waste_plan, generate_nutrition_plan, integrate_plans
+from app import config
 
 
 # 1. LLM 클라이언트 초기화
-llm_gpt4 = ChatOpenAI(model="gpt-4", temperature=0.2)
-llm_claude = ChatAnthropic(model="claude-2", temperature=0.2)
+llm_gpt4 = ChatOpenAI(
+    model_name="gpt-4",
+    temperature=0.2,
+    openai_api_key=config.OPENAI_API_KEY,
+    )
 
 # 2. 그래프 빌더 생성
 builder = StateGraph(dict)

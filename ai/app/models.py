@@ -9,7 +9,8 @@ class PlanRequest(BaseModel):
 # 식단 생성 응답 From LLM
 class PlanResponse(BaseModel):
     # 날짜별 메뉴 리스트
-    plan: Dict[str, List[Dict[str, Any]]]
+    plan: Dict[str, List[str]]
+
 
 
 # 잔반 데이터 요청
