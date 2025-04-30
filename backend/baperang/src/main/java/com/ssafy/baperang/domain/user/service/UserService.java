@@ -9,6 +9,7 @@ import com.ssafy.baperang.domain.user.dto.request.SignupRequestDto;
 import com.ssafy.baperang.domain.user.dto.response.SignupResponseDto;
 import com.ssafy.baperang.domain.user.entity.User;
 import com.ssafy.baperang.domain.user.repository.UserRepository;
+import com.ssafy.baperang.global.exception.BaperangErrorCode;
 
 import lombok.RequiredArgsConstructor;
 
