@@ -1,75 +1,72 @@
-import { useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import API_CONFIG from '../config/api';
-import { api } from '../utils/apiClient';
 
 /**
  * 인증 관련 기능을 제공하는 커스텀 훅
+ * - 로그인, 로그아웃 기능
+ * - 로딩 상태 관리
+ * - 에러 처리
+ * - 페이지 이동 처리
  */
-export const useAuth = () => {
+const useAuth = () => {
   const navigate = useNavigate();
-  const { user, isAuthenticated, isLoading, login, logout } = useAuthStore();
+  const [error, setError] = useState<string | null>(null);
+  const { login, logout, isAuthenticated, isLoading, user } = useAuthStore();
 
   /**
-   * 로그인 처리
+   * 로그인 처리 함수
+   * @param credentials 로그인 자격 증명 (아이디, 비밀번호)
+   * @param redirectPath 로그인 성공 후 리다이렉트할 경로 (기본값: '/main')
    */
-  const handleLogin = async (loginId: string, password: string) => {
+  const handleLogin = async (
+    credentials: { loginId: string; password: string },
+    redirectPath = '/main'
+  ) => {
     try {
-      await login({ loginId, password });
-      navigate('/dashboard');
-      return true;
-    } catch (error) {
-      console.error('로그인 실패:', error);
+      setError(null);
+      await login(credentials);
+      navigate(redirectPath);
+    } catch (err) {
+      setError('로그인에 실패했습니다. 아이디와 비밀번호를 확인해주세요.');
+      console.error('로그인 에러:', err);
+    }
+  };
+
+  /**
+   * 로그아웃 처리 함수
+   * @param redirectPath 로그아웃 성공 후 리다이렉트할 경로 (기본값: '/login')
+   */
+  const handleLogout = async (redirectPath = '/login') => {
+    try {
+      await logout();
+      navigate(redirectPath);
+    } catch (err) {
+      console.error('로그아웃 에러:', err);
+    }
+  };
+
+  /**
+   * 인증 필요 페이지 접근 시 체크 함수
+   * 인증되지 않은 경우 로그인 페이지로 리다이렉트
+   */
+  const checkAuth = () => {
+    if (!isLoading && !isAuthenticated) {
+      navigate('/login');
       return false;
     }
+    return true;
   };
-
-  /**
-   * 로그아웃 처리
-   */
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login');
-  };
-
-  /**
-   * 사용자 정보 가져오기
-   */
-  const getUserInfo = async () => {
-    if (!isAuthenticated || !user) return null;
-
-    try {
-      const response = await api.get(
-        API_CONFIG.getUrl(API_CONFIG.ENDPOINTS.AUTH.USER_INFO, {
-          'user-id': user.userPk.toString(),
-        })
-      );
-
-      if (!response.ok) throw new Error('사용자 정보를 가져오는데 실패했습니다');
-
-      return await response.json();
-    } catch (error) {
-      console.error('사용자 정보 조회 오류:', error);
-      return null;
-    }
-  };
-
-  // 인증 상태 확인
-  useEffect(() => {
-    // 인증이 필요한 페이지에서 로그인 상태가 아니면 로그인 페이지로 리다이렉트
-    // 이 코드는 보호된 라우트에서 사용할 때만 활성화
-    // if (requireAuth && !isAuthenticated && !isLoading) {
-    //   navigate('/login');
-    // }
-  }, [isAuthenticated, isLoading]);
 
   return {
-    user,
+    handleLogin,
+    handleLogout,
+    checkAuth,
     isAuthenticated,
     isLoading,
-    login: handleLogin,
-    logout: handleLogout,
-    getUserInfo,
+    user,
+    error,
   };
 };
+
+export default useAuth;
