@@ -12,12 +12,14 @@ import com.ssafy.baperang.domain.user.entity.User;
 import com.ssafy.baperang.domain.user.repository.UserRepository;
 import com.ssafy.baperang.global.exception.BaperangErrorCode;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -74,6 +76,7 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public boolean isLoginIdAvailable(String loginId) {
+        log.info("중복확인 완료");
         return !userRepository.existsByLoginId(loginId);
     }
 
