@@ -1,27 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../../components/ui/button';
 import InputCard from '../../components/ui/inputcard';
-import { userData } from '../../data/dummyData';
+import { useAuthStore } from '../../store/authStore';
+import { api } from '../../utils/apiClient';
+import API_CONFIG from '../../config/api';
 
 const MyPage: React.FC = () => {
-  // 더미 데이터로 초기화
+  const { user } = useAuthStore();
+  const [isLoading, setIsLoading] = useState(false);
+
+  // 사용자 데이터로 초기화
   const [formData, setFormData] = useState({
-    ...userData,
-    confirmPassword: userData.password, // 비밀번호 확인 필드
+    loginId: '',
+    password: '',
+    confirmPassword: '',
+    nutritionistName: '',
+    city: '',
+    schoolName: '',
   });
 
   const navigate = useNavigate();
 
-  // 페이지 접근 시 로그인 상태 확인 (더미 데이터 사용 시에는 무조건 true)
-  // 실제 로그인 구현 후에는 주석 해제
-  /*
+  // 사용자 정보 로드
   useEffect(() => {
-    if (!isLoggedIn()) {
-      navigate('/login');
+    if (user) {
+      setFormData({
+        loginId: user.loginId || '',
+        password: '',
+        confirmPassword: '',
+        nutritionistName: user.nutritionistName || '',
+        city: user.city || '',
+        schoolName: user.schoolName || '',
+      });
     }
-  }, [navigate]);
-  */
+  }, [user]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -38,42 +51,40 @@ const MyPage: React.FC = () => {
       return;
     }
 
-    // 로그인 기능이 구현되면 아래 API 호출 코드 활성화
-    // try {
-    //   const token = localStorage.getItem('token'); // 또는 getToken() 사용
-    //
-    //   if (!token) {
-    //     navigate('/login');
-    //     return;
-    //   }
-    //
-    //   // 필요한 데이터만 전송
-    //   const updateData = {
-    //     nutritionistName: formData.nutritionistName,
-    //     city: formData.city,
-    //     schoolName: formData.schoolName,
-    //   };
-    //
-    //   // 비밀번호가 입력된 경우에만 포함
-    //   if (formData.password) {
-    //     updateData.password = formData.password;
-    //   }
-    //
-    //   // 사용자 정보 업데이트 요청
-    //   await axios.put('/api/v1/members/me', updateData, {
-    //     headers: {
-    //       Authorization: `Bearer ${token}`,
-    //     },
-    //   });
-    //
-    //   alert('회원 정보가 수정되었습니다.');
-    // } catch (err) {
-    //   console.error('회원 정보 수정에 실패했습니다:', err);
-    //   alert('회원 정보 수정에 실패했습니다. 다시 시도해주세요.');
-    // }
+    setIsLoading(true);
 
-    // 임시 처리
-    alert('회원 정보가 수정되었습니다. (로그인 기능 구현 전 테스트)');
+    try {
+      // 필요한 데이터만 전송
+      const updateData = {
+        nutritionistName: formData.nutritionistName,
+        city: formData.city,
+        schoolName: formData.schoolName,
+      };
+
+      // 비밀번호가 입력된 경우에만 포함
+      if (formData.password) {
+        Object.assign(updateData, { password: formData.password });
+      }
+
+      // 사용자 정보 업데이트 요청
+      const response = await api.put(
+        API_CONFIG.getUrl(API_CONFIG.ENDPOINTS.AUTH.USER_INFO, {
+          'user-id': user?.userPk.toString() || '',
+        }),
+        updateData
+      );
+
+      if (!response.ok) {
+        throw new Error('회원 정보 수정에 실패했습니다');
+      }
+
+      alert('회원 정보가 수정되었습니다.');
+    } catch (error) {
+      console.error('회원 정보 수정에 실패했습니다:', error);
+      alert('회원 정보 수정에 실패했습니다. 다시 시도해주세요.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -138,11 +149,12 @@ const MyPage: React.FC = () => {
           <Button
             className="w-full max-w-[200px] py-3 bg-white/50 hover:bg-green-500 hover:text-white"
             onClick={() => navigate(-1)}
+            disabled={isLoading}
           >
             취소
           </Button>
-          <Button className="w-full max-w-[200px] py-3" onClick={handleUpdate}>
-            수정하기
+          <Button className="w-full max-w-[200px] py-3" onClick={handleUpdate} disabled={isLoading}>
+            {isLoading ? '수정 중...' : '수정하기'}
           </Button>
         </div>
       </div>

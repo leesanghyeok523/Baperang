@@ -1,18 +1,14 @@
 package com.ssafy.baperang.domain.user.controller;
 
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
+import com.ssafy.baperang.domain.user.dto.request.LoginRequestDto;
 import com.ssafy.baperang.domain.user.dto.request.SignupRequestDto;
 import com.ssafy.baperang.domain.user.dto.request.ValidateIdRequestDto;
-import com.ssafy.baperang.domain.user.dto.response.SignupResponseDto;
+import com.ssafy.baperang.domain.user.dto.response.ErrorResponseDto;
 import com.ssafy.baperang.domain.user.dto.response.ValidateIdResponseDto;
 import com.ssafy.baperang.domain.user.service.UserService;
-
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 @RestController // REST API 컨트롤러임을 spring에 알려줌
 @RequestMapping("/api/v1/user") // 이 컨트롤러의 기본 URL 경로를 설정
@@ -22,12 +18,15 @@ public class UserController {
     private final UserService userService;
 
     @PostMapping("/signup")
-    public ResponseEntity<SignupResponseDto> signup(@RequestBody SignupRequestDto requestDto) {
-        // ResponseEntity는 HTTP 응답의 상태 코드, 헤더, 본문을 포함하는 객체
-        // RequestBody는 HTTP 요청 본문(JSON)을 SignupRequestDto 객체로 변환
-        SignupResponseDto responseDto = userService.signup(requestDto);
+    public ResponseEntity<?> signup(@RequestBody SignupRequestDto requestDto) {
+        Object result = userService.signup(requestDto);
 
-        return ResponseEntity.ok(responseDto);
+        if (result instanceof ErrorResponseDto) {
+            ErrorResponseDto errorResponse = (ErrorResponseDto) result;
+            return ResponseEntity.status(errorResponse.getStatus()).body(result);
+        }
+
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping("/validate-id")
@@ -40,4 +39,20 @@ public class UserController {
 
         return ResponseEntity.ok(responseDto);
     }
+
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody LoginRequestDto requestDto) {
+        Object result = userService.login(requestDto);
+
+        if (result instanceof ErrorResponseDto) {
+            ErrorResponseDto errorResponse = (ErrorResponseDto) result;
+            return ResponseEntity.status(errorResponse.getStatus()).body(result);
+        }
+
+        return ResponseEntity.ok(result);
+    }
+
+
+//    @DeleteMapping("/logout/{userId}")
+//    public ResponseEntity<?> logout(@PathVariable Long userId, HttpServeletResponse response)
 }
