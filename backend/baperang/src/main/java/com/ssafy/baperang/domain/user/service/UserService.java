@@ -100,9 +100,9 @@ public class UserService {
     }
 
     @Transactional
-    public Object logout(Long userId) {
+    public Object logout(Long userPk) {
         // 사용자 존재 여부 확인
-        User user = userRepository.findById(userId)
+        User user = userRepository.findById(userPk)
                 .orElse(null); // 사용자 ID로 검색, Optional<User>타입 반환, 없으면 null 반환
 
         if (user == null) {
