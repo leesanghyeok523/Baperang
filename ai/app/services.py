@@ -26,24 +26,23 @@ async def analyze_leftover(image_s3_key: str) -> Dict[str, float]:
     # 나중에 S3 다운로드 + YOLO 추론 + 부피 계산 로직으로 대체
     return get_leftover_data()
 
-async def generate_waste_plan() -> Dict[str, List[str]]:
+async def generate_waste_plan(leftover_data: Dict[str, float]) -> Dict[str, List[str]]:
     """
     잔반율을 개선하는 방향으로 식단 생성
     """
-    data = get_leftover_data()
-    prompt = make_waste_prompt(data)
+    prompt = make_waste_prompt(leftover_data)
     resp = await llm_gpt4.ainvoke([HumanMessage(content=prompt)])
     # 응답을 파싱하여 JSON으로 변환
     # 응답 예시: {"2025-05-02": ["식사1", "식사2"], "2025-05-03": ["식사3"], "2025-05-04": ["식사4"]}
     # PoC 용으로는 간단 파싱
     return parse_plan_text(resp.content)
 
-async def generate_nutrition_plan() -> Dict[str, List[str]]:
+async def generate_nutrition_plan(preference_data: Dict[str, Dict[str, float]]) -> Dict[str, List[str]]:
     """
     영양소 개선 식단 생성
     """
-    data = get_nutrition_data()
-    prompt = make_nutrition_prompt(data)
+    ratings = preference_data.get("average_rating", {})
+    prompt = make_nutrition_prompt(ratings)
     resp = await llm_gpt4.ainvoke([HumanMessage(content=prompt)])
     return parse_plan_text(resp.content)
 
