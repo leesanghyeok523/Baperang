@@ -31,11 +31,11 @@ public class School {
 
     @CreatedDate
     @Column(name = "create_at", nullable = false)
-    private LocalDateTime creatAt;
+    private LocalDateTime createdAt;
 
     @LastModifiedDate
     @Column(name = "updated_at")
-    private LocalDateTime updateAt;
+    private LocalDateTime updatedAt;
 
     @Builder
     public School(String schoolName, String city) {
