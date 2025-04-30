@@ -121,5 +121,4 @@ public class UserService {
             return ErrorResponseDto.of(BaperangErrorCode.INTERNAL_SERVER_ERROR);
         }
     }
-
 }
