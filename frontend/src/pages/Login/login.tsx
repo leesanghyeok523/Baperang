@@ -1,6 +1,6 @@
 // src/pages/Login/index.tsx
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import Button from '../../components/ui/button';
 import InputCard from '../../components/ui/inputcard';
 import { useAuth } from '../../hooks/useAuth';
@@ -74,9 +74,9 @@ const LoginPage: React.FC = () => {
         {error && <div className="text-red-500 text-sm text-center">{error}</div>}
 
         <div className="flex justify-center">
-          <a href="/forgot" className="text-sm text-gray-600 hover:underline">
+          <Link to="/forgot" className="text-sm text-gray-600 hover:underline">
             아이디/비밀번호를 잊으셨나요?
-          </a>
+          </Link>
         </div>
 
         <div className="flex justify-center gap-4">

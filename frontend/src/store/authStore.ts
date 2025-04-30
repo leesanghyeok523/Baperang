@@ -83,7 +83,7 @@ export const useAuthStore = create<AuthState>()(
           const accessToken = response.headers.get('accessToken');
           set({ accessToken });
           return true;
-        } catch (error) {
+        } catch {
           // 에러는 무시하고 실패로 처리
           return false;
         }
