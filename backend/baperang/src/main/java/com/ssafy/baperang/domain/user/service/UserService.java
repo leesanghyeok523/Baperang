@@ -6,6 +6,7 @@ import com.ssafy.baperang.domain.user.dto.request.LoginRequestDto;
 import com.ssafy.baperang.domain.user.dto.request.SignupRequestDto;
 import com.ssafy.baperang.domain.user.dto.response.ErrorResponseDto;
 import com.ssafy.baperang.domain.user.dto.response.LoginResponseDto;
+import com.ssafy.baperang.domain.user.dto.response.LogoutResponseDto;
 import com.ssafy.baperang.domain.user.dto.response.SignupResponseDto;
 import com.ssafy.baperang.domain.user.entity.User;
 import com.ssafy.baperang.domain.user.repository.UserRepository;
@@ -96,5 +97,28 @@ public class UserService {
         return LoginResponseDto.builder()
                 .userPk(user.getId())
                 .build();
+    }
+
+    @Transactional
+    public Object logout(Long userId) {
+        // 사용자 존재 여부 확인
+        User user = userRepository.findById(userId)
+                .orElse(null); // 사용자 ID로 검색, Optional<User>타입 반환, 없으면 null 반환
+
+        if (user == null) {
+            return ErrorResponseDto.of(BaperangErrorCode.USER_NOT_FOUND);
+        }
+        try {
+            // JWT 로직 완성 시 주석 해제
+            // user.setRefreshToken(null);
+            // userRepository.,save(user);
+
+            // 성공 응답 반환
+            return LogoutResponseDto.builder()
+                    .message("로그아웃이 완료되었습니다.")
+                    .build();
+        } catch (Exception e) {
+            return ErrorResponseDto.of(BaperangErrorCode.INTERNAL_SERVER_ERROR);
+        }
     }
 }
