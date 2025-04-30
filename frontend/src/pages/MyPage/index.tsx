@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Button from '../../components/ui/button';
 import InputCard from '../../components/ui/inputcard';
 import { useAuthStore } from '../../store/authStore';
-import { api } from '../../utils/apiClient';
+import apiClient from '../../utils/apiClient';
 import API_CONFIG from '../../config/api';
 
 const MyPage: React.FC = () => {
@@ -67,7 +67,7 @@ const MyPage: React.FC = () => {
       }
 
       // 사용자 정보 업데이트 요청
-      const response = await api.put(
+      const response = await apiClient.put(
         API_CONFIG.getUrl(API_CONFIG.ENDPOINTS.AUTH.USER_INFO, {
           'user-id': user?.userPk.toString() || '',
         }),
