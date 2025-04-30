@@ -17,6 +17,8 @@ WORKDIR /app
 RUN npm install -g serve
 COPY --from=builder /app/dist ./dist
 
+# 외부에 오픈할 포트
 EXPOSE 5173
-CMD ["serve", "-s", "dist", "-l", "5000"]
 
+# serve 를 0.0.0.0:5173 에 바인딩하도록 변경
+CMD ["serve", "-s", "dist", "-l", "5173", "--host", "0.0.0.0"]
