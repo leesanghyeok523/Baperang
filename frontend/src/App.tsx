@@ -7,6 +7,7 @@ import Header from './components/Header';
 import InventoryPage from './pages/Inventory';
 import MyPage from './pages/MyPage';
 import CreateMeal from './pages/CreateMeal';
+import ForgotAccountPage from './pages/ForgotAccount';
 import { useAuthStore } from './store/authStore';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -30,11 +31,12 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* 로그인 페이지는 헤더 없이 렌더링 */}
+        {/* 인증이 필요하지 않은 페이지들 */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/join" element={<JoinPage />} />
+        <Route path="/forgot" element={<ForgotAccountPage />} />
 
-        {/* 인증이 필요한 경로 */}
+        {/* 인증이 필요한 경로들 */}
         <Route element={<ProtectedRoute />}>
           <Route path="/" element={<Layout />}>
             <Route index element={<Navigate to="/main" />} />
