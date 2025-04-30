@@ -10,6 +10,7 @@ import CreateMeal from './pages/CreateMeal';
 import ForgotAccountPage from './pages/ForgotAccount';
 import { useAuthStore } from './store/authStore';
 import ProtectedRoute from './components/ProtectedRoute';
+import SatisfactionSurvey from './pages/Survey';
 
 // 헤더를 포함하는 레이아웃 컴포넌트
 const Layout = () => {
@@ -35,6 +36,7 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/join" element={<JoinPage />} />
         <Route path="/forgot" element={<ForgotAccountPage />} />
+        <Route path="/survey" element={<SatisfactionSurvey />} />
 
         {/* 인증이 필요한 경로들 */}
         <Route element={<ProtectedRoute />}>
