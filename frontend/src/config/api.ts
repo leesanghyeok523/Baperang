@@ -9,15 +9,15 @@ const API_CONFIG = {
   ENDPOINTS: {
     // 회원 관리
     AUTH: {
-      SIGNUP: '/api/v1/signup',
-      LOGIN: '/api/v1/login',
-      LOGOUT: '/api/v1/logout', // {userId} 파라미터 필요
-      VALIDATE_ID: '/api/v1/validate-id',
-      FIND_ID: '/api/v1/find-id',
-      NEW_PASSWORD: '/api/v1/new-password',
-      USER_INFO: '/api/v1/users', // /{user-id} 파라미터 필요
-      REFRESH_TOKEN: '/api/v1/refresh-token',
-      DELETE_USER: '/api/v1/users',
+      SIGNUP: '/api/v1/user/signup',
+      LOGIN: '/api/v1/user/login',
+      LOGOUT: '/api/v1/user/logout', // {userId} 파라미터 필요
+      VALIDATE_ID: '/api/v1/user/validate-id',
+      FIND_ID: '/api/v1/user/find-id',
+      NEW_PASSWORD: '/api/v1/user/new-password',
+      USER_INFO: '/api/v1/user/users', // /{user-id} 파라미터 필요
+      REFRESH_TOKEN: '/api/v1/user/refresh-token',
+      DELETE_USER: '/api/v1/user/users',
     },
 
     // 식단 관리
