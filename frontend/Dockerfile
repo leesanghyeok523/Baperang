@@ -21,4 +21,4 @@ COPY --from=builder /app/dist ./dist
 EXPOSE 5173
 
 # serve 를 0.0.0.0:5173 에 바인딩하도록 변경
-CMD ["serve", "-s", "dist", "-l", "5173", "--host", "0.0.0.0"]
+CMD ["serve", "-s", "dist", "-l", "5173"]
