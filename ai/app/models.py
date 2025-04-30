@@ -3,8 +3,8 @@ from typing import List, Dict, Any
 
 # 식단 생성 요청 To LLM
 class PlanRequest(BaseModel):
-    # 필요시 날짜 범위 추가
-    pass
+    leftover_data: Dict[str, float]
+    preference_data: Dict[str, Dict[str, float]]
 
 # 식단 생성 응답 From LLM
 class PlanResponse(BaseModel):
