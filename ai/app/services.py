@@ -1,8 +1,8 @@
 # 이미지 처리·Inference·부피·LLM 워크플로우 함수 모음
 import os
 from typing import Dict, List
-from langchain_openai import ChatOpenAI
-from langchain_core.messages import HumanMessage
+from langchain.chat_models import ChatOpenAI
+from langchain.schema import HumanMessage
 
 from .config import OPENAI_API_KEY
 from .prompts import make_waste_prompt, make_nutrition_prompt, make_integration_prompt
