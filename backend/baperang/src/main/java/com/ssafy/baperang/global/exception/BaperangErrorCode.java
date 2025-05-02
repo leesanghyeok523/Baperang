@@ -9,7 +9,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public enum PictoryErrorCode {
+public enum BaperangErrorCode {
 
     // Auth 관련 에러 (400-499)
     INVALID_LOGIN_VALUE(400, "C001", "잘못된 로그인 정보입니다."),

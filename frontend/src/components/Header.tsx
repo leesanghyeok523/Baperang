@@ -9,8 +9,8 @@ const Header = ({ isLoggedIn }: HeaderProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <header className="bg-transparent py-8 fixed top-0 left-0 right-0 z-50 w-full">
-      <div className="container ml-8 md:ml-10 flex justify-between items-center w-full">
+    <header className="bg-transparent py-10 fixed top-1 left-0 right-0 z-50 w-full">
+      <div className="flex justify-between items-center w-[89%] mx-auto">
         <div className="flex items-center">
           {/* 로고 이미지와 텍스트 */}
           <Link to="/" className="flex items-center">
@@ -43,10 +43,10 @@ const Header = ({ isLoggedIn }: HeaderProps) => {
         </div>
 
         {/* 데스크탑 메뉴 */}
-        <div className="hidden md:flex md:items-center mr-4 md:mr-8">
+        <div className="hidden md:flex md:items-center mr-4 md:mr-8 text-2xl">
           {isLoggedIn && (
             <nav className="flex space-x-8">
-              <Link to="/diet" className="text-gray-700 hover:text-gray-900 font-bold">
+              <Link to="/diet" className="text-gray-700 hover:text-gray-900 font-bold ">
                 식단생성
               </Link>
               <Link to="/inventory" className="text-gray-700 hover:text-gray-900 font-bold">
