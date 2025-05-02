@@ -1,15 +1,24 @@
 package com.ssafy.baperang.domain.user.controller;
 
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.ssafy.baperang.domain.user.dto.request.LoginRequestDto;
 import com.ssafy.baperang.domain.user.dto.request.SignupRequestDto;
 import com.ssafy.baperang.domain.user.dto.request.ValidateIdRequestDto;
 import com.ssafy.baperang.domain.user.dto.response.ErrorResponseDto;
 import com.ssafy.baperang.domain.user.dto.response.ValidateIdResponseDto;
+import com.ssafy.baperang.domain.user.service.UserService;
+
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import com.ssafy.baperang.domain.user.service.UserService;
 
 @Slf4j
 @RestController // REST API 컨트롤러임을 spring에 알려줌
@@ -48,9 +57,9 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequestDto requestDto) {
+    public ResponseEntity<?> login(@RequestBody LoginRequestDto requestDto, HttpServletResponse response) {
         log.info("login 컨트롤러 함수 호출");
-        Object result = userService.login(requestDto);
+        Object result = userService.login(requestDto, response);
 
         if (result instanceof ErrorResponseDto) {
             ErrorResponseDto errorResponse = (ErrorResponseDto) result;
@@ -63,21 +72,10 @@ public class UserController {
     }
 
     @DeleteMapping("/logout/{userPk}")
-    public ResponseEntity<?> logout(@PathVariable Long userPk) {
+    public ResponseEntity<?> logout(@PathVariable Long userPk, HttpServletResponse response) {
         log.info("logout 컨트롤러 함수 호출");
-        // 쿠키 관련 코드는 JWT 구현 시 주석 해제
-    /*
-    HttpServletResponse response를 파라미터로 추가하고 아래 코드 활성화
-    // 쿠키 삭제
-    Cookie cookie = new Cookie("refreshToken", null);
-    cookie.setMaxAge(0);
-    cookie.setPath("/");
-    cookie.setHttpOnly(true);
-    cookie.setSecure(true); // HTTPS에서만 전송
-    response.addCookie(cookie);
-    */
-
-        Object result = userService.logout(userPk);
+        
+        Object result = userService.logout(userPk, response);
 
         if (result instanceof ErrorResponseDto) {
             ErrorResponseDto errorRespnse = (ErrorResponseDto) result;
@@ -85,6 +83,29 @@ public class UserController {
             return ResponseEntity.status(errorRespnse.getStatus()).body(result);
         }
         log.info("logout 컨트롤러 함수 정상 응답");
+        return ResponseEntity.ok(result);
+    }
+    
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refreshAccessToken(@CookieValue(name = "refreshToken", required = false) String refreshToken,
+                                              HttpServletResponse response) {
+        log.info("refreshAccessToken 컨트롤러 함수 호출");
+        
+        if (refreshToken == null) {
+            log.info("refreshAccessToken - 리프레시 토큰 없음");
+            ErrorResponseDto errorResponse = ErrorResponseDto.of(com.ssafy.baperang.global.exception.BaperangErrorCode.INVALID_REFRESH_TOKEN);
+            return ResponseEntity.status(errorResponse.getStatus()).body(errorResponse);
+        }
+        
+        Object result = userService.refreshAccessToken(refreshToken, response);
+        
+        if (result instanceof ErrorResponseDto) {
+            ErrorResponseDto errorResponse = (ErrorResponseDto) result;
+            log.info("refreshAccessToken 컨트롤러 함수 에러 응답");
+            return ResponseEntity.status(errorResponse.getStatus()).body(result);
+        }
+        
+        log.info("refreshAccessToken 컨트롤러 함수 정상 응답");
         return ResponseEntity.ok(result);
     }
 }
