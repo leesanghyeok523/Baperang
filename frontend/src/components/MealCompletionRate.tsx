@@ -43,13 +43,13 @@ const MealCompletionRate: React.FC<MealCompletionRateProps> = ({ completionRate 
 
   return (
     <div className="flex flex-col items-center justify-center h-full">
-      <div className="relative w-[650px] h-[450px]">
+      <div className="relative w-[450px] h-[450px]">
         {/* 식판 이미지 */}
         <img src="/images/items/dish.png" alt="식판" className="w-full h-full object-contain" />
 
         {/* 채워지는 부분 (오버레이) */}
         <div
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-[94%] h-[99%] bg-[#FF8A8A] opacity-70 rounded-bl-3xl rounded-br-3xl"
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-[99%] h-[95%] bg-[#FF8A8A] opacity-70 rounded-bl-3xl rounded-br-3xl"
           style={{
             clipPath: `inset(${100 - animatedRate}% 0 0 0)`,
             transition: 'clip-path 0.2s ease-out',
@@ -58,7 +58,7 @@ const MealCompletionRate: React.FC<MealCompletionRateProps> = ({ completionRate 
 
         {/* 퍼센트 숫자 */}
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-          <span className="text-7xl font-bold text-black">{Math.round(animatedRate)}%</span>
+          <span className="text-5xl font-bold text-black">{Math.round(animatedRate)}%</span>
         </div>
       </div>
 
