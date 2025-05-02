@@ -42,7 +42,7 @@ const CalendarGrid = ({
         className="grid grid-cols-7 gap-1 flex-grow h-full"
         style={{
           gridTemplateRows: `repeat(${weeksCount}, 1fr)`,
-          height: weeksCount === 4 ? '450px' : weeksCount === 5 ? '450px' : '450px',
+          height: '100%',
         }}
       >
         {days.map((day, index) => (
