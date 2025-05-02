@@ -4,6 +4,8 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Base64;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,6 +52,11 @@ public class JwtService {
 
     // JWT 액세스 토큰 생성
     public String createAccessToken(String loginId) {
+        return createAccessToken(loginId, null);
+    }
+    
+    // JWT 액세스 토큰 생성 (userId 포함)
+    public String createAccessToken(String loginId, Long userId) {
         LocalDateTime now = LocalDateTime.now(seoulZoneId);
         LocalDateTime validity = now.plusSeconds(accessTokenValidTime);
 
@@ -59,11 +66,19 @@ public class JwtService {
         logger.info("Token created for user: {}", loginId);
         logger.info("Current Time: {} : Validity time : {}", nowDate, validityDate);
 
+        // Claims 객체 생성
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("loginId", loginId);
+        if (userId != null) {
+            claims.put("userId", userId);
+        }
+
         // 토큰 전달하기
         return Jwts.builder()
                 .header().add("type", "JWT")
                 .and()
                 .subject(loginId)
+                .claims(claims)
                 .issuedAt(nowDate)
                 .expiration(validityDate)
                 .signWith(Keys.hmacShaKeyFor(secretKey.getBytes()))
@@ -72,13 +87,26 @@ public class JwtService {
 
     // JWT 리프레시 토큰 생성
     public String createRefreshToken(String loginId) {
+        return createRefreshToken(loginId, null);
+    }
+    
+    // JWT 리프레시 토큰 생성 (userId 포함)
+    public String createRefreshToken(String loginId, Long userId) {
         Date now = new Date();
         long validityInMilliseconds = refreshTokenValidTime * 1000L; // 초를 밀리초로 변환
+
+        // Claims 객체 생성
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("loginId", loginId);
+        if (userId != null) {
+            claims.put("userId", userId);
+        }
 
         return Jwts.builder()
                 .header().add("type", "JWT")
                 .and()
                 .subject(loginId)
+                .claims(claims)
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + validityInMilliseconds))
                 .signWith(Keys.hmacShaKeyFor(secretKey.getBytes()))
@@ -87,7 +115,14 @@ public class JwtService {
     
     // 토큰에서 회원 정보 추출
     public String getLoginId(String token) {
-        return parseClaims(token).getSubject();
+        Claims claims = parseClaims(token);
+        return claims.get("loginId", String.class);
+    }
+    
+    // 토큰에서 userId 추출
+    public Long getUserId(String token) {
+        Claims claims = parseClaims(token);
+        return claims.get("userId", Long.class);
     }
     
     // 토큰의 유효성 + 만료일자 확인

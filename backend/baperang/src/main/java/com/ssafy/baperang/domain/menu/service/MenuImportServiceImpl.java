@@ -30,8 +30,8 @@ import java.util.*;
 public class MenuImportServiceImpl implements MenuImportService {
 
     private final MenuRepository menuRepository;
-    private final NutrientRepository nutrientRepository;
-    private final MenuNutrientRepository menuNutrientRepository;
+//    private final NutrientRepository nutrientRepository;
+//    private final MenuNutrientRepository menuNutrientRepository;
     private final SchoolRepository schoolRepository;
     private final ObjectMapper objectMapper;
 
