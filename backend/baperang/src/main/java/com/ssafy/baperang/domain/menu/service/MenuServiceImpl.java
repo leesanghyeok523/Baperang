@@ -1,5 +1,6 @@
 package com.ssafy.baperang.domain.menu.service;
 
+import com.ssafy.baperang.domain.menu.dto.request.MenuRequestDto;
 import com.ssafy.baperang.domain.menu.dto.response.ErrorResponseDto;
 import com.ssafy.baperang.domain.menu.dto.response.MenuResponseDto;
 import com.ssafy.baperang.domain.menu.entity.Menu;
@@ -24,13 +25,16 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class MenuServiceImpl implements MenuService{
+public class MenuServiceImpl implements MenuService {
     private final MenuRepository menuRepository;
     private final UserRepository userRepository;
 
     @Override
     @Transactional(readOnly = true)
-    public Object getMenuCalendar(int year, int month, Long userPk) {
+    public Object getMenuCalendar(MenuRequestDto requestDto, Long userPk) {
+        int year = requestDto.getYear();
+        int month = requestDto.getMonth();
+
         log.info("getMenuCalendar 함수 실행 - 년: {}, 월: {}, 사용자ID: {}", year, month, userPk);
 
         try {
@@ -68,10 +72,10 @@ public class MenuServiceImpl implements MenuService{
 
                 List<MenuResponseDto.Menus> menusList = dayMenus.stream()
                         .map(menu -> MenuResponseDto.Menus.builder()
-                                    .menuId(menu.getId())
-                                    .menuName(menu.getMenuName())
-                                    .build())
-                                .collect(Collectors.toList());
+                                .menuId(menu.getId())
+                                .menuName(menu.getMenuName())
+                                .build())
+                        .collect(Collectors.toList());
 
                 // 요일 이름
                 DayOfWeek dayOfWeek = currentDate.getDayOfWeek();
@@ -94,6 +98,7 @@ public class MenuServiceImpl implements MenuService{
             log.info("getMenuCalendar 함수 성공 종료 - 일수: {}", daysList.size());
             return responseDto;
         } catch (Exception e) {
+            log.error("메뉴 조회 중 오류 발생: {}", e.getMessage(), e);
             return ErrorResponseDto.of(BaperangErrorCode.INTERNAL_SERVER_ERROR);
         }
     }

@@ -3,10 +3,10 @@ package com.ssafy.baperang.domain.menu.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.baperang.domain.menu.entity.Menu;
 import com.ssafy.baperang.domain.menu.repository.MenuRepository;
-import com.ssafy.baperang.domain.menunutrient.entity.MenuNutrient;
-import com.ssafy.baperang.domain.menunutrient.repository.MenuNutrientRepository;
-import com.ssafy.baperang.domain.nutrient.entity.Nutrient;
-import com.ssafy.baperang.domain.nutrient.repository.NutrientRepository;
+//import com.ssafy.baperang.domain.menunutrient.entity.MenuNutrient;
+//import com.ssafy.baperang.domain.menunutrient.repository.MenuNutrientRepository;
+//import com.ssafy.baperang.domain.nutrient.entity.Nutrient;
+//import com.ssafy.baperang.domain.nutrient.repository.NutrientRepository;
 import com.ssafy.baperang.domain.school.entity.School;
 import com.ssafy.baperang.domain.school.repository.SchoolRepository;
 import lombok.RequiredArgsConstructor;
@@ -30,8 +30,8 @@ import java.util.*;
 public class MenuImportServiceImpl implements MenuImportService {
 
     private final MenuRepository menuRepository;
-    private final NutrientRepository nutrientRepository;
-    private final MenuNutrientRepository menuNutrientRepository;
+//    private final NutrientRepository nutrientRepository;
+//    private final MenuNutrientRepository menuNutrientRepository;
     private final SchoolRepository schoolRepository;
     private final ObjectMapper objectMapper;
 
