@@ -29,7 +29,7 @@ const CalendarGrid = ({
         {weekdays.map((day, index) => (
           <div
             key={index}
-            className={`text-center text-lg font-semibold ${
+            className={`text-center text-md font-semibold ${
               index === 0 ? 'text-red-500' : index === 6 ? 'text-blue-500' : ''
             }`}
           >
