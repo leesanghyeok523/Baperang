@@ -226,8 +226,8 @@ const JoinPage: React.FC = () => {
         bg-center
       "
     >
-      <div className="w-full max-w-sm space-y-5">
-        <h1 className="text-4xl font-semibold text-gray-700 text-center mb-5">회원가입</h1>
+      <div className="w-full max-w-sm space-y-4">
+        <h1 className="text-3xl font-semibold text-gray-700 text-center mb-5">회원가입</h1>
 
         <InputCard
           placeholder="아이디를 입력하세요"

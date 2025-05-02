@@ -1,4 +1,5 @@
 package com.ssafy.baperang.domain.leftover.service;
 
-public class LeftoverService {
+public interface LeftoverService {
+    public Object getLeftoversByDate(String dateStr);
 }

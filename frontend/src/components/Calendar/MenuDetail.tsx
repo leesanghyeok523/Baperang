@@ -17,7 +17,7 @@ const MenuDetail = ({ selectedDate, menuData }: MenuDetailProps) => {
             {menuData[selectedDate].menu.map((item: string, index: number) => (
               <div
                 key={index}
-                className="bg-white w-full px-4 py-3 rounded-3xl text-xs shadow-sm text-center"
+                className="bg-white w-full px-4 py-3 rounded-3xl text-base text-xs shadow-sm text-center"
               >
                 {item}
               </div>

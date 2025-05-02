@@ -58,7 +58,7 @@ const MealCompletionRate: React.FC<MealCompletionRateProps> = ({ completionRate 
 
         {/* 퍼센트 숫자 */}
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-          <span className="text-6xl font-bold text-black">{Math.round(animatedRate)}%</span>
+          <span className="text-5xl font-bold text-black">{Math.round(animatedRate)}%</span>
         </div>
       </div>
 

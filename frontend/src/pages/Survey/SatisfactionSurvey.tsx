@@ -227,7 +227,7 @@ const SatisfactionSurvey = () => {
         <Button
           className={`px-6 py-2 text-sm ${
             isClosed ? 'bg-gray-500 cursor-not-allowed' : 'bg-gray-400 hover:bg-red-600'
-          } text-white font-semibold rounded-xl opacity-70 hover:opacity-100`}
+          } text-white font-semibold rounded-2xl opacity-70 hover:opacity-100`}
           onClick={() => !isClosed && setShowConfirmation(true)}
           disabled={isClosed}
         >
@@ -294,7 +294,7 @@ const SatisfactionSurvey = () => {
       {/* 마감 확인 모달 */}
       {showConfirmation && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full">
             <h3 className="text-xl font-bold mb-4">만족도 조사 마감</h3>
             <p className="mb-6">
               정말로 오늘의 만족도 조사를 마감하시겠습니까?

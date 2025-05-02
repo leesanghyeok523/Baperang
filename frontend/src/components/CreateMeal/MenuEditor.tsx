@@ -157,7 +157,7 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
             {menuData[selectedDate].menu.map((item, index) => (
               <div
                 key={index}
-                className="bg-white w-full px-4 py-3 rounded-3xl shadow-sm text-xs text-center"
+                className="bg-white w-full px-4 py-3 rounded-3xl text-base text-xs shadow-sm text-center"
               >
                 {item}
               </div>
@@ -190,7 +190,7 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
                 type="text"
                 value={item}
                 onChange={(e) => handleMenuItemChange(index, e.target.value)}
-                className="w-full rounded-3xl px-4 py-3 bg-white text-center focus:outline-none focus:bg-[#E7E3DE] text-xs pr-8 pl-8 shadow-sm"
+                className="w-full rounded-3xl px-4 py-3 bg-white text-center text-xs focus:outline-none focus:bg-[#E7E3DE] pr-8 pl-8 shadow-sm"
               />
               <button
                 onClick={() => handleRemoveMenuItem(index)}
@@ -200,7 +200,7 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
               </button>
             </div>
           ))}
-          <div className="flex justify-center mt-2">
+          <div className="flex justify-center mt-2 text-xs ">
             <button
               onClick={handleAddMenuItem}
               className="flex items-center justify-center text-gray-700 hover:text-gray-900"
@@ -209,7 +209,7 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
             </button>
           </div>
         </div>
-        <div className="flex justify-center space-x-16 mb-2">
+        <div className="flex justify-center space-x-16 mb-2 text-sm ">
           <button
             onClick={onCancel}
             className="flex items-center text-gray-600 hover:text-gray-800"
