@@ -169,32 +169,35 @@ const ForgotAccountPage: React.FC = () => {
           bg-join
           bg-cover
           bg-center
+          relative
         "
       >
-        <div className="w-full max-w-sm space-y-6">
-          <h1 className="text-4xl font-semibold text-gray-700 text-center mb-6">
+        <div className="w-full max-w-sm space-y-6 relative z-50">
+          {/* <h1 className="text-4xl font-semibold text-gray-700 text-center mb-6">
             {activeTab === 'findId' ? '아이디 찾기' : '비밀번호 재설정'}
-          </h1>
+          </h1> */}
 
           {/* 탭 전환 버튼 */}
-          <div className="flex border-b border-gray-300 mb-6">
+          <div className="flex border-b border-gray-300 mb-6 relative z-50">
             <button
-              className={`flex-1 py-3 font-medium ${
+              className={`flex-1 py-3 font-medium cursor-pointer relative ${
                 activeTab === 'findId'
                   ? 'text-green-600 border-b-2 border-green-600'
-                  : 'text-gray-500'
+                  : 'text-gray-500 hover:text-green-500'
               }`}
               onClick={() => setActiveTab('findId')}
+              type="button"
             >
               아이디 찾기
             </button>
             <button
-              className={`flex-1 py-3 font-medium ${
+              className={`flex-1 py-3 font-medium cursor-pointer relative ${
                 activeTab === 'resetPassword'
                   ? 'text-green-600 border-b-2 border-green-600'
-                  : 'text-gray-500'
+                  : 'text-gray-500 hover:text-green-500'
               }`}
               onClick={() => setActiveTab('resetPassword')}
+              type="button"
             >
               비밀번호 재설정
             </button>
