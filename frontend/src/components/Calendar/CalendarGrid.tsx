@@ -81,7 +81,7 @@ const CalendarGrid = ({
             </div>
 
             {day.type === 'current' && day.hasMenu && (
-              <div className="text-xs mt-1 text-gray-600 overflow-hidden text-ellipsis">
+              <div className="text-[10px] mt-1 text-gray-600 overflow-hidden text-ellipsis">
                 {
                   menuData[
                     `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(
