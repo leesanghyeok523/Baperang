@@ -1,5 +1,5 @@
 from fastapi import APIRouter, FastAPI
-from services import (
+from .services import (
     generate_waste_plan,
     generate_nutrition_plan,
     integrate_plans,
@@ -7,7 +7,7 @@ from services import (
 )
 from pydantic import BaseModel
 from typing import Dict, List
-from models import (
+from .models import (
     PlanRequest,
     PlanResponse,
     AnalyzeRequest,           

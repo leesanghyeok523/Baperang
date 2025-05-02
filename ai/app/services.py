@@ -4,18 +4,20 @@ from typing import Dict, List
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
 
-import config
-from prompts import make_waste_prompt, make_nutrition_prompt, make_integration_prompt
-from utils import get_leftover_data, get_nutrition_data
+from .config import OPENAI_API_KEY
+from .prompts import make_waste_prompt, make_nutrition_prompt, make_integration_prompt
+from .utils import get_leftover_data, get_nutrition_data
+
+print("[DEBUG] OPENAI_API_KEY", OPENAI_API_KEY)
 
 # LLM 클라이언트 초기화
 llm_gpt4 = ChatOpenAI(
     model_name="gpt-4",
     temperature=0.2,
-    openai_api_key=config.OPENAI_API_KEY,
+    openai_api_key=OPENAI_API_KEY,
     )
 
-print(f"[DEBUG] config.OPENAI_API_KEY: {config.OPENAI_API_KEY}")
+print(f"[DEBUG] config.OPENAI_API_KEY: {OPENAI_API_KEY}")
 
 # 이미지 key를 받아서 잔반 반환 함수
 async def analyze_leftover(image_s3_key: str) -> Dict[str, float]:
