@@ -50,7 +50,7 @@ const MenuCard: React.FC<MenuCardProps> = ({ menuItems, currentDate, onPrevDay, 
         <div className="flex flex-col items-center justify-center h-full space-y-10">
           {menuItems.map((item, index) => (
             <div key={index} className="text-center w-full">
-              <p className="text-2xl font-medium text-gray-800">{item}</p>
+              <p className="text-xl font-medium text-gray-800">{item}</p>
             </div>
           ))}
         </div>
