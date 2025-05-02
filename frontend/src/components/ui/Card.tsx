@@ -22,7 +22,7 @@ export const CardHeader: React.FC<{ children: ReactNode; className?: string }> =
   className = '',
 }) => {
   return (
-    <div className={`flex items-center justify-between p-4 bg-white/50 ${className}`}>
+    <div className={`flex items-center justify-between p-7 bg-white/50 ${className}`}>
       {children}
     </div>
   );

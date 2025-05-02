@@ -99,12 +99,12 @@ const CreateMeal = () => {
             style={{ height: '73vh' }}
           >
             {/* 캘린더 헤더 */}
-            <div className="flex justify-center items-center p-4 bg-white/50">
-              <div className="flex justify-center items-center space-x-4">
+            <div className="flex justify-center items-center p-7 bg-white/50">
+              <div className="flex justify-center items-center space-x-5">
                 <button onClick={goToPrevMonth} className="text-gray-600 hover:text-gray-900">
                   <FiChevronLeft size={30} />
                 </button>
-                <span className="text-xl font-bold">{displayYearMonth} 식단 생성</span>
+                <span className="text-2xl font-bold">{displayYearMonth} 식단 생성</span>
                 <button onClick={goToNextMonth} className="text-gray-600 hover:text-gray-900">
                   <FiChevronRight size={30} />
                 </button>
