@@ -64,7 +64,7 @@ const RateToggleCard: React.FC<RateToggleCardProps> = ({ data }) => {
         >
           <FiChevronLeft size={30} />
         </button>
-        <div className="font-semibold text-gray-800 text-xl">{getTitle()}</div>
+        <div className="font-semibold text-gray-800 text-2xl">{getTitle()}</div>
         <button
           className="text-gray-600 hover:text-gray-900 focus:outline-none"
           onClick={handleRightClick}

@@ -6,7 +6,7 @@ import App from './App.tsx';
 if (import.meta.env.DEV) {
   document.documentElement.style.fontSize = '80%';
 } else {
-  document.documentElement.style.fontSize = '0%';
+  document.documentElement.style.fontSize = '100%';
 }
 
 createRoot(document.getElementById('root')!).render(<App />);

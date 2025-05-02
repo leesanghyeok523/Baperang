@@ -6,13 +6,12 @@ import { exportInventoryToExcel } from './excelExporter';
 // 공통 스타일 상수 정의
 const STYLES = {
   headerCell:
-    'py-[9px] px-4 text-center border-t border-b border-r border-gray-300 text-lg font-semibold',
-  headerCellLast:
-    'py-[9px] px-4 text-center border-t border-b border-gray-300 text-lg font-semibold',
-  dataCell: 'py-[9px] px-4 text-center border-b border-r border-gray-300 text-lg',
-  dataCellLast: 'py-[9px] px-4 text-center border-b border-gray-300 text-lg',
-  dataCellFixed: 'py-[9px] px-4 text-center border-b border-r border-gray-300 h-[60px] text-lg',
-  dataCellLastFixed: 'py-[9px] px-4 text-center border-b border-gray-300 h-[60px] text-lg',
+    'py-4 px-4 text-center border-t border-b border-r border-gray-300 text-lg font-semibold',
+  headerCellLast: 'py-4 px-4 text-center border-t border-b border-gray-300 text-lg font-semibold',
+  dataCell: 'py-4 px-4 text-center border-b border-r border-gray-300 text-lg',
+  dataCellLast: 'py-4 px-4 text-center border-b border-gray-300 text-lg',
+  dataCellFixed: 'py-4 px-4 text-center border-b border-r border-gray-300 h-[60px] text-lg',
+  dataCellLastFixed: 'py-4 px-4 text-center border-b border-gray-300 h-[60px] text-lg',
 };
 
 const InventoryPage: React.FC = () => {
@@ -163,24 +162,24 @@ const InventoryPage: React.FC = () => {
         <div className="w-[85%] mx-auto">
           <div
             className="bg-[#F8F1E7] rounded-t-3xl shadow-lg p-0 flex flex-col overflow-hidden"
-            style={{ height: '81vh' }}
+            style={{ height: '82vh' }}
           >
             {/* 헤더 */}
-            <div className="grid grid-cols-3 items-center p-4">
+            <div className="grid grid-cols-3 items-center p-7">
               {/* 왼쪽 - 빈 영역 */}
               <div className="flex items-center">
                 {/* 필요한 경우 여기에 추가 버튼이나 컨트롤 배치 */}
               </div>
 
               {/* 중앙 - 이전/다음 버튼과 제목 */}
-              <div className="flex items-center justify-center space-x-14">
+              <div className="flex items-center justify-center space-x-16">
                 <button
                   onClick={prevMonth}
                   className="text-gray-600 hover:text-gray-900 focus:outline-none"
                 >
                   <FiChevronLeft size={30} />
                 </button>
-                <h1 className="text-xl font-bold text-center">{currentMonth}월 재고관리</h1>
+                <h1 className="text-2xl font-bold text-center">{currentMonth}월 재고관리</h1>
                 <button
                   onClick={nextMonth}
                   className="text-gray-600 hover:text-gray-900 focus:outline-none"
@@ -223,7 +222,7 @@ const InventoryPage: React.FC = () => {
 
             {/* 페이지네이션 */}
             {totalPages > 1 && (
-              <div className="flex justify-center mt-2 mb-3 space-x-4">
+              <div className="flex justify-center mt-auto mb-6 space-x-4">
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                   <button
                     key={page}

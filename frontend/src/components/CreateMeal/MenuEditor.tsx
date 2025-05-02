@@ -125,7 +125,7 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
           </div>
         ) : (
           <div className="flex flex-col h-full">
-            <div className="text-base font-semibold text-center mb-3">
+            <div className="text-[14px] font-semibold text-center mb-3">
               {selectedDate.split('-')[1]}월 {selectedDate.split('-')[2]}일 식단
             </div>
             <div className="flex-grow flex items-center justify-center text-gray-500 mb-4">
@@ -150,14 +150,14 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
     return (
       <div className="w-1/5 bg-[#FCF8F3]/90 rounded-3xl p-4 flex flex-col">
         <div className="flex flex-col h-full">
-          <div className="text-base font-semibold text-center mb-3">
+          <div className="text-lg font-semibold text-center mb-3">
             {selectedDate.split('-')[1]}월 {selectedDate.split('-')[2]}일 식단
           </div>
           <div className="flex-grow flex flex-col gap-3 items-center">
             {menuData[selectedDate].menu.map((item, index) => (
               <div
                 key={index}
-                className="bg-white w-full px-4 py-3 rounded-3xl shadow-sm text-xs text-center"
+                className="bg-white w-full px-4 py-3 rounded-3xl text-base font-medium shadow-sm text-center"
               >
                 {item}
               </div>
@@ -166,7 +166,7 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
           <div className="flex justify-center mt-4">
             <button
               onClick={onEditStart}
-              className="flex items-center text-orange-600 hover:text-orange-800 mb-2"
+              className="flex items-center text-orange-600 hover:text-orange-800 mb-4"
             >
               <span>식단 수정하기</span>
             </button>
@@ -180,7 +180,7 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
   return (
     <div className="w-1/5 bg-[#FCF8F3]/90 rounded-3xl p-4 flex flex-col">
       <div className="flex flex-col h-full">
-        <div className="text-base font-semibold text-center mb-3">
+        <div className="text-lg font-semibold text-center mb-3">
           {selectedDate.split('-')[1]}월 {selectedDate.split('-')[2]}일 수정
         </div>
         <div className="flex-grow flex flex-col gap-3 overflow-y-auto">
@@ -190,7 +190,7 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
                 type="text"
                 value={item}
                 onChange={(e) => handleMenuItemChange(index, e.target.value)}
-                className="w-full rounded-3xl px-4 py-3 bg-white text-center focus:outline-none focus:bg-[#E7E3DE] text-xs pr-8 pl-8 shadow-sm"
+                className="w-full rounded-3xl px-4 py-3 bg-white text-center focus:outline-none focus:bg-[#E7E3DE] pr-8 pl-8 shadow-sm"
               />
               <button
                 onClick={() => handleRemoveMenuItem(index)}
@@ -209,7 +209,7 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
             </button>
           </div>
         </div>
-        <div className="flex justify-center space-x-16 mb-2">
+        <div className="flex justify-center space-x-16 mb-4">
           <button
             onClick={onCancel}
             className="flex items-center text-gray-600 hover:text-gray-800"

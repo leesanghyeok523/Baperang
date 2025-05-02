@@ -97,7 +97,9 @@ const MyPage: React.FC = () => {
         bg-center
       "
     >
-      <div className="w-full max-w-sm space-y-5 h-[65vh]">
+      <div className="w-full max-w-sm space-y-6">
+        <h1 className="text-4xl font-semibold text-gray-700 text-center mb-10">마이페이지</h1>
+
         <InputCard
           placeholder="이름을 입력하세요"
           name="nutritionistName"
