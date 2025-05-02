@@ -75,8 +75,15 @@ const JoinPage: React.FC = () => {
       const response = await fetch(API_CONFIG.getUrl(API_CONFIG.ENDPOINTS.AUTH.VALIDATE_ID), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestData),
+        body: JSON.stringify({ loginId: formData.loginId }),
       });
+
+      // 응답이 HTML인지 확인
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('text/html')) {
+        console.error('HTML 응답 수신됨 - API 경로 문제 가능성 있음');
+        throw new Error('서버가 유효한 JSON 응답을 반환하지 않습니다');
+      }
 
       console.log('중복 확인 응답 상태:', response.status, response.statusText);
 
