@@ -3,6 +3,11 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --scale-factor: 0.8;
+    font-size: 16px; /* 기본 폰트 크기 명시적 설정 */
+  }
+
   @font-face {
     font-family: 'Paperlogy';
     src: url('/fonts/Paperlogy-4Regular.ttf') format('truetype');
@@ -17,5 +22,34 @@
     font-weight: 600;
     font-style: normal;
     font-display: swap;
+  }
+
+  /* 모든 컴포넌트에 스케일 적용 */
+  #root {
+    transform: scale(var(--scale-factor));
+    transform-origin: top left;
+    width: calc(100% / var(--scale-factor));
+    height: calc(100% / var(--scale-factor));
+  }
+}
+
+/* 배경은 유지하고 컴포넌트만 스케일링 */
+@layer components {
+  /* 배경 이미지를 위한 클래스 */
+  .bg-login,
+  .bg-main,
+  .bg-mypage,
+  .bg-join {
+    background-size: cover;
+    background-position: center;
+  }
+
+  /* 컴포넌트 크기 조정 클래스 */
+  .w-full.max-w-sm,
+  .form-container,
+  .input-container {
+    transform: scale(var(--scale-factor));
+    transform-origin: center;
+    margin: 0 auto;
   }
 }
