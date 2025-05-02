@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { studentData, Student } from '../../data/studentData';
 import { useReactToPrint } from 'react-to-print';
 import InputCard from '../../components/ui/inputcard';
@@ -195,7 +195,7 @@ const StudentManagement = () => {
                         {filteredStudents.map((student) => (
                           <li
                             key={student.id}
-                            className={`px-4 py-3 rounded-xl cursor-pointer transition-colors ${
+                            className={`px-4 py-3 rounded-md cursor-pointer transition-colors ${
                               selectedStudent.id === student.id
                                 ? 'bg-[#96c059]/20 border border-[#96c059]/30'
                                 : 'bg-white hover:bg-gray-50 border border-gray-100'
@@ -243,7 +243,7 @@ const StudentManagement = () => {
                     {/* 학생 아바타 - 수직 가운데 정렬 */}
 
                     {/* 학생 정보 */}
-                    <div className="bg-white/50 rounded-2xl shadow-md p-4 text-center w-full h-[495px]">
+                    <div className="bg-white/50 rounded-2xl shadow-md p-6 text-center w-full h-[495px]">
                       <div className="w-40 h-40 overflow-hidden mb-6 mx-auto flex items-center justify-center">
                         <img
                           src={`/images/items/${
@@ -259,7 +259,7 @@ const StudentManagement = () => {
                           }}
                         />
                       </div>
-                      <h2 className="text-3xl font-bold mb-6">이름 : {selectedStudent.name}</h2>
+                      <h2 className="text-2xl font-bold mb-4">이름 : {selectedStudent.name}</h2>
                       <p className="text-xl mb-3">
                         학번 : {selectedStudent.grade}
                         {selectedStudent.classNum.toString().padStart(2, '0')}
@@ -269,7 +269,7 @@ const StudentManagement = () => {
                       <p className="text-xl mb-3">잔반율 : {selectedStudent.wasteRate}%</p>
 
                       <button
-                        className="mt-6 px-8 py-3 bg-[#96c059] text-white rounded-full hover:bg-[#7ba348] transition-colors text-lg font-medium"
+                        className="mt-4 px-8 py-3 bg-[#96c059] text-white rounded-2xl hover:bg-[#7ba348] transition-colors text-base"
                         onClick={generateAIReport}
                       >
                         AI 건강 리포트 생성
