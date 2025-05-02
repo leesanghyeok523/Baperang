@@ -1,5 +1,9 @@
 package com.ssafy.baperang.domain.user.service;
 
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.ssafy.baperang.domain.school.entity.School;
 import com.ssafy.baperang.domain.school.repository.SchoolRepository;
 import com.ssafy.baperang.domain.user.dto.request.LoginRequestDto;
@@ -11,13 +15,12 @@ import com.ssafy.baperang.domain.user.dto.response.SignupResponseDto;
 import com.ssafy.baperang.domain.user.entity.User;
 import com.ssafy.baperang.domain.user.repository.UserRepository;
 import com.ssafy.baperang.global.exception.BaperangErrorCode;
+import com.ssafy.baperang.global.jwt.JwtService;
 
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
@@ -27,6 +30,7 @@ public class UserServiceImpl implements UserService{
     private final UserRepository userRepository;
     private final SchoolRepository schoolRepository;
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
+    private final JwtService jwtService;
 
     @Transactional
     public Object signup(SignupRequestDto requestDto) {
@@ -87,7 +91,7 @@ public class UserServiceImpl implements UserService{
     }
 
     @Transactional(readOnly = true)
-    public Object login(LoginRequestDto requestDto) {
+    public Object login(LoginRequestDto requestDto, HttpServletResponse response) {
         log.info("login 함수 실행");
         // 로그인 ID 확인
         User user = userRepository.findByLoginId(requestDto.getLoginId())
@@ -105,15 +109,29 @@ public class UserServiceImpl implements UserService{
             return ErrorResponseDto.of(BaperangErrorCode.INVALID_LOGIN_VALUE);
         }
 
+        // JWT 토큰 생성 (userId 포함)
+        String accessToken = jwtService.createAccessToken(user.getLoginId(), user.getId());
+        String refreshToken = jwtService.createRefreshToken(user.getLoginId(), user.getId());
+        
+        // Access Token을 헤더에 추가
+        response.setHeader("Authorization", "Bearer " + accessToken);
+        
+        // Refresh Token을 쿠키에 추가
+        Cookie refreshTokenCookie = new Cookie("refreshToken", refreshToken);
+        refreshTokenCookie.setHttpOnly(true);
+        refreshTokenCookie.setSecure(true); // HTTPS에서만 전송
+        refreshTokenCookie.setPath("/");
+        refreshTokenCookie.setMaxAge(7 * 24 * 60 * 60); // 7일간 유효
+        response.addCookie(refreshTokenCookie);
+
         log.info("login 함수 성공 종료");
-        // 성공 시 로그인 응답 반환
-        return LoginResponseDto.builder()
-                .userPk(user.getId())
-                .build();
+        
+        // 성공 시 빈 응답 본문 반환 (필요한 정보는 모두 토큰에 있음)
+        return LoginResponseDto.builder().build();
     }
 
     @Transactional
-    public Object logout(Long userPk) {
+    public Object logout(Long userPk, HttpServletResponse response) {
         log.info("logout 함수 실행");
         // 사용자 존재 여부 확인
         User user = userRepository.findById(userPk)
@@ -124,9 +142,13 @@ public class UserServiceImpl implements UserService{
             return ErrorResponseDto.of(BaperangErrorCode.USER_NOT_FOUND);
         }
         try {
-            // JWT 로직 완성 시 주석 해제
-            // user.setRefreshToken(null);
-            // userRepository.,save(user);
+            // 쿠키 삭제
+            Cookie cookie = new Cookie("refreshToken", null);
+            cookie.setMaxAge(0);
+            cookie.setPath("/");
+            cookie.setHttpOnly(true);
+            cookie.setSecure(true); // HTTPS에서만 전송
+            response.addCookie(cookie);
 
             // 성공 응답 반환
             return LogoutResponseDto.builder()
@@ -135,5 +157,39 @@ public class UserServiceImpl implements UserService{
         } catch (Exception e) {
             return ErrorResponseDto.of(BaperangErrorCode.INTERNAL_SERVER_ERROR);
         }
+    }
+    
+    @Transactional(readOnly = true)
+    public Object refreshAccessToken(String refreshToken, HttpServletResponse response) {
+        log.info("refreshAccessToken 함수 실행");
+        
+        // refreshToken 검증
+        if (!jwtService.validateToken(refreshToken)) {
+            log.info("refreshAccessToken - 리프레시 토큰 유효하지 않음");
+            return ErrorResponseDto.of(BaperangErrorCode.INVALID_REFRESH_TOKEN);
+        }
+        
+        // 토큰에서 loginId와 userId 추출
+        String loginId = jwtService.getLoginId(refreshToken);
+        Long userId = jwtService.getUserId(refreshToken);
+        
+        // 사용자 존재 확인
+        User user = userRepository.findByLoginId(loginId)
+                .orElse(null);
+                
+        if (user == null) {
+            log.info("refreshAccessToken - 사용자 없음");
+            return ErrorResponseDto.of(BaperangErrorCode.USER_NOT_FOUND);
+        }
+        
+        // 새 accessToken 발급 (userId 포함)
+        String newAccessToken = jwtService.createAccessToken(loginId, userId);
+        
+        // 응답 헤더에 새 액세스 토큰 추가
+        response.setHeader("Authorization", "Bearer " + newAccessToken);
+        
+        log.info("refreshAccessToken 함수 성공 종료");
+        // 빈 응답 본문 반환
+        return LoginResponseDto.builder().build();
     }
 }
