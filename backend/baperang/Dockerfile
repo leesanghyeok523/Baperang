@@ -1,5 +1,5 @@
 # ─────────────────────────────────────
-# 1) Build stage: JDK21 + Gradle
+# 1) Build stage: JDK17 + Gradle
 # ─────────────────────────────────────
 FROM gradle:7.6-jdk17 AS builder
 WORKDIR /app
