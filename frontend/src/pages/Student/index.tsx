@@ -207,7 +207,7 @@ const StudentManagement = () => {
         backgroundColor: '#ffffff', // 배경색 설정
         windowWidth: 1080, // 너비 고정 (더 넓은 뷰포트 시뮬레이션)
         windowHeight: 1920, // 높이 고정 (더 높은 뷰포트 시뮬레이션)
-        onclone: (document, element) => {
+        onclone: (_, element) => {
           // 복제된 요소에 직접 스타일 적용 (더 안전함)
           element.style.maxHeight = 'none';
           element.style.height = 'auto';
