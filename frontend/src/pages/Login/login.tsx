@@ -1,9 +1,9 @@
 // src/pages/Login/index.tsx
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import Button from '../../components/ui/button';
 import InputCard from '../../components/ui/inputcard';
-import { useAuth } from '../../hooks/useAuth';
+import useAuth from '../../hooks/useAuth';
 
 const LoginPage: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -13,7 +13,7 @@ const LoginPage: React.FC = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { handleLogin, error: authError } = useAuth();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -22,7 +22,7 @@ const LoginPage: React.FC = () => {
     setError('');
   };
 
-  const handleLogin = async () => {
+  const handleSubmit = async () => {
     // 간단한 유효성 검사
     if (!formData.loginId || !formData.password) {
       setError('아이디와 비밀번호를 모두 입력해주세요.');
@@ -31,10 +31,8 @@ const LoginPage: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const success = await login(formData.loginId, formData.password);
-      if (!success) {
-        setError('로그인에 실패했습니다. 아이디와 비밀번호를 확인해주세요.');
-      }
+      await handleLogin(formData);
+      // 에러가 없다면 useAuth 내부에서 자동으로 리다이렉트됨
     } catch (error) {
       console.error('로그인 오류:', error);
       setError('로그인 중 오류가 발생했습니다. 다시 시도해주세요.');
@@ -71,12 +69,14 @@ const LoginPage: React.FC = () => {
           onChange={handleChange}
         />
 
-        {error && <div className="text-red-500 text-sm text-center">{error}</div>}
+        {(error || authError) && (
+          <div className="text-red-500 text-sm text-center">{error || authError}</div>
+        )}
 
         <div className="flex justify-center">
-          <a href="/forgot" className="text-sm text-gray-600 hover:underline">
+          <Link to="/forgot" className="text-sm text-gray-600 hover:underline">
             아이디/비밀번호를 잊으셨나요?
-          </a>
+          </Link>
         </div>
 
         <div className="flex justify-center gap-4">
@@ -87,7 +87,7 @@ const LoginPage: React.FC = () => {
           >
             회원가입
           </Button>
-          <Button className="w-full max-w-[200px] py-3" onClick={handleLogin} disabled={isLoading}>
+          <Button className="w-full max-w-[200px] py-3" onClick={handleSubmit} disabled={isLoading}>
             {isLoading ? '로그인 중...' : '로그인'}
           </Button>
         </div>

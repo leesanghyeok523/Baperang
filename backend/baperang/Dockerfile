@@ -1,7 +1,7 @@
 # ─────────────────────────────────────
-# 1) Build stage: JDK21 + Gradle
+# 1) Build stage: JDK17 + Gradle
 # ─────────────────────────────────────
-FROM gradle:7.6-jdk21 AS builder
+FROM gradle:7.6-jdk17 AS builder
 WORKDIR /app
 
 # Gradle Wrapper, 설정파일 복사 (캐시 활용)
@@ -16,7 +16,7 @@ RUN chmod +x gradlew && ./gradlew clean bootJar -x test
 # ─────────────────────────────────────
 # 2) Run stage: JRE만 포함
 # ─────────────────────────────────────
-FROM openjdk:21-jdk-slim
+FROM openjdk:17-jdk-slim
 WORKDIR /app
 
 # builder에서 만든 JAR 복사

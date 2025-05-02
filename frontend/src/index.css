@@ -18,4 +18,14 @@
     font-style: normal;
     font-display: swap;
   }
+
+  /* 전체 html, body 배경색 설정 */
+  html,
+  body,
+  #root {
+    min-height: 100vh;
+    background-color: #f6e6c5;
+    padding: 0;
+    font-size: 14px;
+  }
 }
