@@ -1,4 +1,5 @@
 package com.ssafy.baperang.domain.menu.service;
 
-public class MenuService {
+public interface MenuService {
+    public Object getMenuCalendar(int year, int month, Long userPk);
 }
