@@ -5,6 +5,11 @@
 # gitignore template for Jupyter Notebooks
 # website: http://jupyter.org/
 
+/ai/test/food_data.xlsx
+/ai/test/food_data.csv
+/ai/test/school_food_data.xls
+/ai/test/school_food_data.csv
+
 .ipynb_checkpoints
 */.ipynb_checkpoints/*
 
