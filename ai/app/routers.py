@@ -16,7 +16,7 @@ from .models import (
 
 router = APIRouter()
 
-@router.post("/analyze-leftover", response_model=AnalyzeResponse)
+@router.post("/ai/analyze-leftover", response_model=AnalyzeResponse)
 async def analyze_leftover_endpoint(request: AnalyzeRequest):
     """
     POST /analyze-leftover
@@ -26,17 +26,17 @@ async def analyze_leftover_endpoint(request: AnalyzeRequest):
     data = await analyze_leftover(request.image_s3_key)
     return {"leftover": data}
 
-@router.get("/waste-plan", response_model=PlanResponse)
+@router.get("/ai/waste-plan", response_model=PlanResponse)
 async def waste_plan():
     plan = await generate_waste_plan()
     return PlanResponse(plan=plan)
 
-@router.get("/nutrition-plan", response_model=PlanResponse)
+@router.get("/ai/nutrition-plan", response_model=PlanResponse)
 async def nutrition_plan():
     plan = await generate_nutrition_plan()
     return PlanResponse(plan=plan)
 
-@router.post("/integrated-plan", response_model=PlanResponse)
+@router.post("/ai/integrated-plan", response_model=PlanResponse)
 async def integrated_plan(request: PlanRequest):
     """
     POST /integrated-plan
