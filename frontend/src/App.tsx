@@ -11,6 +11,7 @@ import ForgotAccountPage from './pages/ForgotAccount';
 import { useAuthStore } from './store/authStore';
 import ProtectedRoute from './components/ProtectedRoute';
 import SatisfactionSurvey from './pages/Survey';
+import StudentManagement from './pages/Student';
 
 // 헤더를 포함하는 레이아웃 컴포넌트
 const Layout = () => {
@@ -45,6 +46,7 @@ function App() {
             <Route path="main" element={<MainPage />} />
             <Route path="calendar" element={<Calendar />} />
             <Route path="diet" element={<CreateMeal />} />
+            <Route path="student" element={<StudentManagement />} />
             <Route path="inventory" element={<InventoryPage />} />
             <Route path="mypage" element={<MyPage />} />
           </Route>
