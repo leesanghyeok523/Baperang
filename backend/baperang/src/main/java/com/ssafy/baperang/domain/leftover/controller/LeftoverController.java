@@ -32,6 +32,25 @@ public class LeftoverController {
 
         log.info("getLeftoversByDate 함수 정상 응답");
         return ResponseEntity.ok(result);
+    }
 
+    @GetMapping("/leftover/month/{year}/{month}")
+    public ResponseEntity<?> getLeftoversByMonth(
+            @PathVariable int year,
+            @PathVariable int month) {
+
+        log.info("getLeftoversByMonth 함수 호출 - 년도: {}, 월: {}", year, month);
+
+        Object result = leftoverService.getLeftoversByMonth(year, month);
+
+        if (result instanceof ErrorResponseDto) {
+            ErrorResponseDto errorResponseDto = (ErrorResponseDto) result;
+            log.info("getLeftoversByMonth 함수 에러 - 상태: {}, 코드: {}, 메시지: {}",
+                    errorResponseDto.getStatus(), errorResponseDto.getCode(), errorResponseDto.getMessage());
+            return ResponseEntity.status(errorResponseDto.getStatus()).body(result);
+        }
+
+        log.info("getLeftoversByMonth 함수 정상 응답");
+        return ResponseEntity.ok(result);
     }
 }

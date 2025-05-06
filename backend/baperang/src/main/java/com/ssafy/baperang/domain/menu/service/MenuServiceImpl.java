@@ -9,6 +9,7 @@ import com.ssafy.baperang.domain.school.entity.School;
 import com.ssafy.baperang.domain.user.entity.User;
 import com.ssafy.baperang.domain.user.repository.UserRepository;
 import com.ssafy.baperang.global.exception.BaperangErrorCode;
+import com.ssafy.baperang.global.jwt.JwtService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,16 +29,26 @@ import java.util.stream.Collectors;
 public class MenuServiceImpl implements MenuService {
     private final MenuRepository menuRepository;
     private final UserRepository userRepository;
+    private final JwtService jwtService;
 
     @Override
     @Transactional(readOnly = true)
-    public Object getMenuCalendar(MenuRequestDto requestDto, Long userPk) {
+    public Object getMenuCalendar(MenuRequestDto requestDto, String token) {
         int year = requestDto.getYear();
         int month = requestDto.getMonth();
 
-        log.info("getMenuCalendar 함수 실행 - 년: {}, 월: {}, 사용자ID: {}", year, month, userPk);
+        log.info("getMenuCalendar 함수 실행 - 년: {}, 월: {}", year, month);
 
         try {
+            // 토큰 유효성
+            if (!jwtService.validateToken(token)) {
+                log.info("getMenuCalendar - 토큰 유효하지 않음");
+                return ErrorResponseDto.of(BaperangErrorCode.INVALID_TOKEN);
+            }
+
+            Long userPk = jwtService.getUserId(token);
+            log.info("getMenuCalendar - 사용자ID: {}", userPk);
+
             // 현재 로그인한 사용자의 학교 정보 조회
             User user = userRepository.findById(userPk)
                     .orElse(null);

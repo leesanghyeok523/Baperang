@@ -131,11 +131,20 @@ public class UserServiceImpl implements UserService{
     }
 
     @Transactional
-    public Object logout(Long userPk, HttpServletResponse response) {
+    public Object logout(String token, HttpServletResponse response) {
         log.info("logout 함수 실행");
+
+        // 토큰 유효성 검사
+        if (!jwtService.validateToken(token)) {
+            log.info("logout - 토큰 유효하지 않음");
+            return ErrorResponseDto.of(BaperangErrorCode.INVALID_TOKEN);
+        }
+
+        Long userPk = jwtService.getUserId(token);
+
         // 사용자 존재 여부 확인
         User user = userRepository.findById(userPk)
-                .orElse(null); // 사용자 ID로 검색, Optional<User>타입 반환, 없으면 null 반환
+                .orElse(null);
 
         if (user == null) {
             log.info("logout - 사용자 없음");
