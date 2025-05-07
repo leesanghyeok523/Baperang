@@ -1,6 +1,7 @@
 package com.ssafy.baperang.domain.student.controller;
 
 import com.ssafy.baperang.domain.leftover.dto.response.ErrorResponseDto;
+import com.ssafy.baperang.domain.student.dto.request.GetStudentLeftoverRequestDto;
 import com.ssafy.baperang.domain.student.dto.request.SaveStudentLeftoverRequestDto;
 import com.ssafy.baperang.domain.student.service.StudentService;
 import com.ssafy.baperang.global.exception.BaperangErrorCode;
@@ -87,16 +88,14 @@ public class StudentController {
         return ResponseEntity.ok(result);
     }
     // 잔반 조회 API 추가
-    @GetMapping("/getleft/{leftoverDate}/{grade}/{class}/{number}")
+    @PostMapping("/getleft")
     public ResponseEntity<?> getStudentLeftover(
             @RequestHeader("Authorization") String authorizationHeader,
-            @PathVariable String leftoverDate,
-            @PathVariable int grade,
-            @PathVariable("class") int classNum,  // class는 Java 예약어이므로 변수명 변경
-            @PathVariable int number) {
+            @RequestBody GetStudentLeftoverRequestDto requestDto) {
 
         log.info("getStudentLeftover 컨트롤러 호출 - 날짜: {}, 학년: {}, 반: {}, 번호: {}",
-                leftoverDate, grade, classNum, number);
+                requestDto.getLeftoverDate(), requestDto.getGrade(),
+                requestDto.getClassNum(), requestDto.getNumber());
 
         // JWT 토큰에서 사용자 ID 추출
         String token = authorizationHeader.substring(7); // "Bearer " 제거
@@ -111,7 +110,7 @@ public class StudentController {
         Long userId = jwtService.getUserId(token);
         log.info("getStudentLeftover - 사용자 ID: {}", userId);
 
-        Object result = studentService.getStudentLeftover(userId, leftoverDate, grade, classNum, number);
+        Object result = studentService.getStudentLeftover(userId, requestDto.getLeftoverDate(), requestDto.getGrade(), requestDto.getClassNum(), requestDto.getNumber());
 
         if (result instanceof ErrorResponseDto) {
             ErrorResponseDto errorResponseDto = (ErrorResponseDto) result;
