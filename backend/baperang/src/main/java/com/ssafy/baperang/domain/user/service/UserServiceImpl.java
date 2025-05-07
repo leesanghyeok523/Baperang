@@ -127,7 +127,7 @@ public class UserServiceImpl implements UserService{
         log.info("login 함수 성공 종료");
         
         // 성공 시 빈 응답 본문 반환 (필요한 정보는 모두 토큰에 있음)
-        return LoginResponseDto.builder().build();
+        return new LoginResponseDto();
     }
 
     @Transactional
@@ -199,6 +199,6 @@ public class UserServiceImpl implements UserService{
         
         log.info("refreshAccessToken 함수 성공 종료");
         // 빈 응답 본문 반환
-        return LoginResponseDto.builder().build();
+        return new LoginResponseDto();
     }
 }
