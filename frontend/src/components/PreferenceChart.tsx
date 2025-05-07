@@ -30,13 +30,13 @@ const PreferenceChart: React.FC<PreferenceChartProps> = ({ data }) => {
       <BarChart
         data={preferenceData}
         margin={{
-          top: 20,
+          top: 30,
           right: 20,
           left: 20,
           bottom: 20,
         }}
       >
-        <XAxis dataKey="name" type="category" tick={{ fontSize: 20 }} tickMargin={10} />
+        <XAxis dataKey="name" type="category" tick={{ fontSize: 14 }} tickMargin={10} />
         <YAxis
           type="number"
           domain={[0, 100]}
@@ -50,12 +50,13 @@ const PreferenceChart: React.FC<PreferenceChartProps> = ({ data }) => {
         <Bar
           dataKey="선호도"
           radius={[15, 15, 0, 0]}
-          barSize={90}
+          barSize={80}
           label={{
             position: 'top',
             fill: '#333',
+            fontSize: 12,
             formatter: (value: number) => `${value}%`,
-            dy: -10,
+            dy: -1,
           }}
         >
           {preferenceData.map((entry, index) => (

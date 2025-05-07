@@ -45,8 +45,19 @@ export const useAuthStore = create<AuthState>()(
           const accessToken = response.headers.get('Authorization');
           const userData = await response.json();
 
+          // 토큰이 있고, Bearer 접두사가 없는 경우에만 추가
+          const formattedToken = accessToken
+            ? accessToken.startsWith('Bearer ')
+              ? accessToken
+              : `Bearer ${accessToken}`
+            : null;
+
+          // 디버깅용 로그
+          console.log('응답에서 받은 원본 토큰:', accessToken);
+          console.log('저장된 형식 토큰:', formattedToken);
+
           set({
-            accessToken,
+            accessToken: formattedToken,
             user: userData,
             isAuthenticated: true,
             isLoading: false,
