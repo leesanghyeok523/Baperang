@@ -16,6 +16,7 @@ import com.ssafy.baperang.domain.user.dto.response.ErrorResponseDto;
 import com.ssafy.baperang.domain.user.dto.response.ValidateIdResponseDto;
 import com.ssafy.baperang.domain.user.service.UserService;
 
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +30,7 @@ public class UserController {
     private final UserService userService;
 
     @PostMapping("/signup")
+    @Operation(summary = "회원가입", description = "회원가입 기능")
     public ResponseEntity<?> signup(@RequestBody SignupRequestDto requestDto) {
         log.info("signup 컨트롤러 함수 호출");
         Object result = userService.signup(requestDto);
@@ -44,6 +46,7 @@ public class UserController {
     }
 
     @PostMapping("/validate-id")
+    @Operation(summary = "아이디 중복 검사", description = "아이디 중복 검사 기능")
     public ResponseEntity<ValidateIdResponseDto> validateId(@RequestBody ValidateIdRequestDto requestDto) {
         log.info("validateId 컨트롤러 함수 호출");
         boolean isValid = userService.isLoginIdAvailable(requestDto.getLoginId());
@@ -57,6 +60,7 @@ public class UserController {
     }
 
     @PostMapping("/login")
+    @Operation(summary = "로그인", description = "로그인 기능")
     public ResponseEntity<?> login(@RequestBody LoginRequestDto requestDto, HttpServletResponse response) {
         log.info("login 컨트롤러 함수 호출");
         Object result = userService.login(requestDto, response);
@@ -72,6 +76,7 @@ public class UserController {
     }
 
     @DeleteMapping("/logout/{userPk}")
+    @Operation(summary = "로그아웃", description = "로그아웃 기능")
     public ResponseEntity<?> logout(@PathVariable Long userPk, HttpServletResponse response) {
         log.info("logout 컨트롤러 함수 호출");
         
@@ -87,6 +92,7 @@ public class UserController {
     }
     
     @PostMapping("/refresh")
+    @Operation(summary = "리프레시 토큰 갱신", description = "리프레시 토큰 갱신 기능")
     public ResponseEntity<?> refreshAccessToken(@CookieValue(name = "refreshToken", required = false) String refreshToken,
                                               HttpServletResponse response) {
         log.info("refreshAccessToken 컨트롤러 함수 호출");
