@@ -23,7 +23,7 @@ const WasteRateCard: React.FC<WasteRateCardProps> = ({ data }) => {
             top: 30,
             right: 20,
             left: 20,
-            bottom: 20,
+            bottom: 0,
           }}
         >
           <XAxis dataKey="name" type="category" tick={{ fontSize: 14 }} tickMargin={10} />

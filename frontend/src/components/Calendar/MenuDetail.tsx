@@ -1,5 +1,4 @@
 import { MenuDataType } from '../../pages/Calendar/index';
-import { useNavigate } from 'react-router-dom';
 
 interface MenuDetailProps {
   selectedDate: string | null;
@@ -7,16 +6,6 @@ interface MenuDetailProps {
 }
 
 const MenuDetail = ({ selectedDate, menuData }: MenuDetailProps) => {
-  const navigate = useNavigate();
-
-  // 식단 수정 페이지로 이동하는 함수
-  const handleEditMenu = () => {
-    if (selectedDate) {
-      // 식단 수정 페이지로 이동 (선택한 날짜 정보 포함)
-      navigate(`/create-meal?date=${selectedDate}`);
-    }
-  };
-
   // 선택된 날짜가 없는 경우
   if (!selectedDate) {
     return (
