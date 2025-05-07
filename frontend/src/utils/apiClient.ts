@@ -17,7 +17,11 @@ class ApiClient {
 
     // 인증 토큰이 있으면 헤더에 추가
     if (accessToken) {
-      headers.set('Authorization', `Bearer ${accessToken}`);
+      // 토큰 형식 확인 및 처리 (Bearer 접두사 중복 방지)
+      const authHeaderValue = accessToken.startsWith('Bearer ')
+        ? accessToken
+        : `Bearer ${accessToken}`;
+      headers.set('Authorization', authHeaderValue);
     }
 
     // 요청 옵션 구성
@@ -38,7 +42,13 @@ class ApiClient {
         // 토큰 갱신 성공 시 원래 요청 재시도
         if (refreshSuccess) {
           // 갱신된 토큰으로 헤더 업데이트
-          headers.set('Authorization', `Bearer ${useAuthStore.getState().accessToken}`);
+          const newToken = useAuthStore.getState().accessToken;
+          if (newToken) {
+            const authHeaderValue = newToken.startsWith('Bearer ')
+              ? newToken
+              : `Bearer ${newToken}`;
+            headers.set('Authorization', authHeaderValue);
+          }
           requestOptions.headers = headers;
           response = await fetch(url, requestOptions);
         } else {

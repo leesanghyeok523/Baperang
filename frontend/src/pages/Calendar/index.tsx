@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { menuData } from '../../data/menuData';
 import { downloadMenuExcel } from './excelDownloader';
 import { createCalendarDays, isWorkday, CalendarDay } from './calendarUtils';
 import CalendarHeader from '../../components/Calendar/Header';
@@ -7,6 +6,85 @@ import CalendarGrid from '../../components/Calendar/CalendarGrid';
 import MonthlyWasteChart from '../../components/Calendar/MonthlyWasteChart';
 import DishWasteRates from '../../components/Calendar/DishWasteRates';
 import MenuDetail from '../../components/Calendar/MenuDetail';
+import API_CONFIG from '../../config/api';
+import axios from 'axios';
+import { useAuthStore } from '../../store/authStore';
+
+// 백엔드 API 응답 타입 정의
+interface MenuItem {
+  menuId: number;
+  menuName: string;
+}
+
+interface DayMenuData {
+  date: string;
+  dayOfWeekName: string;
+  menu: MenuItem[];
+}
+
+interface MenuResponse {
+  days: DayMenuData[];
+}
+
+// br 태그로 분리된 메뉴 이름을 배열로 분리하는 함수
+const parseMenuName = (menuName: string): string[] => {
+  // <br/>, <br>, <BR/>, <BR> 등 다양한 형태의 br 태그 처리
+  const regex = /<br\s*\/?>/gi;
+  return menuName.split(regex).filter((item) => item.trim() !== '');
+};
+
+// 백엔드 응답을 파싱하는 함수
+const parseMenuResponse = (rawData: unknown): MenuResponse => {
+  const days: DayMenuData[] = [];
+
+  try {
+    // 정상적인 days 배열이 있는 경우
+    if (rawData && typeof rawData === 'object' && 'days' in rawData) {
+      return rawData as MenuResponse; // 이미 적절한 형태로 가정
+    }
+
+    // 데이터가 배열인 경우
+    else if (Array.isArray(rawData)) {
+      rawData.forEach((item) => {
+        if (item && typeof item === 'object' && 'date' in item) {
+          days.push(item as DayMenuData);
+        }
+      });
+    }
+    // 데이터가 문자열인 경우 (HTML 태그 포함)
+    else if (typeof rawData === 'string') {
+      // 문자열을 하나의 메뉴 항목으로 취급
+      days.push({
+        date: new Date().toISOString().split('T')[0], // 오늘 날짜
+        dayOfWeekName: ['일', '월', '화', '수', '목', '금', '토'][new Date().getDay()],
+        menu: [
+          {
+            menuId: 1000,
+            menuName: rawData.trim(),
+          },
+        ],
+      });
+    }
+    // 데이터가 없는 경우 빈 배열 반환
+    else {
+      console.log('메뉴 데이터가 없습니다.');
+      // 빈 days 배열 반환 (days는 이미 빈 배열로 초기화됨)
+    }
+  } catch (error) {
+    console.error('메뉴 데이터 파싱 오류:', error);
+  }
+
+  return { days };
+};
+
+// 변환된 메뉴 데이터 형식
+export interface MenuDataType {
+  [key: string]: {
+    date: string;
+    menu: string[];
+    wasteData?: DishWasteRate[];
+  };
+}
 
 interface DailyWasteRate {
   date: string;
@@ -27,13 +105,15 @@ interface ChartClickData {
 }
 
 const Calendar = () => {
-  // 현재 날짜 기준으로 초기화 (연도만 2025년으로 설정)
+  // 현재 날짜 기준으로 초기화
   const today = new Date();
-  const [selectedYear, setSelectedYear] = useState(2025);
+  const [selectedYear, setSelectedYear] = useState(today.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(today.getMonth());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [showWasteChart, setShowWasteChart] = useState(false); // 잔반률 차트 표시 여부
   const [selectedDayWaste, setSelectedDayWaste] = useState<DishWasteRate[] | null>(null); // 선택된 날짜의 반찬별 잔반률
+  const [menuData, setMenuData] = useState<MenuDataType>({});
+  const [loading, setLoading] = useState(false);
 
   // 월간 잔반률 데이터 상태 추가
   const [monthlyWasteData, setMonthlyWasteData] = useState<DailyWasteRate[]>([]);
@@ -63,6 +143,109 @@ const Calendar = () => {
     setSelectedDate(null);
     setSelectedDayWaste(null);
   };
+
+  // API에서 메뉴 데이터 가져오기
+  const fetchMenuData = async () => {
+    try {
+      setLoading(true);
+      const { accessToken } = useAuthStore.getState();
+
+      console.log('fetchMenuData 호출됨', { year: selectedYear, month: selectedMonth + 1 });
+
+      if (!accessToken) {
+        console.error('인증 토큰이 없습니다. 로그인이 필요합니다.');
+        setLoading(false);
+        return;
+      }
+
+      console.log('인증 토큰:', accessToken.substring(0, 20) + '...');
+
+      const endpoint = API_CONFIG.ENDPOINTS.MEAL.MENU_CALENDAR;
+      const url = API_CONFIG.getUrl(endpoint, {
+        year: selectedYear.toString(),
+        month: (selectedMonth + 1).toString(),
+      });
+
+      console.log('API 요청 URL:', url);
+
+      // 토큰 형식 확인 및 처리
+      const authHeaderValue = accessToken.startsWith('Bearer ')
+        ? accessToken
+        : `Bearer ${accessToken}`;
+
+      console.log('요청 헤더:', {
+        Authorization: authHeaderValue.substring(0, 20) + '...',
+        'Content-Type': 'application/json',
+      });
+
+      const response = await axios.get(url, {
+        headers: {
+          Authorization: authHeaderValue,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('API 응답:', response.data);
+
+      // 응답 데이터 파싱
+      const parsedData = parseMenuResponse(response.data);
+      console.log('파싱된 데이터:', parsedData);
+
+      // 메뉴 데이터 변환
+      const newMenuData: MenuDataType = {};
+      parsedData.days.forEach((dayData) => {
+        if (dayData.date) {
+          // <br/> 태그로 분리하여 메뉴 항목으로 처리
+          const allMenuItems: string[] = [];
+
+          dayData.menu.forEach((menu) => {
+            if (menu.menuName) {
+              // <br/> 태그로 분리
+              const parsedItems = parseMenuName(menu.menuName);
+              allMenuItems.push(...parsedItems);
+            }
+          });
+
+          // 잔반률 데이터 생성 (실제 데이터가 없으므로 임시로 생성)
+          const wasteData = allMenuItems.map((name) => ({
+            name,
+            잔반률: Math.floor(Math.random() * 7) * 5 + 5, // 5~35% 5단위 (임시)
+          }));
+
+          newMenuData[dayData.date] = {
+            date: `${parseInt(dayData.date.split('-')[1])}월 ${parseInt(
+              dayData.date.split('-')[2]
+            )}일`,
+            menu: allMenuItems,
+            wasteData: wasteData,
+          };
+        }
+      });
+
+      console.log('변환된 메뉴 데이터:', newMenuData);
+      console.log('메뉴 데이터 키:', Object.keys(newMenuData));
+
+      setMenuData(newMenuData);
+    } catch (error) {
+      console.error('메뉴 데이터 가져오기 오류:', error);
+      // 에러 상세 정보 출력
+      if (axios.isAxiosError(error)) {
+        console.error('API 요청 오류 상세:', {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data,
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 연도나 월이 변경될 때마다 API에서 데이터 가져오기
+  useEffect(() => {
+    fetchMenuData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedYear, selectedMonth]);
 
   // 달력의 주 수 계산
   const calculateWeeks = (days: CalendarDay[]) => {
@@ -139,7 +322,7 @@ const Calendar = () => {
     const newData = generateMonthlyWasteData();
     setMonthlyWasteData(newData);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedYear, selectedMonth]);
+  }, [selectedYear, selectedMonth, menuData]);
 
   // 반찬별 잔반률 데이터 조회
   const getDishWasteData = (dateString: string): DishWasteRate[] => {
@@ -196,7 +379,11 @@ const Calendar = () => {
               handleExcelDownload={handleExcelDownload}
             />
 
-            {showWasteChart ? (
+            {loading ? (
+              <div className="flex-grow flex items-center justify-center">
+                <p className="text-lg">데이터를 불러오는 중입니다...</p>
+              </div>
+            ) : showWasteChart ? (
               // 월간 잔반률 차트 뷰
               <div className="px-6 py-3 flex-grow flex flex-row gap-4 mb-1">
                 {/* 월간 잔반률 차트 */}
@@ -211,7 +398,7 @@ const Calendar = () => {
               </div>
             ) : (
               // 달력 뷰
-              <div className="px-6 py-3 flex-grow flex flex-row gap-4 mb-1">
+              <div className="px-6 py-3 flex-grow flex flex-row gap-4 mb-1 overflow-hidden">
                 {/* 달력 그리드 */}
                 <CalendarGrid
                   days={days}
