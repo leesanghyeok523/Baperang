@@ -12,6 +12,7 @@ import { useAuthStore } from './store/authStore';
 import ProtectedRoute from './components/ProtectedRoute';
 import SatisfactionSurvey from './pages/Survey';
 import StudentManagement from './pages/Student';
+import TaggingPage from './pages/TaggingPage';
 
 // 헤더를 포함하는 레이아웃 컴포넌트
 const Layout = () => {
@@ -20,6 +21,18 @@ const Layout = () => {
   return (
     <>
       <Header isLoggedIn={isAuthenticated} />
+      <main className="w-full h-full">
+        <Outlet />
+      </main>
+    </>
+  );
+};
+
+// 인증이 필요없는 페이지를 위한 레이아웃 컴포넌트
+const PublicLayout = () => {
+  return (
+    <>
+      <Header isLoggedIn={false} />
       <main className="w-full h-full">
         <Outlet />
       </main>
@@ -38,6 +51,11 @@ function App() {
         <Route path="/join" element={<JoinPage />} />
         <Route path="/forgot" element={<ForgotAccountPage />} />
         <Route path="/survey" element={<SatisfactionSurvey />} />
+
+        {/* 인증이 필요없는 공개 페이지 (헤더 포함) */}
+        <Route element={<PublicLayout />}>
+          <Route path="/tagging" element={<TaggingPage />} />
+        </Route>
 
         {/* 인증이 필요한 경로들 */}
         <Route element={<ProtectedRoute />}>
