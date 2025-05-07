@@ -1,6 +1,6 @@
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
-import { MenuDataType } from '../../data/menuData';
+import { MenuDataType } from './index';
 
 /**
  * 월별 식단표를 Excel 파일로 다운로드하는 함수

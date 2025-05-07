@@ -52,7 +52,4 @@ public class Leftover {
         this.leftoverRate = leftoverRate;
     }
 
-    public void LeftoverRate(Float leftoverRate) {
-        this.leftoverRate = leftoverRate;
-    }
 }

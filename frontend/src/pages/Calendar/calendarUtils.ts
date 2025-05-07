@@ -1,5 +1,5 @@
 import { isHoliday } from '../../data/holidays';
-import { MenuDataType } from '../../data/menuData';
+import { MenuDataType } from './index';
 
 // 주말 여부 확인
 export const isWeekend = (date: Date): boolean => {
@@ -55,10 +55,21 @@ export const createCalendarDays = (
       const dateString = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(
         i + 1
       ).padStart(2, '0')}`;
+
+      // 날짜 객체 생성
+      const dateObj = new Date(selectedYear, selectedMonth, i + 1);
+
+      // 주말인지 확인 (0: 일요일, 6: 토요일)
+      const isWeekendDay = dateObj.getDay() === 0 || dateObj.getDay() === 6;
+
+      // 해당 날짜에 메뉴가 있고, 메뉴가 비어있지 않고, 주말이 아닌 경우에만 hasMenu = true
+      const hasMenuData =
+        dateString in menuData && menuData[dateString]?.menu?.length > 0 && !isWeekendDay;
+
       return {
         date: i + 1,
         type: 'current',
-        hasMenu: dateString in menuData,
+        hasMenu: hasMenuData,
       };
     });
 

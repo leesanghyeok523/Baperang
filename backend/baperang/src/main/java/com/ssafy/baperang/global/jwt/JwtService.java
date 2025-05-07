@@ -110,6 +110,12 @@ public class JwtService {
                 .signWith(Keys.hmacShaKeyFor(secretKey.getBytes()))
                 .compact();
     }
+    
+    // 토큰에서 회원 정보 추출
+    public String getLoginId(String token) {
+        Claims claims = parseClaims(token);
+        return claims.get("loginId", String.class);
+    }
 
     // 토큰에서 회원 정보 추출
     public String getLoginId(String token) {

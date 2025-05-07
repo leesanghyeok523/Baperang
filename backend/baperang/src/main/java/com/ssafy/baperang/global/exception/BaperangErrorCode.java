@@ -40,6 +40,11 @@ public enum BaperangErrorCode {
     // 학생 관련 에러
     STUDENT_NOT_FOUND(404, "ST101", "존재하지 않는 학생입니다."),
 
+    // 잔반 관련 에러
+    LEFTOVER_SAVE_FAILED(500, "LO001", "잔반 데이터 저장에 실패했습니다."),
+    LEFTOVER_NOT_FOUND(404, "LO002", "잔반 데이터를 찾을 수 없습니다."),
+    INVALID_LEFTOVER_RATE(400, "LO003", "유효하지 않은 잔반율입니다. 0~100 사이의 값을 입력해주세요."),
+
     // 스토리 관련 에러
     STORY_NOT_FOUND(404, "ST001", "존재하지 않는 스토리입니다."),
     STORY_CREATE_FAILED(500, "ST002", "스토리 생성에 실패했습니다."),
