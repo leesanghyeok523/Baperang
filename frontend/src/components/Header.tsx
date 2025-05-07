@@ -48,6 +48,9 @@ const Header = ({ isLoggedIn }: HeaderProps) => {
               <Link to="/diet" className="text-gray-700 hover:text-gray-900 font-bold ">
                 식단생성
               </Link>
+              <Link to="/student" className="text-gray-700 hover:text-gray-900 font-bold">
+                학생관리
+              </Link>
               <Link to="/inventory" className="text-gray-700 hover:text-gray-900 font-bold">
                 재고관리
               </Link>
@@ -70,6 +73,13 @@ const Header = ({ isLoggedIn }: HeaderProps) => {
                 onClick={() => setIsOpen(false)}
               >
                 식단생성
+              </Link>
+              <Link
+                to="/student"
+                className="text-gray-700 hover:text-gray-900 font-bold px-4 py-2"
+                onClick={() => setIsOpen(false)}
+              >
+                학생관리
               </Link>
               <Link
                 to="/inventory"

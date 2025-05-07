@@ -1,5 +1,7 @@
 package com.ssafy.baperang.domain.menu.service;
 
+import com.ssafy.baperang.domain.menu.dto.request.MenuRequestDto;
+
 public interface MenuService {
-    public Object getMenuCalendar(int year, int month, Long userPk);
+    Object getMenuCalendar(MenuRequestDto requestDto, String token);
 }

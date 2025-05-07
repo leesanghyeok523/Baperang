@@ -1,13 +1,7 @@
 package com.ssafy.baperang.domain.user.controller;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CookieValue;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.ssafy.baperang.domain.user.dto.request.LoginRequestDto;
 import com.ssafy.baperang.domain.user.dto.request.SignupRequestDto;
@@ -75,12 +69,16 @@ public class UserController {
         return ResponseEntity.ok(result);
     }
 
-    @DeleteMapping("/logout/{userPk}")
+    @DeleteMapping("/logout")
     @Operation(summary = "로그아웃", description = "로그아웃 기능")
-    public ResponseEntity<?> logout(@PathVariable Long userPk, HttpServletResponse response) {
+    public ResponseEntity<?> logout
+            (@RequestHeader("Authorization") String authorizationHeader,
+             HttpServletResponse response) {
         log.info("logout 컨트롤러 함수 호출");
-        
-        Object result = userService.logout(userPk, response);
+
+        String token = authorizationHeader.substring(7);
+
+        Object result = userService.logout(token, response);
 
         if (result instanceof ErrorResponseDto) {
             ErrorResponseDto errorRespnse = (ErrorResponseDto) result;

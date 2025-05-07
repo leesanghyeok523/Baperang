@@ -78,10 +78,10 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
   // 선택된 날짜에 메뉴 데이터가 없는 경우
   if (!menuData[selectedDate]) {
     return (
-      <div className="w-1/5 bg-[#FCF8F3]/90 rounded-3xl p-4 flex flex-col">
+      <div className="w-1/5 bg-[#FCF8F3]/90 rounded-3xl p-4 flex flex-col h-full">
         {editMode ? (
           <div className="flex flex-col h-full">
-            <div className="flex-grow flex flex-col gap-3 overflow-y-auto">
+            <div className="flex-grow flex flex-col gap-3 overflow-y-auto max-h-[336px] pr-1">
               {editableMenu.map((item, index) => (
                 <div key={index} className="relative">
                   <input
@@ -148,12 +148,12 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
   // 선택된 날짜에 메뉴가 있고, 보기 모드인 경우
   if (!editMode) {
     return (
-      <div className="w-1/5 bg-[#FCF8F3]/90 rounded-3xl p-4 flex flex-col">
+      <div className="w-1/5 bg-[#FCF8F3]/90 rounded-3xl p-4 flex flex-col h-full">
         <div className="flex flex-col h-full">
           <div className="text-base font-semibold text-center mb-3">
             {selectedDate.split('-')[1]}월 {selectedDate.split('-')[2]}일 식단
           </div>
-          <div className="flex-grow flex flex-col gap-3 items-center">
+          <div className="flex-grow flex flex-col gap-3 items-center overflow-y-auto max-h-[336px] pr-1">
             {menuData[selectedDate].menu.map((item, index) => (
               <div
                 key={index}
@@ -166,7 +166,7 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
           <div className="flex justify-center mt-4">
             <button
               onClick={onEditStart}
-              className="flex items-center text-orange-600 hover:text-orange-800 mb-2"
+              className="flex items-center text-orange-600 hover:text-orange-800"
             >
               <span>식단 수정하기</span>
             </button>
@@ -178,12 +178,12 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
 
   // 편집 모드인 경우
   return (
-    <div className="w-1/5 bg-[#FCF8F3]/90 rounded-3xl p-4 flex flex-col">
+    <div className="w-1/5 bg-[#FCF8F3]/90 rounded-3xl p-4 flex flex-col h-full">
       <div className="flex flex-col h-full">
         <div className="text-base font-semibold text-center mb-3">
           {selectedDate.split('-')[1]}월 {selectedDate.split('-')[2]}일 수정
         </div>
-        <div className="flex-grow flex flex-col gap-3 overflow-y-auto">
+        <div className="flex-grow flex flex-col gap-3 overflow-y-auto max-h-[336px] pr-1">
           {editableMenu.map((item, index) => (
             <div key={index} className="relative">
               <input
@@ -209,7 +209,7 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
             </button>
           </div>
         </div>
-        <div className="flex justify-center space-x-16 mb-2 text-sm ">
+        <div className="flex justify-center space-x-16 mt-4 text-sm">
           <button
             onClick={onCancel}
             className="flex items-center text-gray-600 hover:text-gray-800"

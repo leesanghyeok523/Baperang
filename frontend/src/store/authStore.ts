@@ -42,7 +42,7 @@ export const useAuthStore = create<AuthState>()(
 
           if (!response.ok) throw new Error('로그인 실패');
 
-          const accessToken = response.headers.get('accessToken');
+          const accessToken = response.headers.get('Authorization');
           const userData = await response.json();
 
           set({
