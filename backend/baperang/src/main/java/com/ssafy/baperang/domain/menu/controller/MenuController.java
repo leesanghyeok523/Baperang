@@ -1,5 +1,6 @@
 package com.ssafy.baperang.domain.menu.controller;
 
+import com.ssafy.baperang.domain.menu.dto.request.MenuRequestDto;
 import com.ssafy.baperang.domain.menu.dto.response.ErrorResponseDto;
 import com.ssafy.baperang.domain.menu.service.MenuService;
 import lombok.RequiredArgsConstructor;
@@ -19,14 +20,23 @@ public class MenuController {
     public ResponseEntity<?> getMenuCalendar(
             @RequestParam int year,
             @RequestParam int month,
-            @RequestAttribute("userPk") Long userPk) {
+            @RequestHeader("Authorization") String authorizationHeader) {
 
-        log.info("getMenuCalendar 컨트롤러 함수 호출 - 년: {}, 월: {}, 사용자ID: {}", year, month, userPk);
+        log.info("getMenuCalendar 컨트롤러 함수 호출 - 년: {}, 월: {}", year, month);
 
-        Object result = menuService.getMenuCalendar(year, month, userPk);
+        // "Bearer " 접두사 제거
+        String token = authorizationHeader.substring(7);
+
+        MenuRequestDto requestDto = MenuRequestDto.builder()
+                .year(year)
+                .month(month)
+                .build();
+
+        Object result = menuService.getMenuCalendar(requestDto, token);
 
         if (result instanceof ErrorResponseDto) {
             ErrorResponseDto errorResponse = (ErrorResponseDto) result;
+            log.info("getMenuCalendar 컨트롤러 함수 에러 응답");
             return ResponseEntity.status(errorResponse.getStatus()).body(result);
         }
 

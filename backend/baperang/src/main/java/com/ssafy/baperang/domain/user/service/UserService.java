@@ -9,6 +9,6 @@ public interface UserService {
     public Object signup(SignupRequestDto requestDto);
     public boolean isLoginIdAvailable(String loginId);
     public Object login(LoginRequestDto requestDto, HttpServletResponse response);
-    public Object logout(Long userPk, HttpServletResponse response);
+    public Object logout(String token, HttpServletResponse response);
     public Object refreshAccessToken(String refreshToken, HttpServletResponse response);
 }

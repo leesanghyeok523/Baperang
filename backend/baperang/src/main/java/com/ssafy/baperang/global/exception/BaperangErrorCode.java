@@ -37,6 +37,9 @@ public enum BaperangErrorCode {
     // 권한 관련 에러 (400-499)
     INVALID_ACCESS(403, "A001", "접근 권한이 없습니다."),
 
+    // 학생 관련 에러
+    STUDENT_NOT_FOUND(404, "ST101", "존재하지 않는 학생입니다."),
+
     // 스토리 관련 에러
     STORY_NOT_FOUND(404, "ST001", "존재하지 않는 스토리입니다."),
     STORY_CREATE_FAILED(500, "ST002", "스토리 생성에 실패했습니다."),
@@ -98,6 +101,7 @@ public enum BaperangErrorCode {
 
     // 작업 큐 관련 에러
     QUEUE_TIMEOUT(408, "Q001", "작업 큐 처리 중 타임아웃이 발생했습니다.");
+
 
     private final int status;
     private final String code;

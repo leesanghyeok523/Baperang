@@ -28,34 +28,16 @@ public class DataInitializer implements ApplicationRunner {
     public void run(ApplicationArguments args) throws Exception {
         log.info("애플리케이션 시작 시 데이터 초기화 작업을 수행합니다.");
 
-        // 기본 학교 데이터 초기화
-        School school = initializeDefaultSchool();
-
-        // 메뉴 데이터 가져오기
-        importMenusFromExcel(school.getId());
-    }
-
-    /**
-     * 기본 학교 데이터 초기화
-     */
-    private School initializeDefaultSchool() {
         // 기존 학교가 있는지 확인
         if (schoolRepository.count() > 0) {
             School existingSchool = schoolRepository.findAll().get(0);
             log.info("기존 학교 데이터를 사용합니다: {}", existingSchool.getSchoolName());
-            return existingSchool;
+
+            // 메뉴 데이터 가져오기
+            importMenusFromExcel(existingSchool.getId());
+        } else {
+            log.info("등록된 학교가 없습니다. 메뉴 데이터를 가져오지 않습니다.");
         }
-
-        // 새 학교 생성
-        School school = School.builder()
-                .schoolName("SSAFY 초등학교")
-                .city("서울")
-                .build();
-
-        school = schoolRepository.save(school);
-        log.info("새로운 학교 데이터를 생성했습니다: {}", school.getSchoolName());
-
-        return school;
     }
 
     /**
