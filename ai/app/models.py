@@ -1,5 +1,6 @@
 from pydantic import BaseModel
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
+from datetime import date
 
 # 식단 생성 요청 To LLM
 class PlanRequest(BaseModel):
