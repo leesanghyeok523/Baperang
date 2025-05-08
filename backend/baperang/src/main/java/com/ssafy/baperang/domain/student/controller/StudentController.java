@@ -2,6 +2,7 @@ package com.ssafy.baperang.domain.student.controller;
 
 import com.ssafy.baperang.domain.leftover.dto.response.ErrorResponseDto;
 import com.ssafy.baperang.domain.student.dto.request.GetStudentLeftoverRequestDto;
+import com.ssafy.baperang.domain.student.dto.request.NfcStudentRequestDto;
 import com.ssafy.baperang.domain.student.dto.request.SaveStudentLeftoverRequestDto;
 import com.ssafy.baperang.domain.student.service.StudentService;
 import com.ssafy.baperang.global.exception.BaperangErrorCode;
@@ -10,6 +11,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
+import java.util.HashMap;
 
 @Slf4j
 @RestController
@@ -121,5 +125,21 @@ public class StudentController {
 
         log.info("getStudentLeftover 컨트롤러 정상 응답");
         return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/nfc/receive")
+    public ResponseEntity<?> receiveNfcData(
+            @RequestBody Long studentPk, Integer grade, Integer classNum, Integer number, String name, String gender, String status) {
+
+        log.info("NFC 태깅 정보 수신 성공!");
+        log.info("학생 정보: PK={}, 이름={}, 학년={}, 반={}, 번호={}, 성별={}, 상태={}",
+                studentPk, name, grade, classNum, number, gender, status);
+
+        // 요청이 성공적으로 처리되었음을 응답
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "NFC 태깅 정보가 성공적으로 수신되었습니다.");
+
+        return ResponseEntity.ok(response);
     }
 }
