@@ -47,9 +47,6 @@ public class School {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @Column(name = "school_type", nullable = false, length = 100)
-    private String schoolType;
-
     @Builder
     public School(String schoolName, String city, String schoolType) {
         this.schoolName = schoolName;
