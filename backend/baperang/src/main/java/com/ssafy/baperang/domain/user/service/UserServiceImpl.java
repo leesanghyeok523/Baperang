@@ -69,7 +69,6 @@ public class UserServiceImpl implements UserService{
                     .nutritionistName(user.getNutritionistName())
                     .city(user.getSchool().getCity())
                     .schoolName(user.getSchool().getSchoolName())
-                    .schoolType(user.getSchool().getSchoolType())
                     .build();
 
             log.info("signup() 함수 성공 종료");
