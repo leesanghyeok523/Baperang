@@ -1,19 +1,17 @@
 package com.ssafy.baperang.domain.school.service;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.springframework.stereotype.Service;
 
-import com.ssafy.baperang.domain.school.dto.request.SchoolsRequestDto;
-
-import com.ssafy.baperang.domain.school.dto.response.SchoolsResponseDto;
 import com.ssafy.baperang.domain.school.dto.response.CitiesResponseDto;
+import com.ssafy.baperang.domain.school.dto.response.SchoolsResponseDto;
 import com.ssafy.baperang.domain.school.entity.School;
 import com.ssafy.baperang.domain.school.repository.SchoolRepository;
 
 import lombok.RequiredArgsConstructor;
-
-import java.util.List;
-import java.util.Collections;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -28,13 +26,12 @@ public class SchoolServiceImpl implements SchoolService {
     }   
 
     @Override
-    public SchoolsResponseDto getSchools(SchoolsRequestDto schoolsRequestDto) {
+    public SchoolsResponseDto getSchools(String city, String schoolName) {
         List<School> schools;
         
-        if (schoolsRequestDto.getCity() != null && !schoolsRequestDto.getCity().isEmpty()) {
-            String schoolName = schoolsRequestDto.getSchoolName() != null ? schoolsRequestDto.getSchoolName() : "";
+        if (city != null && !city.isEmpty()) {
             schools = schoolRepository.findByCityAndSchoolNameStartingWith(
-                schoolsRequestDto.getCity(), schoolName);
+                city, schoolName);
         } else {
             schools = Collections.emptyList();
         }
