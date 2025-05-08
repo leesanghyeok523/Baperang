@@ -4,6 +4,7 @@ import InputCard from '../../components/ui/inputcard';
 import { FiDownload } from 'react-icons/fi';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { Link } from 'react-router-dom';
 
 // 학생 성별을 무작위로 결정하기 위한 함수
 // 이름은 무작위로 저장된 데이터이므로 50% 확률로 성별을 결정
@@ -439,6 +440,14 @@ const StudentManagement = () => {
                 )}
               </div>
             </div>
+
+            {/* 타깅 페이지 링크 버튼 추가 */}
+            <Link
+              to="/tagging"
+              className="ml-4 px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors"
+            >
+              식판 인식 화면
+            </Link>
           </div>
         </div>
       </div>
