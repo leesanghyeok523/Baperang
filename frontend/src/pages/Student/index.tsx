@@ -32,6 +32,7 @@ interface StudentDetailResponse {
   schoolName: string;
 }
 
+// 학생 타입 재정의
 interface StudentType {
   id: number;
   name: string;
@@ -568,7 +569,6 @@ const StudentManagement = () => {
                       value={searchName}
                       onChange={(e) => {
                         setSearchName(e.target.value);
-                        // 검색어가 변경될 때마다 필터링 결과는 useEffect에서 처리됨
                       }}
                     />
                   </div>
