@@ -17,9 +17,9 @@ DROP TABLE IF EXISTS school;
 
 CREATE TABLE school (
                         school_pk    BIGINT       PRIMARY KEY AUTO_INCREMENT,
-                        school_name  VARCHAR(255) NOT NULL,
-                        city         VARCHAR(100) NOT NULL,
-                        school_type  VARCHAR(50)  NOT NULL,
+                        school_name  VARCHAR(100) NOT NULL,
+                        city         VARCHAR(20) NOT NULL,
+                        school_type  VARCHAR(100)  NOT NULL,
                         created_at   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
                         updated_at   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -36,9 +36,9 @@ CREATE TABLE nutrient (
 CREATE TABLE `user` (
                         user_pk          BIGINT       PRIMARY KEY AUTO_INCREMENT,
                         school_pk        BIGINT       NOT NULL,
-                        login_id         VARCHAR(50)  NOT NULL UNIQUE,
-                        password         VARCHAR(100) NOT NULL,
-                        nutritionist_name VARCHAR(100),
+                        login_id         VARCHAR(20)  NOT NULL UNIQUE,
+                        password         VARCHAR(60) NOT NULL,
+                        nutritionist_name VARCHAR(10) NOT NULL,
                         created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
                         updated_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                         FOREIGN KEY (school_pk)
@@ -50,15 +50,16 @@ CREATE TABLE `user` (
 CREATE TABLE student (
                          student_pk   BIGINT       PRIMARY KEY AUTO_INCREMENT,
                          school_pk    BIGINT       NOT NULL,
-                         student_name VARCHAR(100) NOT NULL,
+                         student_name VARCHAR(10) NOT NULL,
                          gender       VARCHAR(10)  NOT NULL,
                          grade        INT          NOT NULL,
                          class        INT          NOT NULL,
                          number       INT          NOT NULL,
-                         height       FLOAT,
-                         weight       FLOAT,
+                         height       FLOAT        NOT NULL,
+                         weight       FLOAT        NOT NULL,
                          date         DATE,
                          content      TEXT,
+                         image        VARCHAR(255),
                          FOREIGN KEY (school_pk)
                              REFERENCES school(school_pk)
                              ON DELETE CASCADE
@@ -80,7 +81,7 @@ CREATE TABLE menu (
 CREATE TABLE menu_nutrient (
                                menu_pk     BIGINT NOT NULL,
                                nutrient_pk BIGINT NOT NULL,
-                               amount      FLOAT,
+                               amount      FLOAT NOT NULL,
                                PRIMARY KEY (menu_pk, nutrient_pk),
                                FOREIGN KEY (menu_pk)
                                    REFERENCES menu(menu_pk)
@@ -97,8 +98,8 @@ CREATE TABLE leftover (
                           menu_pk         BIGINT       NOT NULL,
                           student_pk      BIGINT       NOT NULL,
                           leftover_date   DATE         NOT NULL,
-                          left_menu_name  VARCHAR(100) NOT NULL,
-                          leftover_rate   FLOAT,
+                          left_menu_name  TEXT NOT NULL,
+                          leftover_rate   FLOAT        NOT NULL,
                           FOREIGN KEY (menu_pk)
                               REFERENCES menu(menu_pk)
                               ON DELETE CASCADE
