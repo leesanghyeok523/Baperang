@@ -23,7 +23,7 @@ public class Leftover {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "pk")
+    @Column(name = "leftover_pk")
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)

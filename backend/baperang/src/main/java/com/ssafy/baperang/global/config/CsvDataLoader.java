@@ -2,7 +2,8 @@ package com.ssafy.baperang.global.config;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
+import java.nio.charset.Charset;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -36,7 +37,7 @@ public class CsvDataLoader implements CommandLineRunner {
         // 데이터베이스 테이블에 이미 데이터가 있는지 확인
         Integer count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM school", Integer.class);
         
-        if (count != null && count > 0) {
+        if (count != null && count > 10) {
             log.info("School 테이블에 이미 {} 개의 데이터가 존재합니다. CSV 로드를 건너뜁니다.", count);
             return;
         }
@@ -51,7 +52,7 @@ public class CsvDataLoader implements CommandLineRunner {
         try (BufferedReader reader = new BufferedReader(
                 new InputStreamReader(
                         Objects.requireNonNull(getClass().getResourceAsStream("/school_data.csv")),
-                        StandardCharsets.UTF_8))) {
+                        Charset.forName("EUC-KR")))) {
 
             // 전체 라인 수 미리 계산
             countTotalLines();
@@ -70,8 +71,9 @@ public class CsvDataLoader implements CommandLineRunner {
                     String[] data = line.split(",");
                     if (data.length >= 3) {
                         String schoolName = data[0].trim();
-                        String city = data[1].trim();
-                        String schoolType = data[2].trim();
+                        String schoolType = data[1].trim();
+                        String city = data[2].trim();
+                        LocalDateTime now = LocalDateTime.now();
                         
                         // 데이터 검증
                         if (schoolName.isEmpty() || city.isEmpty() || schoolType.isEmpty()) {
@@ -80,7 +82,7 @@ public class CsvDataLoader implements CommandLineRunner {
                             continue;
                         }
                         
-                        batch.add(new Object[]{schoolName, city, schoolType});
+                        batch.add(new Object[]{schoolName, city, schoolType, now, now});
                         
                         // 500개씩 배치 처리
                         if (batch.size() >= 500) {
@@ -121,7 +123,7 @@ public class CsvDataLoader implements CommandLineRunner {
         try (BufferedReader reader = new BufferedReader(
                 new InputStreamReader(
                         Objects.requireNonNull(getClass().getResourceAsStream("/school_data.csv")),
-                        StandardCharsets.UTF_8))) {
+                        Charset.forName("EUC-KR")))) {
             
             totalLines = 0;
             while (reader.readLine() != null) {
@@ -137,7 +139,7 @@ public class CsvDataLoader implements CommandLineRunner {
     private int executeBatch(List<Object[]> batch) {
         try {
             int[] updateCounts = jdbcTemplate.batchUpdate(
-                    "INSERT INTO school (school_name, city, school_type) VALUES (?, ?, ?)",
+                    "INSERT INTO school (school_name, city, school_type, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
                     batch
             );
             
