@@ -48,8 +48,8 @@ public class Leftover {
         this.menu = menu;
         this.student = student;
         this.leftoverDate = leftoverDate;
-        this.leftMenuName = leftMenuName;
         this.leftoverRate = leftoverRate;
+        this.leftMenuName = leftMenuName;
     }
 
 }
