@@ -71,18 +71,17 @@ public class CsvDataLoader implements CommandLineRunner {
                     String[] data = line.split(",");
                     if (data.length >= 3) {
                         String schoolName = data[0].trim();
-                        String schoolType = data[1].trim();
-                        String city = data[2].trim();
+                        String city = data[1].trim();
                         LocalDateTime now = LocalDateTime.now();
                         
                         // 데이터 검증
-                        if (schoolName.isEmpty() || city.isEmpty() || schoolType.isEmpty()) {
+                        if (schoolName.isEmpty() || city.isEmpty()) {
                             log.warn("유효하지 않은 데이터 스킵: {}", line);
                             failedLines++;
                             continue;
                         }
                         
-                        batch.add(new Object[]{schoolName, city, schoolType, now, now});
+                        batch.add(new Object[]{schoolName, city, now, now});
                         
                         // 500개씩 배치 처리
                         if (batch.size() >= 500) {

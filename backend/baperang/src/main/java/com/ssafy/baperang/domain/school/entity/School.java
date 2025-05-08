@@ -33,9 +33,6 @@ public class School {
     @Column(name = "school_name", nullable = false, length = 100)
     private String schoolName;
 
-    @Column(name = "school_type", nullable = false, length = 100)
-    private String schoolType;
-
     @Column(name = "city", nullable = false, length = 20)
     private String city;
 
@@ -51,6 +48,5 @@ public class School {
     public School(String schoolName, String city, String schoolType) {
         this.schoolName = schoolName;
         this.city = city;
-        this.schoolType = schoolType;
     }
 }
