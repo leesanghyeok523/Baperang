@@ -36,6 +36,12 @@ const API_CONFIG = {
       GET_ALL: '/api/v1/studentname/all',
     },
 
+    // 학교 관련
+    SCHOOL: {
+      CITIES: '/api/v1/school/cities',
+      SCHOOLS: '/api/v1/school/schools',
+    },
+
     // AI 관련
     AI: {
       TRAY_DEFAULT: '/api/v1/ai/tray/default',
