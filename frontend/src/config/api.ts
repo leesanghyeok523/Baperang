@@ -33,7 +33,8 @@ const API_CONFIG = {
 
     // 학생 관리
     STUDENT: {
-      GET_ALL: '/api/v1/studentname/all',
+      GET_ALL: '/api/v1/student/studentname/all',
+      GET_STUDENT_DETAIL: '/api/v1/student/studentname', // /{studentId} 파라미터 필요
     },
 
     // 학교 관련
