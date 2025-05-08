@@ -60,7 +60,7 @@ public class Menu {
     }
 
     // 선호도 변경시 사용
-   public void updateFavorite(Float favorite) {
+    public void updateFavorite(Float favorite) {
        this.favorite = favorite;
    }
 

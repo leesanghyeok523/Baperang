@@ -48,7 +48,6 @@ public class UserServiceImpl implements UserService{
                         School newSchool = School.builder()
                                 .schoolName(requestDto.getSchoolName())
                                 .city(requestDto.getCity())
-                                .schoolType(requestDto.getSchoolType())
                                 .build();
                         return schoolRepository.saveAndFlush(newSchool);
                     });
