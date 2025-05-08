@@ -35,6 +35,9 @@ public class Student {
     @Column(name = "student_name", nullable = false, length = 10)
     private String studentName;
 
+    @Column(name = "gender", nullable = false, length = 10)
+    private String gender;
+
     @Column(name = "grade", nullable = false)
     private Integer grade;
 
@@ -56,10 +59,15 @@ public class Student {
     @Column(name = "content", columnDefinition = "TEXT")
     private String content;
 
+    @Column(name = "image", columnDefinition = "MultipartFile")
+
+    private String image;
+
     @Builder
-    public Student(String studentName, Integer grade, Integer classNum,
-                   Float height, Float weight, School school, Integer number, LocalDate date, String content) {
+    public Student(String studentName, String gender, Integer grade, Integer classNum,
+                   Float height, Float weight, School school, Integer number, LocalDate date, String content, String image) {
         this.studentName = studentName;
+        this.gender = gender;
         this.classNum = classNum;
         this.grade = grade;
         this.height = height;
@@ -68,5 +76,6 @@ public class Student {
         this.number = number;
         this.date = date;
         this.content = content;
+        this.image = image;
     }
 }
