@@ -1,4 +1,4 @@
-package com.ssafy.baperang.domain.leftover.dto.response;
+package com.ssafy.baperang.domain.student.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

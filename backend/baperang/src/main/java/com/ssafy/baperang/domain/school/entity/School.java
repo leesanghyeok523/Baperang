@@ -33,7 +33,7 @@ public class School {
     @Column(name = "school_name", nullable = false, length = 100)
     private String schoolName;
 
-    @Column(name = "school_type", nullable = false, length = 100)
+    @Column(name = "school_type")
     private String schoolType;
 
     @Column(name = "city", nullable = false, length = 20)
