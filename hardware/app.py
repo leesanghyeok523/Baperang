@@ -16,7 +16,8 @@ app = Flask(__name__)
 # CORS 설정 추가 - 프론트엔드의 요청을 허용
 CORS(app, resources={r"/*": {"origins": "*"}})
 
-SERVER_URL = 'http://localhost:8000/api/v1/student/nfc/receive'
+# SERVER_URL = 'http://localhost:8000/api/v1/student/nfc/receive'
+SERVER_URL = 'https://httpbin.org/post'
 AWS_ACCESS_KEY_ID ="AKIAXKPVYNBMQHTUYXCT"
 AWS_SECRET_ACCESS_KEY = "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"
 AWS_DEFAULT_REGION = "ap-northeast-2"
