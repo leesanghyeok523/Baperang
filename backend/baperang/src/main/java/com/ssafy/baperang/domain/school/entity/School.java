@@ -30,16 +30,20 @@ public class School {
     private String city;
 
     @CreatedDate
-    @Column(name = "create_at", nullable = false)
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
     @LastModifiedDate
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "school_type", nullable = false, length = 100)
+    private String schoolType;
+
     @Builder
-    public School(String schoolName, String city) {
+    public School(String schoolName, String city, String schoolType) {
         this.schoolName = schoolName;
         this.city = city;
+        this.schoolType = schoolType;
     }
 }

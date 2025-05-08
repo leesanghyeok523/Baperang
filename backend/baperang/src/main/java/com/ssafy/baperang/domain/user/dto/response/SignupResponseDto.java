@@ -16,5 +16,6 @@ public class SignupResponseDto {
         private String nutritionistName;
         private String city;
         private String schoolName;
+        private String schoolType;
     }
 }
