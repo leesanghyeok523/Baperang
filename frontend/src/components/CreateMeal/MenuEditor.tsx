@@ -125,7 +125,7 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
           </div>
         ) : (
           <div className="flex flex-col h-full">
-            <div className="text-lg font-semibold text-center mb-3">
+            <div className="text-[14px] font-semibold text-center mb-3">
               {selectedDate.split('-')[1]}월 {selectedDate.split('-')[2]}일 식단
             </div>
             <div className="flex-grow flex items-center justify-center text-gray-500 mb-4">

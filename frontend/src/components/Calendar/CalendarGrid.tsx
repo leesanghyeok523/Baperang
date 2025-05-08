@@ -42,7 +42,7 @@ const CalendarGrid = ({
         className="grid grid-cols-7 gap-1 flex-grow h-full"
         style={{
           gridTemplateRows: `repeat(${weeksCount}, 1fr)`,
-          height: weeksCount === 4 ? '450px' : weeksCount === 5 ? '450px' : '450px',
+          height: '100%',
         }}
       >
         {days.map((day, index) => (
@@ -81,7 +81,7 @@ const CalendarGrid = ({
             </div>
 
             {day.type === 'current' && day.hasMenu && (
-              <div className="text-xs mt-1 text-gray-600 overflow-hidden text-ellipsis">
+              <div className="text-[10px] mt-1 text-gray-600 overflow-hidden text-ellipsis">
                 {
                   menuData[
                     `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(
