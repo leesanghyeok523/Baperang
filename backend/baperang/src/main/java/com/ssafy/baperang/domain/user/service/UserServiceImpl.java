@@ -50,7 +50,7 @@ public class UserServiceImpl implements UserService{
                                 .city(requestDto.getCity())
                                 .schoolType(requestDto.getSchoolType())
                                 .build();
-                        return schoolRepository.save(newSchool);
+                        return schoolRepository.saveAndFlush(newSchool);
                     });
 
             String encodedPassword = bCryptPasswordEncoder.encode(requestDto.getPassword());

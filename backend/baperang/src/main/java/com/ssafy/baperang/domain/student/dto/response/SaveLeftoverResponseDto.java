@@ -1,11 +1,11 @@
-package com.ssafy.baperang.domain.leftover.dto.response;
+package com.ssafy.baperang.domain.student.dto.response;
+
+import java.time.LocalDate;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDate;
 
 @Getter
 @NoArgsConstructor

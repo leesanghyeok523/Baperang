@@ -1,7 +1,7 @@
 package com.ssafy.baperang.domain.student.service;
 
 import com.ssafy.baperang.domain.leftover.dto.response.ErrorResponseDto;
-import com.ssafy.baperang.domain.leftover.dto.response.SaveLeftoverResponseDto;
+import com.ssafy.baperang.domain.student.dto.response.SaveLeftoverResponseDto;
 import com.ssafy.baperang.domain.leftover.entity.Leftover;
 import com.ssafy.baperang.domain.leftover.repository.LeftoverRepository;
 import com.ssafy.baperang.domain.menu.entity.Menu;
