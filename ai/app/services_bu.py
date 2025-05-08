@@ -5,7 +5,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
 
 from .config import OPENAI_API_KEY
-from .prompts import make_waste_prompt, make_nutrition_prompt, make_integration_prompt
+from .core.prompts import make_waste_prompt, make_nutrition_prompt, make_integration_prompt
 from .utils import get_leftover_data, get_nutrition_data
 
 print("[DEBUG] OPENAI_API_KEY", OPENAI_API_KEY)
