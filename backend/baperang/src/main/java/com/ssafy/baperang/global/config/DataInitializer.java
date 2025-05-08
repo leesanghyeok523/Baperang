@@ -1,23 +1,27 @@
 package com.ssafy.baperang.global.config;
 
-import com.ssafy.baperang.domain.menu.service.MenuImportServiceImpl;
-import com.ssafy.baperang.domain.school.entity.School;
-import com.ssafy.baperang.domain.school.repository.SchoolRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.io.IOException;
+import java.io.InputStream;
+
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.IOException;
-import java.io.InputStream;
+import com.ssafy.baperang.domain.menu.service.MenuImportServiceImpl;
+import com.ssafy.baperang.domain.school.entity.School;
+import com.ssafy.baperang.domain.school.repository.SchoolRepository;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@Order(2)
 public class DataInitializer implements ApplicationRunner {
 
     private final MenuImportServiceImpl menuImportService;

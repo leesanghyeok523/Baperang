@@ -1,17 +1,25 @@
 package com.ssafy.baperang.domain.menu.entity;
 
+import java.time.LocalDate;
+
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
 import com.ssafy.baperang.domain.school.entity.School;
-import jakarta.persistence.*;
+
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-
-import java.time.LocalDate;
 
 @Entity
 @Getter
@@ -35,15 +43,15 @@ public class Menu {
     @Column(name = "menu_name", nullable = false, columnDefinition = "TEXT")
     private String menuName;
 
-//    @Column(name = "favorite")
-//    private Float favorite;
+   @Column(name = "favorite")
+   private Float favorite;
 
     @Builder
-    public Menu(School school, LocalDate menuDate, String menuName, Float favorite) {
+    public Menu(School school, LocalDate menuDate, String menuName) {
         this.school = school;
         this.menuDate = menuDate;
         this.menuName = menuName;
-//        this.favorite = favorite;
+        this.favorite = 0.0f;
     }
 
     // 메뉴 내용이 변경될 경우 사용
@@ -52,8 +60,8 @@ public class Menu {
     }
 
     // 선호도 변경시 사용
-//    public void updateFavorite(Float favorite) {
-//        this.favorite = favorite;
-//    }
+   public void updateFavorite(Float favorite) {
+       this.favorite = favorite;
+   }
 
 }

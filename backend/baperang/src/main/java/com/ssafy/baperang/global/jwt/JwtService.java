@@ -77,7 +77,6 @@ public class JwtService {
         return Jwts.builder()
                 .header().add("type", "JWT")
                 .and()
-                .subject(loginId)
                 .claims(claims)
                 .issuedAt(nowDate)
                 .expiration(validityDate)
@@ -105,7 +104,6 @@ public class JwtService {
         return Jwts.builder()
                 .header().add("type", "JWT")
                 .and()
-                .subject(loginId)
                 .claims(claims)
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + validityInMilliseconds))
@@ -113,6 +111,12 @@ public class JwtService {
                 .compact();
     }
     
+    // 토큰에서 회원 정보 추출
+    public String getLoginId(String token) {
+        Claims claims = parseClaims(token);
+        return claims.get("loginId", String.class);
+    }
+
     // 토큰에서 회원 정보 추출
     public String getLoginId(String token) {
         Claims claims = parseClaims(token);
