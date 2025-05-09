@@ -54,6 +54,9 @@ const Header = ({ isLoggedIn }: HeaderProps) => {
               <Link to="/inventory" className="text-gray-700 hover:text-gray-900 font-bold">
                 재고관리
               </Link>
+              <Link to="/dashboard" className="text-gray-700 hover:text-gray-900 font-bold">
+                대시보드
+              </Link>
               <Link to="/mypage" className="text-gray-700 hover:text-gray-900 font-bold">
                 마이페이지
               </Link>
@@ -87,6 +90,13 @@ const Header = ({ isLoggedIn }: HeaderProps) => {
                 onClick={() => setIsOpen(false)}
               >
                 재고관리
+              </Link>
+              <Link
+                to="/dashboard"
+                className="text-gray-700 hover:text-gray-900 font-bold px-4 py-2"
+                onClick={() => setIsOpen(false)}
+              >
+                대시보드
               </Link>
               <Link
                 to="/mypage"

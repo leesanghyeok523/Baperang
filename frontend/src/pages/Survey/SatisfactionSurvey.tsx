@@ -314,7 +314,9 @@ const SatisfactionSurvey = () => {
   return (
     <div
       className="h-screen bg-cover bg-center flex items-center justify-center"
-      style={{ backgroundImage: 'url("/images/background/background_dashboard.png")' }}
+      style={{
+        backgroundImage: 'url("/images/background/background_dashboard.png")',
+      }}
     >
       {/* 마감 버튼을 전체 페이지 좌측 상단 모서리에 배치 */}
       <div className="fixed top-4 left-4 z-50">
@@ -329,26 +331,26 @@ const SatisfactionSurvey = () => {
         </Button>
       </div>
 
-      <div className="h-5xl w-full max-w-3xl rounded-lg p-8 backdrop-blur-sm relative">
-        <div className="text-center mb-8">
+      <div className="w-full max-w-3xl rounded-lg p-6 backdrop-blur-sm relative max-h-screen overflow-hidden">
+        <div className="text-center mb-4">
           <h1 className="text-3xl font-bold">오늘 식사는 어떠셨나요?</h1>
         </div>
 
         {isLoading ? (
-          <div className="text-center py-10">로딩 중...</div>
+          <div className="text-center py-8">로딩 중...</div>
         ) : error ? (
-          <div className="text-center text-red-500 py-10">{error}</div>
+          <div className="text-center text-red-500 py-8">{error}</div>
         ) : (
           <>
             <div className="flex flex-col items-center justify-center">
-              <div className="w-full max-w-xl space-y-6">
+              <div className="w-full max-w-xl space-y-6 overflow-hidden">
                 {todayMenus.map((menu) => (
                   <div
                     key={menu.id}
-                    className={`bg-white/50 rounded-2xl p-4 ${isClosed ? 'opacity-70' : ''}`}
+                    className={`bg-white/50 rounded-2xl p-3 ${isClosed ? 'opacity-70' : ''}`}
                   >
-                    <div className="flex justify-between items-center mb-4 my-2 mx-4">
-                      <h2 className="text-xl font-semibold">{menu.name}</h2>
+                    <div className="flex justify-between items-center mb-2 my-1 mx-4">
+                      <h2 className="text-lg font-semibold">{menu.name}</h2>
                       <div className="text-sm text-gray-500">투표: {menu.votes}명</div>
                     </div>
                     <div className="relative">
