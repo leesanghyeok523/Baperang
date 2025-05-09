@@ -34,7 +34,7 @@ public class StudentDetailResponseDto {
                 .number(student.getNumber())
                 .height(student.getHeight())
                 .weight(student.getWeight())
-                .date(student.getDate())
+                .date(student.getImageDate())
                 .content(student.getContent())
                 .schoolName(student.getSchool().getSchoolName())
                 .build();

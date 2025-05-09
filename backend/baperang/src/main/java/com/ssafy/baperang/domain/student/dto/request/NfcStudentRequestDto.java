@@ -20,4 +20,5 @@ public class NfcStudentRequestDto {
     private String gender;
     private String status;
     private Map<String, String> s3Url;
+    private String imageType;
 }
