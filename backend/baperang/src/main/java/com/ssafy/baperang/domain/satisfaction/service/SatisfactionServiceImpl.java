@@ -142,8 +142,8 @@ public class SatisfactionServiceImpl implements SatisfactionService {
             .orElseThrow(() -> new EntityNotFoundException("학교를 찾을 수 없습니다: " + schoolName));
         
         // 2. 오늘 날짜의 메뉴 목록 조회
-        // LocalDate today = LocalDate.now();
-        LocalDate today = LocalDate.of(2025, 4, 29);
+        LocalDate today = LocalDate.now();
+        // LocalDate today = LocalDate.of(2025, 4, 29);
         List<String> menuNames = menuRepository.findDistinctMenuNamesBySchoolAndMenuDate(school, today);
         
         // 3. 메뉴 이름이 목록에 있는지 확인

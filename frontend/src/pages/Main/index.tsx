@@ -5,22 +5,8 @@ import { defaultMenu, defaultWasteData, WasteData } from '../../data/menuData';
 import API_CONFIG from '../../config/api';
 import axios from 'axios';
 import { useAuthStore } from '../../store/authStore';
-
-// 백엔드 API 응답 타입 정의
-interface MenuItem {
-  menuId: number;
-  menuName: string;
-}
-
-interface DayData {
-  date: string;
-  dayOfWeekName: string;
-  menu: MenuItem[];
-}
-
-interface ApiResponse {
-  days: DayData[];
-}
+import { ApiResponse, SatisfactionUpdate } from '../../types/types';
+import { EventSourcePolyfill } from 'event-source-polyfill';
 
 // br 태그로 분리된 메뉴 이름을 배열로 분리하는 함수
 const parseMenuName = (menuName: string): string[] => {
@@ -44,6 +30,97 @@ const MainPage = () => {
 
   // 잔반률 데이터는 항상 오늘 날짜의 데이터 사용
   const [todayWasteData, setTodayWasteData] = useState<WasteData[]>(defaultWasteData);
+  const { isAuthenticated, accessToken } = useAuthStore();
+
+  // SSE 구독 설정
+  useEffect(() => {
+    if (!isAuthenticated || !accessToken) return;
+
+    // SSE 구독 엔드포인트
+    const subscribeUrl = API_CONFIG.getUrl(API_CONFIG.ENDPOINTS.SATISFACTION.SUBSCRIBE);
+
+    console.log('SSE 구독 시작:', subscribeUrl);
+
+    // 토큰 형식 확인 및 처리
+    const authHeaderValue = accessToken.startsWith('Bearer ')
+      ? accessToken
+      : `Bearer ${accessToken}`;
+
+    // EventSourcePolyfill 사용 (헤더 지원)
+    const eventSource = new EventSourcePolyfill(subscribeUrl, {
+      headers: {
+        Authorization: authHeaderValue,
+      },
+      withCredentials: true,
+    });
+
+    // 투표 이벤트 처리
+    eventSource.addEventListener('satisfaction-update', (event: any) => {
+      try {
+        const data = JSON.parse(event.data) as SatisfactionUpdate;
+        console.log('SSE로 수신된 데이터:', data);
+
+        // 투표 데이터 반영 로직 (선호도 차트 업데이트)
+        if (data.menuName && data.averageSatisfaction) {
+          // 잔반률로 변환 (100 - 만족도)
+          const wasteRate = 100 - parseFloat(data.averageSatisfaction);
+
+          setTodayWasteData((prevData) => {
+            // 해당 메뉴가 이미 있는지 확인
+            const menuIndex = prevData.findIndex((item) => item.name === data.menuName);
+
+            if (menuIndex >= 0) {
+              // 기존 메뉴인 경우 잔반률 업데이트
+              const updatedData = [...prevData];
+              updatedData[menuIndex] = {
+                ...updatedData[menuIndex],
+                잔반률: wasteRate,
+              };
+              return updatedData;
+            } else {
+              // 새 메뉴인 경우 추가
+              return [
+                ...prevData,
+                {
+                  name: data.menuName,
+                  잔반률: wasteRate,
+                },
+              ];
+            }
+          });
+        }
+      } catch (err) {
+        console.error('SSE 데이터 처리 중 오류:', err);
+      }
+    });
+
+    // 연결 이벤트 처리
+    eventSource.addEventListener('connect', (event: any) => {
+      console.log('SSE 연결 성공:', event.data);
+    });
+
+    // 하트비트 이벤트 처리
+    eventSource.addEventListener('heartbeat', (event: any) => {
+      console.log('하트비트 수신:', event.data);
+    });
+
+    // 기본 메시지 처리
+    eventSource.onmessage = (event: any) => {
+      console.log('SSE 메시지 수신:', event.data);
+    };
+
+    // 에러 처리
+    eventSource.onerror = (error: any) => {
+      console.error('SSE 연결 오류:', error);
+      eventSource.close();
+    };
+
+    // 컴포넌트 언마운트 시 SSE 연결 종료
+    return () => {
+      console.log('SSE 연결 종료');
+      eventSource.close();
+    };
+  }, [isAuthenticated, accessToken]);
 
   // 일별 메뉴 데이터 가져오기
   const fetchDailyMenu = async (dateStr: string) => {
@@ -136,13 +213,14 @@ const MainPage = () => {
         if (allMenuItems.length > 0) {
           setCurrentMenuItems(allMenuItems);
 
-          // 임시 잔반률 데이터 생성 (실제 API에 잔반률 데이터가 있다면 그것을 사용)
+          // 오늘 날짜인 경우 빈 잔반률 데이터 초기화 (SSE로 실시간 업데이트 받을 예정)
           if (paddedDateStr === todayKey) {
-            const wasteData = allMenuItems.map((name) => ({
+            // 초기 잔반률 데이터는 비어있음 (SSE로 실시간 업데이트 받음)
+            const initialWasteData = allMenuItems.map((name) => ({
               name,
-              잔반률: Math.floor(Math.random() * 7) * 5 + 5, // 5~35% 5단위 (임시)
+              잔반률: 0, // 초기값은 0으로 설정하고 실시간 업데이트를 기다림
             }));
-            setTodayWasteData(wasteData);
+            setTodayWasteData(initialWasteData);
           }
         } else {
           console.log('메뉴 항목이 없어 기본 메뉴로 설정');
