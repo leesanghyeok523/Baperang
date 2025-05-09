@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../../components/ui/button';
 import InputCard from '../../components/ui/inputcard';
@@ -29,21 +29,188 @@ const JoinPage: React.FC = () => {
   const [idCheckLoading, setIdCheckLoading] = useState(false);
   const [idChecked, setIdChecked] = useState(false);
 
+  // 도시 및 학교 데이터
+  const [cities, setCities] = useState<string[]>([]);
+  const [schools, setSchools] = useState<string[]>([]);
+  const [showCityDropdown, setShowCityDropdown] = useState(false);
+  const [showSchoolDropdown, setShowSchoolDropdown] = useState(false);
+  const [isLoadingSchools, setIsLoadingSchools] = useState(false);
+
+  // 드롭다운 외부 클릭 감지를 위한 ref
+  const cityInputRef = useRef<HTMLDivElement>(null);
+  const schoolInputRef = useRef<HTMLDivElement>(null);
+
   const navigate = useNavigate();
+
+  // 컴포넌트 마운트 시 도시 목록 가져오기 및 아이디 입력칸 포커스
+  useEffect(() => {
+    fetchCities();
+
+    // 아이디 입력 필드에 자동 포커스
+    const loginIdInput = document.getElementById('loginId-input');
+    if (loginIdInput) {
+      loginIdInput.focus();
+    }
+  }, []);
+
+  // 외부 클릭 감지 이벤트 리스너
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (cityInputRef.current && !cityInputRef.current.contains(event.target as Node)) {
+        setShowCityDropdown(false);
+      }
+      if (schoolInputRef.current && !schoolInputRef.current.contains(event.target as Node)) {
+        setShowSchoolDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // 학교 검색 - 도시나 학교 이름이 변경될 때 실행
+  useEffect(() => {
+    console.log('학교 검색 트리거:', { city: formData.city, schoolName: formData.schoolName });
+    if (formData.city && formData.schoolName.length > 0) {
+      // API 요청 디바운스 - 타이핑 중에 너무 많은 요청을 보내지 않도록
+      const debounceTimeout = setTimeout(() => {
+        fetchSchools();
+      }, 300); // 300ms 디바운스
+
+      return () => clearTimeout(debounceTimeout);
+    } else {
+      setSchools([]);
+      setShowSchoolDropdown(false);
+    }
+  }, [formData.city, formData.schoolName]);
+
+  // 도시 목록 가져오기
+  const fetchCities = async () => {
+    try {
+      const response = await fetch(API_CONFIG.getUrl(API_CONFIG.ENDPOINTS.SCHOOL.CITIES));
+
+      if (!response.ok) {
+        throw new Error(`서버 오류: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('도시 목록 응답 데이터:', data);
+
+      // 백엔드 응답 형식에 맞게 처리 (사진에 보이는 cities 배열)
+      if (Array.isArray(data)) {
+        setCities(data);
+      } else {
+        // 응답이 객체일 경우 cities 배열 추출
+        setCities(data.cities || []);
+      }
+    } catch (error) {
+      console.error('도시 목록 가져오기 오류:', error);
+    }
+  };
+
+  // 학교 검색
+  const fetchSchools = async () => {
+    if (!formData.city || formData.schoolName.length === 0) {
+      console.log('학교 검색 조건 불충족:', {
+        city: formData.city,
+        schoolName: formData.schoolName,
+      });
+      return;
+    }
+
+    setIsLoadingSchools(true);
+    setShowSchoolDropdown(true); // 로딩 중에도 드롭다운 표시
+
+    try {
+      // 요청 파라미터 준비
+      const params = {
+        city: formData.city,
+        schoolName: formData.schoolName,
+      };
+
+      console.log('학교 검색 요청 파라미터:', params);
+
+      // 쿼리 파라미터를 사용한 GET 요청 (백엔드 컨트롤러 @RequestParam에 맞춤)
+      const apiUrl = API_CONFIG.getUrl(API_CONFIG.ENDPOINTS.SCHOOL.SCHOOLS, params);
+      console.log('학교 검색 요청 URL:', apiUrl);
+
+      const response = await fetch(apiUrl);
+      console.log('학교 검색 응답 상태:', response.status, response.statusText);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('서버 오류 응답:', errorText);
+        throw new Error(`서버 오류: ${response.status}`);
+      }
+
+      // 응답 데이터 파싱
+      const contentType = response.headers.get('content-type');
+      console.log('응답 Content-Type:', contentType);
+
+      const data = await response.json();
+      console.log('학교 검색 원본 응답 데이터:', data);
+
+      // 백엔드 응답 형식에 맞게 처리
+      let schoolsList = [];
+
+      if (data && Array.isArray(data.schools)) {
+        // { schools: [...] } 형식의 응답
+        schoolsList = data.schools;
+        console.log('객체 내 schools 배열 형식 감지');
+      } else if (Array.isArray(data)) {
+        // 배열 형식의 응답
+        schoolsList = data;
+        console.log('직접 배열 형식 감지');
+      } else {
+        console.log('예상치 못한 응답 형식:', typeof data, data);
+      }
+
+      console.log('처리된 학교 목록:', schoolsList);
+
+      // 상태 업데이트
+      setSchools(schoolsList);
+      setShowSchoolDropdown(schoolsList.length > 0);
+    } catch (error) {
+      console.error('학교 검색 오류:', error);
+      setShowSchoolDropdown(false);
+    } finally {
+      setIsLoadingSchools(false);
+    }
+  };
 
   // 입력 필드 변경 핸들러
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+
+    console.log(`입력 필드 변경: ${name} = ${value}`);
 
     // 아이디 필드가 변경되면 중복 확인 상태 초기화
     if (name === 'loginId' && idChecked) {
       setIdChecked(false);
     }
 
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    // 폼 데이터 업데이트
+    setFormData((prev) => {
+      const newData = {
+        ...prev,
+        [name]: value,
+      };
+
+      // 학교 필드가 변경되면 드롭다운 표시 조건 확인
+      if (name === 'schoolName') {
+        const shouldShowDropdown = newData.city !== '' && value.length > 0;
+        console.log(`학교 드롭다운 표시 여부: ${shouldShowDropdown}`, {
+          city: newData.city,
+          schoolName: value,
+        });
+
+        // 여기서는 상태 업데이트를 하지 않고 useEffect에서 처리
+      }
+
+      return newData;
+    });
 
     // 필드가 변경되면 해당 필드의 오류 메시지 초기화
     if (errors[name as keyof typeof errors]) {
@@ -52,6 +219,26 @@ const JoinPage: React.FC = () => {
         [name]: '',
       }));
     }
+  };
+
+  // 도시 선택 핸들러
+  const handleCitySelect = (city: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      city,
+      schoolName: '', // 도시가 변경되면 학교 이름 초기화
+    }));
+    setSchools([]); // 학교 목록 초기화
+    setShowCityDropdown(false); // 도시 선택 시 드롭다운 닫기
+  };
+
+  // 학교 선택 핸들러
+  const handleSchoolSelect = (school: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      schoolName: school,
+    }));
+    setShowSchoolDropdown(false);
   };
 
   // 아이디 중복 확인 함수
@@ -239,6 +426,7 @@ const JoinPage: React.FC = () => {
           onCheck={checkIdDuplicate}
           checkLoading={idCheckLoading}
           checked={idChecked}
+          id="loginId-input"
         />
 
         <InputCard
@@ -267,21 +455,70 @@ const JoinPage: React.FC = () => {
           error={errors.nutritionistName}
         />
 
-        <InputCard
-          placeholder="도시를 입력하세요"
-          name="city"
-          value={formData.city}
-          onChange={handleChange}
-          error={errors.city}
-        />
+        <div ref={cityInputRef} className="relative">
+          <InputCard
+            placeholder="도시를 선택하세요"
+            name="city"
+            value={formData.city}
+            onChange={handleChange}
+            error={errors.city}
+            onFocus={() => setShowCityDropdown(true)}
+            readOnly
+          />
+          {showCityDropdown && cities.length > 0 && (
+            <div
+              className="absolute z-10 w-full mt-1 bg-white border-2 border-white rounded-lg shadow-xl overflow-auto"
+              style={{
+                maxHeight: '180px', // 약 3개의 항목이 표시될 높이
+              }}
+            >
+              {cities.map((city, index) => (
+                <div
+                  key={index}
+                  className="p-3 hover:bg-green-50 cursor-pointer border-b border-gray-100 font-medium"
+                  style={{ height: '50px', display: 'flex', alignItems: 'center' }}
+                  onClick={() => handleCitySelect(city)}
+                >
+                  {city}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
-        <InputCard
-          placeholder="학교 이름을 입력하세요"
-          name="schoolName"
-          value={formData.schoolName}
-          onChange={handleChange}
-          error={errors.schoolName}
-        />
+        <div ref={schoolInputRef} className="mt-4 relative">
+          <InputCard
+            placeholder="학교 이름을 입력하세요"
+            name="schoolName"
+            value={formData.schoolName}
+            onChange={handleChange}
+            error={errors.schoolName}
+            disabled={!formData.city}
+          />
+          {showSchoolDropdown && schools.length > 0 && (
+            <div
+              className="absolute z-10 w-full mt-1 bg-white border-2 border-white rounded-lg shadow-xl overflow-auto"
+              style={{
+                maxHeight: '150px', // 약 3개의 항목이 표시될 높이 (각 항목 높이 약 56px)
+              }}
+            >
+              {isLoadingSchools ? (
+                <div className="p-3 text-center text-gray-500">학교 검색 중...</div>
+              ) : (
+                schools.map((school, index) => (
+                  <div
+                    key={index}
+                    className="p-3 hover:bg-green-50 cursor-pointer border-b border-gray-100 font-medium"
+                    style={{ height: '53px', display: 'flex', alignItems: 'center' }}
+                    onClick={() => handleSchoolSelect(school)}
+                  >
+                    {school}
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
 
         <div className="flex justify-center gap-4 mt-8">
           <Button

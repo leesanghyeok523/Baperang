@@ -12178,6 +12178,3 @@ INSERT INTO school (학교명, 시도명) VALUES ('화북초등학교', '제주�
 INSERT INTO school (학교명, 시도명) VALUES ('효돈중학교', '제주특별자치도');
 INSERT INTO school (학교명, 시도명) VALUES ('효돈초등학교', '제주특별자치도');
 INSERT INTO school (학교명, 시도명) VALUES ('흥산초등학교', '제주특별자치도');
-INSERT INTO school (학교명, 시도명) VALUES ('AIDT고등학교', '재외한국학교');
-INSERT INTO school (학교명, 시도명) VALUES ('AIDT중학교', '재외한국학교');
-INSERT INTO school (학교명, 시도명) VALUES ('AIDT초등학교', '재외한국학교');
