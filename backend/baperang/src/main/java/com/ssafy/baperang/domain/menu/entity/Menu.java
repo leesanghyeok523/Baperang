@@ -49,13 +49,17 @@ public class Menu {
     @Column(name = "favorite")
     private Float favorite;
 
+    @Column(name = "votes")
+    private Integer votes;
+
     @Builder
-    public Menu(School school, LocalDate menuDate, String menuName) {
+    public Menu(School school, LocalDate menuDate, String menuName, Integer amount, Float favorite, Integer votes) {
         this.school = school;
         this.menuDate = menuDate;
         this.menuName = menuName;
-        this.amount = 0;
-        this.favorite = 0.0f;
+        this.amount = amount != null ? amount : 0;
+        this.favorite = favorite != null ? favorite : 0.0f;
+        this.votes = votes != null ? votes : 0;
     }
 
     // 메뉴 내용이 변경될 경우 사용
@@ -69,5 +73,30 @@ public class Menu {
    }
 
     public void updateAmount(Integer amount) {this.amount = amount;}
-
+    
+    /**
+     * 만족도 투표 추가 메서드
+     * @param satisfactionScore 만족도 점수
+     */
+    public void addVote(int satisfactionScore) {
+        this.votes = (this.votes != null) ? this.votes + 1 : 1;
+        float currentFavorite = (this.favorite != null) ? this.favorite : 0.0f;
+        this.favorite = currentFavorite + satisfactionScore;
+    }
+    
+    /**
+     * 총 투표수 반환
+     * @return 투표수
+     */
+    public int getVoteCount() {
+        return (this.votes != null) ? this.votes : 0;
+    }
+    
+    /**
+     * 총 선호도 점수 반환
+     * @return 선호도 총점
+     */
+    public int getTotalFavorite() {
+        return (this.favorite != null) ? Math.round(this.favorite) : 0;
+    }
 }
