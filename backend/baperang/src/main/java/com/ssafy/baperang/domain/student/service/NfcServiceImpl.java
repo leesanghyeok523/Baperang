@@ -114,6 +114,10 @@ public class NfcServiceImpl implements NfcService {
             return ErrorResponseDto.of(BaperangErrorCode.INVALID_INPUT_VALUE);
         }
 
+        log.info("학생 정보 검증 성공: 학생명: {}, 학년: {}, 반: {}, 번호: {}, 학교: {}",
+                student.getStudentName(), student.getGrade(), student.getClassNum(),
+                student.getNumber(), student.getSchool() != null ? student.getSchool().getSchoolName() : "없음");
+
         return true; // 검증 성공
     }
 }
