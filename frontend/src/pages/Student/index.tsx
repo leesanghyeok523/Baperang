@@ -6,48 +6,7 @@ import html2canvas from 'html2canvas';
 import API_CONFIG from '../../config/api';
 import axios from 'axios';
 import { useAuthStore } from '../../store/authStore';
-
-// API 응답 타입 정의
-interface StudentListResponse {
-  students: {
-    studentId: number;
-    studentName: string;
-    grade: number;
-    classNum: number;
-    number: number;
-    gender: string;
-  }[];
-}
-
-interface StudentDetailResponse {
-  studentId: number;
-  studentName: string;
-  grade: number;
-  classNum: number;
-  number: number;
-  height: number;
-  weight: number;
-  date: string;
-  content: string;
-  schoolName: string;
-}
-
-// 학생 타입 재정의
-interface StudentType {
-  id: number;
-  name: string;
-  grade: number;
-  classNum: number;
-  studentNum: number;
-  gender: string;
-  bmi?: number;
-  wasteRate?: number;
-  height?: number;
-  weight?: number;
-  date?: string;
-  content?: string;
-  schoolName?: string;
-}
+import { StudentListResponse, StudentDetailResponse, StudentType } from '../../types/types';
 
 const StudentManagement = () => {
   const [selectedGrade, setSelectedGrade] = useState<number | ''>('');
