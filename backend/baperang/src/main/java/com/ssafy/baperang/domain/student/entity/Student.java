@@ -87,4 +87,20 @@ public class Student {
         this.content = content;
         this.image = image;
     }
+
+    public static Student updateImage(Student original, String imageUrl) {
+        return Student.builder()
+                .studentName(original.getStudentName())
+                .gender(original.getGender())
+                .grade(original.getGrade())
+                .classNum(original.getClassNum())
+                .height(original.getHeight())
+                .weight(original.getWeight())
+                .school(original.getSchool())
+                .number(original.getNumber())
+                .date(LocalDate.now())
+                .content(original.getContent())
+                .image(imageUrl)
+                .build();
+    }
 }
