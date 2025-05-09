@@ -215,7 +215,7 @@ public class MenuImportServiceImpl implements MenuImportService {
 //                    .favorite(0.0f) // 기본값으로 0 설정
                     .build();
 
-            menu = menuRepository.save(menu);
+            menu = menuRepository.saveAndFlush(menu);
             log.info("메뉴 저장 완료: {} ({})", menuName, menuDate);
 
             return true;

@@ -50,6 +50,14 @@ const API_CONFIG = {
       TRAY_END: '/api/v1/ai/tray/end',
       LEFTOVER_MEASURE: '/api/v1/ai/leftover/measure',
     },
+    
+    // 만족도 조사 관련
+    SATISFACTION: {
+      SUBMIT: '/api/v1/satisfaction',
+      VOTE: '/api/v1/satisfaction/vote',
+      RECENT: '/api/v1/satisfaction/recent',
+      SUBSCRIBE: '/api/v1/satisfaction/subscribe'
+    },
   },
 
   // API URL 생성 도우미 함수
