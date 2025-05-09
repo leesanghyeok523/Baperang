@@ -69,7 +69,7 @@ public class CsvDataLoader implements CommandLineRunner {
             while ((line = reader.readLine()) != null) {
                 try {
                     String[] data = line.split(",");
-                    if (data.length >= 3) {
+                    if (data.length >= 2) {
                         String schoolName = data[0].trim();
                         String city = data[1].trim();
                         LocalDateTime now = LocalDateTime.now();
@@ -138,7 +138,7 @@ public class CsvDataLoader implements CommandLineRunner {
     private int executeBatch(List<Object[]> batch) {
         try {
             int[] updateCounts = jdbcTemplate.batchUpdate(
-                    "INSERT INTO school (school_name, city, school_type, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+                    "INSERT INTO school (school_name, city, created_at, updated_at) VALUES (?, ?, ?, ?)",
                     batch
             );
             
