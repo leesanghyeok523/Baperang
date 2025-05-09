@@ -38,6 +38,7 @@ public class SecurityConfig {
             "/images/**",
             "/monsters/**",
             "/characters/**",
+            "/api/v1/sse/**", // SSE 엔드포인트 접근 허용
             "/**" // 모든 경로 허용
     };
 

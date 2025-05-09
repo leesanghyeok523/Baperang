@@ -12,6 +12,7 @@ public interface SchoolJpaRepository extends JpaRepository<School, Long> {
     List<School> findAll();
     School saveAndFlush(School school);
     Optional<School> findById(Long schoolId);
+    Optional<School> findBySchoolName(String schoolName);
     Optional<School> findBySchoolNameAndCity(String schoolName, String city);
     boolean existsBySchoolNameAndCity(String schoolName, String city);
     

@@ -1,7 +1,6 @@
 package com.ssafy.baperang.domain.menu.repository;
 
 import java.time.LocalDate;
-import java.util.Optional;
 import java.util.List;
 
 import com.ssafy.baperang.domain.menu.entity.Menu;
@@ -37,5 +36,18 @@ public interface MenuJpaRepository extends JpaRepository<Menu, Long> {
             School school,
             LocalDate menuDate,
             String menuName
+    );
+    
+    // 특정 학교, 날짜, 메뉴명으로 메뉴 조회
+    Menu findBySchoolAndMenuDateAndMenuName(
+            School school,
+            LocalDate menuDate,
+            String menuName
+    );
+    
+    // 특정 학교, 날짜의 모든 메뉴 조회
+    List<Menu> findBySchoolAndMenuDate(
+            School school,
+            LocalDate menuDate
     );
 }

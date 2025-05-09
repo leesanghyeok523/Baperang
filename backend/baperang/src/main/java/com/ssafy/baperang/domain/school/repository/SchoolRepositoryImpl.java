@@ -26,6 +26,11 @@ public class SchoolRepositoryImpl implements SchoolRepository {
     }
 
     @Override
+    public Optional<School> findBySchoolName(String schoolName) {
+        return schoolJpaRepository.findBySchoolName(schoolName);
+    }
+
+    @Override
     public School saveAndFlush(School school) {
         return schoolJpaRepository.saveAndFlush(school);
     }
