@@ -1,16 +1,16 @@
 package com.ssafy.baperang.domain.menu.repository;
 
-import com.ssafy.baperang.domain.menu.entity.Menu;
-import com.ssafy.baperang.domain.school.entity.School;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
-
 import java.time.LocalDate;
 import java.util.List;
 
-@Repository
-public interface MenuRepository {
+import com.ssafy.baperang.domain.menu.entity.Menu;
+import com.ssafy.baperang.domain.school.entity.School;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+public interface MenuJpaRepository extends JpaRepository<Menu, Long> {
 
     Menu saveAndFlush(Menu menu);
     // 날짜로 잔반율 조회

@@ -23,7 +23,7 @@ public class SchoolServiceImpl implements SchoolService {
     public CitiesResponseDto getCities() {
         List<String> cities = schoolRepository.findCities();
         return new CitiesResponseDto(cities);
-    }   
+    }
 
     @Override
     public SchoolsResponseDto getSchools(String city, String schoolName) {

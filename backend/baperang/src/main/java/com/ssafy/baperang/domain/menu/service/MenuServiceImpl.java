@@ -113,4 +113,82 @@ public class MenuServiceImpl implements MenuService {
             return ErrorResponseDto.of(BaperangErrorCode.INTERNAL_SERVER_ERROR);
         }
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Object getOneDayMenu(String token, String date) { 
+        
+        try {
+            // 토큰 유효성
+            if (!jwtService.validateToken(token)) {
+                log.info("getOneDayMenu - 토큰 유효하지 않음");
+                return ErrorResponseDto.of(BaperangErrorCode.INVALID_TOKEN);
+            }
+
+            Long userPk = jwtService.getUserId(token);
+
+            User user = userRepository.findById(userPk)
+                    .orElse(null);
+
+            if (user == null) {
+                log.info("getOneDayMenu - 사용자 정보 없음");
+                return ErrorResponseDto.of(BaperangErrorCode.USER_NOT_FOUND);
+            }
+
+            School school = user.getSchool();
+
+            List<String> menu = menuRepository.findDistinctMenuNamesBySchoolAndMenuDate(school, LocalDate.parse(date));
+
+            if (menu.isEmpty()) {
+                log.info("getOneDayMenu - 오늘 메뉴 없음");
+                menu.add("오늘은 메뉴가 없습니다.");
+                return menu;
+            }
+
+            return menu;
+        } catch (Exception e) {
+            log.error("오늘 메뉴 조회 중 오류 발생: {}", e.getMessage(), e);
+            return ErrorResponseDto.of(BaperangErrorCode.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Object getTodayMenu(String token) { 
+        
+        try {
+            // 토큰 유효성
+            if (!jwtService.validateToken(token)) {
+                log.info("getOneDayMenu - 토큰 유효하지 않음");
+                return ErrorResponseDto.of(BaperangErrorCode.INVALID_TOKEN);
+            }
+
+            Long userPk = jwtService.getUserId(token);
+
+            LocalDate today = LocalDate.now();
+
+            User user = userRepository.findById(userPk)
+                    .orElse(null);
+
+            if (user == null) {
+                log.info("getOneDayMenu - 사용자 정보 없음");
+                return ErrorResponseDto.of(BaperangErrorCode.USER_NOT_FOUND);
+            }
+
+            School school = user.getSchool();
+
+            List<String> menu = menuRepository.findDistinctMenuNamesBySchoolAndMenuDate(school, today);
+
+            if (menu.isEmpty()) {
+                log.info("getOneDayMenu - 오늘 메뉴 없음");
+                menu.add("오늘은 메뉴가 없습니다.");
+                return menu;
+            }
+
+            return menu;
+        } catch (Exception e) {
+            log.error("오늘 메뉴 조회 중 오류 발생: {}", e.getMessage(), e);
+            return ErrorResponseDto.of(BaperangErrorCode.INTERNAL_SERVER_ERROR);
+        }
+    }
 }

@@ -40,6 +40,15 @@ const PublicLayout = () => {
   );
 };
 
+// 헤더가 없는 레이아웃 컴포넌트 (대시보드용)
+const NoHeaderLayout = () => {
+  return (
+    <main className="w-full h-full">
+      <Outlet />
+    </main>
+  );
+};
+
 function App() {
   const { isAuthenticated } = useAuthStore();
 
@@ -59,6 +68,7 @@ function App() {
 
         {/* 인증이 필요한 경로들 */}
         <Route element={<ProtectedRoute />}>
+          {/* 헤더가 있는 페이지들 */}
           <Route path="/" element={<Layout />}>
             <Route index element={<Navigate to="/main" />} />
             <Route path="main" element={<MainPage />} />
@@ -67,6 +77,11 @@ function App() {
             <Route path="student" element={<StudentManagement />} />
             <Route path="inventory" element={<InventoryPage />} />
             <Route path="mypage" element={<MyPage />} />
+          </Route>
+
+          {/* 헤더가 없는 페이지들 */}
+          <Route element={<NoHeaderLayout />}>
+            <Route path="dashboard" element={<SatisfactionSurvey />} />
           </Route>
         </Route>
 
