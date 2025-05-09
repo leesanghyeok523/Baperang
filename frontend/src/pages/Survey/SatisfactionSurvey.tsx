@@ -195,17 +195,19 @@ const SatisfactionSurvey = () => {
 
         // 투표 데이터 반영 로직
         if (data.menuName && data.averageSatisfaction) {
-          // 평균 만족도 점수 (1-5 범위로 변환)
+          // 평균 만족도 점수 (1-5 범위)
           const avgSatisfaction = parseFloat(data.averageSatisfaction);
           const totalVotes = parseInt(data.totalVotes.toString());
 
           setTodayMenus((prevMenus) => {
             return prevMenus.map((menu) => {
               if (menu.name === data.menuName) {
-                // SSE로 받은 평균 만족도를 각 레벨별 투표수로 역산하기 (근사값)
-                // 이 예제에서는 단순화를 위해 모든 투표가 평균 만족도 값에 가까운 만족도 레벨에 있다고 가정
-                const satisfactionLevel = Math.round(avgSatisfaction);
+                // SSE로 받은 평균 만족도를 각 레벨별 투표수로 역산하기
+                // 이 부분은 평균 만족도를 기반으로 각 레벨별 투표수 추정
                 const newSatisfactionVotes = [0, 0, 0, 0, 0];
+
+                // 평균값을 1-5 범위 내에서 반올림하여 만족도 레벨 결정
+                const satisfactionLevel = Math.round(avgSatisfaction);
 
                 // 평균에 가장 가까운 레벨에 투표 집중 (1~5범위 보정)
                 const mainLevel = Math.max(1, Math.min(5, satisfactionLevel));
@@ -224,7 +226,9 @@ const SatisfactionSurvey = () => {
           // 선호도 데이터도 함께 업데이트
           setPreferenceData((prevData) => {
             const menuIndex = prevData.findIndex((item) => item.name === data.menuName);
-            const wasteRate = 100 - avgSatisfaction * 20; // 5점 만점을 100% 기준으로 변환
+
+            // 1-5 척도에서 잔반률로 변환 (5점 만점이 0% 잔반률, 1점이 100% 잔반률)
+            const wasteRate = 100 - avgSatisfaction * 20;
 
             if (menuIndex >= 0) {
               const updatedData = [...prevData];
@@ -280,14 +284,14 @@ const SatisfactionSurvey = () => {
       const selectedMenu = todayMenus.find((menu) => menu.id === menuId);
       if (!selectedMenu) return;
 
-      // 만족도 점수는 그대로 1-5 사이의 값 사용
+      // 만족도 점수는 1-5 사이의 값 사용 (value 값 그대로 사용)
       const satisfactionScore = satisfactionValue;
 
       // 만족도 투표 API 요청 데이터
       const voteData = {
         schoolName: user?.schoolName || '명호고등학교',
         menuname: selectedMenu.name,
-        satisfactionScore,
+        satisfactionScore: satisfactionValue, // satisfactionValue 값을 그대로 전송
       };
 
       console.log('만족도 투표 요청 데이터:', voteData);
@@ -360,7 +364,7 @@ const SatisfactionSurvey = () => {
       // 1-5 점수 범위에서 평균 계산
       const avgSatisfaction = menu.votes > 0 ? totalSatisfactionScore / menu.votes : 3;
 
-      // 잔반률 계산: 5점 만점을 100% 기준으로 변환
+      // 잔반률 계산: 5점 만점을 100% 기준으로 변환 (5점=0% 잔반률, 1점=80% 잔반률)
       const wasteRate = 100 - avgSatisfaction * 20;
 
       return {

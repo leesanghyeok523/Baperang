@@ -9,10 +9,11 @@ export interface MenuDataType {
   [key: string]: MenuItem;
 }
 
-// 잔반률 데이터 타입 정의
+// 잔반률 및 선호도 데이터 타입 정의
 export interface WasteData {
   name: string;
   잔반률: number;
+  선호도?: number; // 선호도 필드 추가 (1-5 점수)
 }
 
 // 빈 메뉴 데이터

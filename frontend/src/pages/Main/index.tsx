@@ -39,7 +39,14 @@ const MainPage = () => {
     // SSE 구독 엔드포인트
     const subscribeUrl = API_CONFIG.getUrl(API_CONFIG.ENDPOINTS.SATISFACTION.SUBSCRIBE);
 
-    console.log('SSE 구독 시작:', subscribeUrl);
+    // useAuthStore에서 현재 로그인한 사용자 정보 가져오기
+    const { user } = useAuthStore.getState();
+    const schoolName = user?.schoolName || '명호고등학교';
+
+    // schoolName을 쿼리 파라미터로 추가
+    const subscribeUrlWithSchool = `${subscribeUrl}?schoolName=${encodeURIComponent(schoolName)}`;
+
+    console.log('SSE 구독 시작:', subscribeUrlWithSchool);
 
     // 토큰 형식 확인 및 처리
     const authHeaderValue = accessToken.startsWith('Bearer ')
@@ -47,46 +54,89 @@ const MainPage = () => {
       : `Bearer ${accessToken}`;
 
     // EventSourcePolyfill 사용 (헤더 지원)
-    const eventSource = new EventSourcePolyfill(subscribeUrl, {
+    const eventSource = new EventSourcePolyfill(subscribeUrlWithSchool, {
       headers: {
         Authorization: authHeaderValue,
       },
       withCredentials: true,
     });
 
+    // 커스텀 이벤트 타입 (실제 이벤트 구조에 맞게 정의)
+    type SSEMessageEvent = Event & { data: string };
+
     // 투표 이벤트 처리
-    eventSource.addEventListener('satisfaction-update', (event: any) => {
+    // EventSourcePolyfill의 타입 호환성 문제로 타입 검사 예외 처리
+    // @ts-expect-error EventSourcePolyfill 타입 정의 불일치
+    eventSource.addEventListener('satisfaction-update', (event: SSEMessageEvent) => {
       try {
         const data = JSON.parse(event.data) as SatisfactionUpdate;
         console.log('SSE로 수신된 데이터:', data);
 
-        // 투표 데이터 반영 로직 (선호도 차트 업데이트)
+        // 만족도 데이터만 업데이트 (잔반률과 연관짓지 않음)
         if (data.menuName && data.averageSatisfaction) {
-          // 잔반률로 변환 (100 - 만족도)
-          const wasteRate = 100 - parseFloat(data.averageSatisfaction);
+          // 만족도 점수(1-5 범위)
+          const avgSatisfaction = parseFloat(data.averageSatisfaction);
+
+          console.log(`메뉴 "${data.menuName}"의 만족도 ${avgSatisfaction}점 수신됨`);
 
           setTodayWasteData((prevData) => {
             // 해당 메뉴가 이미 있는지 확인
             const menuIndex = prevData.findIndex((item) => item.name === data.menuName);
 
+            // 데이터가 없는 경우를 처리하기 위한 기본값 설정
+            let updatedData = [...prevData];
+
             if (menuIndex >= 0) {
-              // 기존 메뉴인 경우 잔반률 업데이트
-              const updatedData = [...prevData];
+              // 기존 메뉴인 경우 만족도 업데이트
               updatedData[menuIndex] = {
                 ...updatedData[menuIndex],
-                잔반률: wasteRate,
+                선호도: avgSatisfaction,
+                // 잔반률은 변경하지 않음 (나중에 백엔드에서 별도로 받을 예정)
               };
-              return updatedData;
             } else {
               // 새 메뉴인 경우 추가
-              return [
-                ...prevData,
+              updatedData = [
+                ...updatedData,
                 {
                   name: data.menuName,
-                  잔반률: wasteRate,
+                  선호도: avgSatisfaction,
+                  잔반률: 0, // 초기값 설정
                 },
               ];
             }
+
+            return updatedData;
+          });
+        } else if (Array.isArray(data)) {
+          // 여러 메뉴 데이터를 한 번에 수신하는 경우
+          console.log('메뉴 목록 데이터 수신:', data);
+
+          setTodayWasteData((prevData) => {
+            const updatedData = [...prevData];
+
+            data.forEach((menuData) => {
+              if (menuData.menuName && menuData.averageSatisfaction) {
+                const avgSatisfaction = parseFloat(menuData.averageSatisfaction);
+                const menuIndex = updatedData.findIndex((item) => item.name === menuData.menuName);
+
+                if (menuIndex >= 0) {
+                  // 기존 메뉴 업데이트
+                  updatedData[menuIndex] = {
+                    ...updatedData[menuIndex],
+                    선호도: avgSatisfaction,
+                  };
+                } else {
+                  // 새 메뉴 추가
+                  updatedData.push({
+                    name: menuData.menuName,
+                    선호도: avgSatisfaction,
+                    잔반률: 0,
+                  });
+                }
+              }
+            });
+
+            return updatedData;
           });
         }
       } catch (err) {
@@ -95,22 +145,26 @@ const MainPage = () => {
     });
 
     // 연결 이벤트 처리
-    eventSource.addEventListener('connect', (event: any) => {
+    // @ts-expect-error EventSourcePolyfill 타입 정의 불일치
+    eventSource.addEventListener('connect', (event: SSEMessageEvent) => {
       console.log('SSE 연결 성공:', event.data);
     });
 
     // 하트비트 이벤트 처리
-    eventSource.addEventListener('heartbeat', (event: any) => {
+    // @ts-expect-error EventSourcePolyfill 타입 정의 불일치
+    eventSource.addEventListener('heartbeat', (event: SSEMessageEvent) => {
       console.log('하트비트 수신:', event.data);
     });
 
     // 기본 메시지 처리
-    eventSource.onmessage = (event: any) => {
+    // @ts-expect-error EventSourcePolyfill 타입 정의 불일치
+    eventSource.onmessage = (event: SSEMessageEvent) => {
       console.log('SSE 메시지 수신:', event.data);
     };
 
     // 에러 처리
-    eventSource.onerror = (error: any) => {
+    // @ts-expect-error EventSourcePolyfill 타입 정의 불일치
+    eventSource.onerror = (error: Event) => {
       console.error('SSE 연결 오류:', error);
       eventSource.close();
     };
@@ -128,14 +182,10 @@ const MainPage = () => {
       setLoading(true);
       const { accessToken } = useAuthStore.getState();
 
-      console.log('fetchDailyMenu 호출됨', { dateStr });
-
       if (!accessToken) {
         console.error('인증 토큰이 없습니다. 로그인이 필요합니다.');
         return;
       }
-
-      console.log('인증 토큰:', accessToken.substring(0, 20) + '...');
 
       // API 엔드포인트는 API_CONFIG에서 확인하고 적절히 수정
       const endpoint = API_CONFIG.ENDPOINTS.MEAL.MENU_CALENDAR;
@@ -173,12 +223,6 @@ const MainPage = () => {
         day
       ).padStart(2, '0')}`;
 
-      console.log('찾는 날짜:', paddedDateStr);
-      console.log(
-        '응답의 전체 날짜들:',
-        response.data.days.map((d) => d.date)
-      );
-
       const dayData = response.data.days.find((d) => d.date === paddedDateStr);
 
       // 응답에 해당 날짜의 데이터가 없는 경우
@@ -207,40 +251,28 @@ const MainPage = () => {
           }
         });
 
-        console.log('분리된 메뉴 항목들:', allMenuItems);
-
         // 메뉴가 있는 경우에만 설정
         if (allMenuItems.length > 0) {
           setCurrentMenuItems(allMenuItems);
 
-          // 오늘 날짜인 경우 빈 잔반률 데이터 초기화 (SSE로 실시간 업데이트 받을 예정)
+          // 오늘 날짜인 경우 잔반률 데이터 초기화 (SSE로 실시간 업데이트 받을 예정)
           if (paddedDateStr === todayKey) {
-            // 초기 잔반률 데이터는 비어있음 (SSE로 실시간 업데이트 받음)
+            // 초기 데이터는 비어있음 (SSE로 실시간 업데이트 받음)
             const initialWasteData = allMenuItems.map((name) => ({
               name,
-              잔반률: 0, // 초기값은 0으로 설정하고 실시간 업데이트를 기다림
+              잔반률: 0, // 초기 잔반률 값은 0으로 설정
+              선호도: 0, // 초기 선호도 값은 0으로 설정
             }));
             setTodayWasteData(initialWasteData);
           }
         } else {
-          console.log('메뉴 항목이 없어 기본 메뉴로 설정');
           setCurrentMenuItems(defaultMenu);
         }
       } else {
-        console.log('해당 날짜의 메뉴 데이터가 없음:', paddedDateStr);
         setCurrentMenuItems(defaultMenu);
       }
     } catch (error) {
       console.error('메뉴 데이터 가져오기 오류:', error);
-      // 에러 상세 정보 출력
-      if (axios.isAxiosError(error)) {
-        console.error('API 요청 오류 상세:', {
-          status: error.response?.status,
-          statusText: error.response?.statusText,
-          data: error.response?.data,
-        });
-      }
-
       // 오류 발생 시 기본 메뉴 설정
       setCurrentMenuItems(defaultMenu);
     } finally {
