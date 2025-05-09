@@ -6,31 +6,7 @@ import html2canvas from 'html2canvas';
 import API_CONFIG from '../../config/api';
 import axios from 'axios';
 import { useAuthStore } from '../../store/authStore';
-
-// API 응답 타입 정의
-interface StudentListResponse {
-  students: {
-    studentId: number;
-    studentName: string;
-    grade: number;
-    classNum: number;
-    number: number;
-    gender: string;
-  }[];
-}
-
-interface StudentDetailResponse {
-  studentId: number;
-  studentName: string;
-  grade: number;
-  classNum: number;
-  number: number;
-  height: number;
-  weight: number;
-  date: string;
-  content: string;
-  schoolName: string;
-}
+import { StudentListResponse, StudentDetailResponse, StudentType } from '../../types/types';
 
 // 학생 타입 재정의
 interface StudentType {
@@ -38,7 +14,7 @@ interface StudentType {
   name: string;
   grade: number;
   classNum: number;
-  studentNum: number;
+  number: number;
   gender: string;
   bmi?: number;
   wasteRate?: number;

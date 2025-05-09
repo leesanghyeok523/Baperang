@@ -3,24 +3,7 @@ import backgroundMain from '/images/background/background_main.png';
 import blankImage from '/images/student/blank.png';
 import girlImage from '/images/student/girl.png';
 import boyImage from '/images/student/boy.png';
-
-interface StudentInfo {
-  gender: string;
-  name: string;
-  isTagged: boolean;
-}
-
-// NFC 정보 인터페이스
-interface NFCInfo {
-  pk: string;
-  grade: string;
-  class: string;
-  number: string;
-  name: string;
-  gender: string;
-  status: string;
-  isTagged: boolean;
-}
+import { StudentInfo, NFCInfo } from '../types/types';
 
 // Flask 서버 URL
 const FLASK_SERVER_URL = 'http://192.168.30.137:5000'; // 실제 서버 IP 주소

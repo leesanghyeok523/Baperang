@@ -9,22 +9,15 @@ import MenuDetail from '../../components/Calendar/MenuDetail';
 import API_CONFIG from '../../config/api';
 import axios from 'axios';
 import { useAuthStore } from '../../store/authStore';
-
-// 백엔드 API 응답 타입 정의
-interface MenuItem {
-  menuId: number;
-  menuName: string;
-}
-
-interface DayMenuData {
-  date: string;
-  dayOfWeekName: string;
-  menu: MenuItem[];
-}
-
-interface MenuResponse {
-  days: DayMenuData[];
-}
+import {
+  MenuItem,
+  DayMenuData,
+  MenuResponse,
+  MenuDataType,
+  DailyWasteRate,
+  DishWasteRate,
+  ChartClickData,
+} from '../../types/types';
 
 // br 태그로 분리된 메뉴 이름을 배열로 분리하는 함수
 const parseMenuName = (menuName: string): string[] => {
@@ -76,33 +69,6 @@ const parseMenuResponse = (rawData: unknown): MenuResponse => {
 
   return { days };
 };
-
-// 변환된 메뉴 데이터 형식
-export interface MenuDataType {
-  [key: string]: {
-    date: string;
-    menu: string[];
-    wasteData?: DishWasteRate[];
-  };
-}
-
-interface DailyWasteRate {
-  date: string;
-  day: number;
-  wasteRate: number;
-}
-
-interface DishWasteRate {
-  name: string;
-  잔반률: number;
-}
-
-// 차트 클릭 이벤트 데이터 타입
-interface ChartClickData {
-  activePayload?: Array<{
-    payload: DailyWasteRate;
-  }>;
-}
 
 const Calendar = () => {
   // 현재 날짜 기준으로 초기화
