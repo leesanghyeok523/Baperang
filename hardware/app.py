@@ -10,18 +10,20 @@ from smartcard.Exceptions import NoCardException
 from botocore.client import Config
 from flask_cors import CORS
 import base64
+from dotenv import load_dotenv
 
 
 app = Flask(__name__)
+
+load_dotenv()
 # CORS 설정 추가 - 프론트엔드의 요청을 허용
 CORS(app, resources={r"/*": {"origins": "*"}})
 
-# SERVER_URL = 'http://localhost:8000/api/v1/student/nfc/receive'
-SERVER_URL = 'https://httpbin.org/post'
-AWS_ACCESS_KEY_ID ="AKIAXKPVYNBMQHTUYXCT"
-AWS_SECRET_ACCESS_KEY = "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"
-AWS_DEFAULT_REGION = "ap-northeast-2"
-BUCKET                = "e102"
+SERVER_URL=os.environ["SERVER_URL"]
+AWS_ACCESS_KEY_ID=os.environ["AWS_ACCESS_KEY_ID"]
+AWS_SECRET_ACCESS_KEY=os.environ["AWS_SECRET_ACCESS_KEY"]
+AWS_DEFAULT_REGION=os.environ["AWS_DEFAULT_REGION"]
+BUCKET=os.environ["BUCKET"]
 
 client = boto3.client('s3',
                       aws_access_key_id=AWS_ACCESS_KEY_ID,
@@ -104,7 +106,7 @@ def start_nfc_monitor():
 class TrayDetector:
     def __init__(self, camera_id=0):
         self.camera_id = camera_id
-        self.focus_threshold        = 700.0
+        self.focus_threshold        = 300.0
         self.region_presence_threshold = 2000.0
         self.detection_count     = 0
         self.required_detections = 5
@@ -201,14 +203,14 @@ def gen_frames():
 
                 # 서버에 정보 전송
                 payload = {
-                    'pk':     int(student_pk),
+                    'studentPk': int(student_pk),
                     'grade':  int(grade),
-                    'class':  int(class_num),
-                    'num':    int(number),
-                    'name':   name,
+                    'classNum': int(class_num),
+                    'number': int(number),
+                    'studentName': name,
                     'gender': gender,
                     'status': status,
-                    's3_url': {}
+                    's3Url': {}
                 }
                     
                 for rname,(x1,y1,x2,y2) in regions.items():
@@ -222,10 +224,12 @@ def gen_frames():
                                    'ContentType':'image/jpeg'}
                     )
                     os.remove(fname)
-                    payload['s3_url'][rname] = (
+                    payload['s3Url'][rname] = (
                       f'https://{BUCKET}.s3.{AWS_DEFAULT_REGION}.amazonaws.com/{fname}'
                     )
                     logging.info(f"Uploaded {rname}")
+
+                logging.info(payload['s3Url'])
 
                 try:
                     resp = requests.post(SERVER_URL, json=payload, timeout=5)

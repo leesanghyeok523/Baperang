@@ -43,14 +43,18 @@ public class Menu {
     @Column(name = "menu_name", nullable = false, columnDefinition = "TEXT")
     private String menuName;
 
-   @Column(name = "favorite")
-   private Float favorite;
+    @Column(name = "amount")
+    private Integer amount;
+
+    @Column(name = "favorite")
+    private Float favorite;
 
     @Builder
     public Menu(School school, LocalDate menuDate, String menuName) {
         this.school = school;
         this.menuDate = menuDate;
         this.menuName = menuName;
+        this.amount = 0;
         this.favorite = 0.0f;
     }
 
@@ -63,5 +67,7 @@ public class Menu {
     public void updateFavorite(Float favorite) {
        this.favorite = favorite;
    }
+
+    public void updateAmount(Integer amount) {this.amount = amount;}
 
 }

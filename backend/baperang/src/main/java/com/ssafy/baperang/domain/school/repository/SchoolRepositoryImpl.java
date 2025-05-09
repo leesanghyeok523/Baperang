@@ -1,11 +1,11 @@
 package com.ssafy.baperang.domain.school.repository;
 
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.stereotype.Repository;
 
 import com.ssafy.baperang.domain.school.entity.School;
-
-import java.util.List;
-import java.util.Optional;
 
 import lombok.RequiredArgsConstructor;
 

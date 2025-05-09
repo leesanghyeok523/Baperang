@@ -4,6 +4,7 @@ import com.ssafy.baperang.domain.leftover.dto.response.ErrorResponseDto;
 import com.ssafy.baperang.domain.student.dto.request.GetStudentLeftoverRequestDto;
 import com.ssafy.baperang.domain.student.dto.request.NfcStudentRequestDto;
 import com.ssafy.baperang.domain.student.dto.request.SaveStudentLeftoverRequestDto;
+import com.ssafy.baperang.domain.student.service.NfcService;
 import com.ssafy.baperang.domain.student.service.StudentService;
 import com.ssafy.baperang.global.exception.BaperangErrorCode;
 import com.ssafy.baperang.global.jwt.JwtService;
@@ -23,6 +24,7 @@ public class StudentController {
 
     private final StudentService studentService;
     private final JwtService jwtService;
+    private final NfcService nfcService;
 
     @GetMapping("/studentname/all")
     public ResponseEntity<?> getAllStudentNames(@RequestHeader("Authorization") String authorizationHeader) {
@@ -91,6 +93,7 @@ public class StudentController {
         log.info("saveStudentLeftover 컨트롤러 함수 정상 응답");
         return ResponseEntity.ok(result);
     }
+
     // 잔반 조회 API 추가
     @PostMapping("/getleft")
     public ResponseEntity<?> getStudentLeftover(
@@ -114,7 +117,8 @@ public class StudentController {
         Long userId = jwtService.getUserId(token);
         log.info("getStudentLeftover - 사용자 ID: {}", userId);
 
-        Object result = studentService.getStudentLeftover(userId, requestDto.getLeftoverDate(), requestDto.getGrade(), requestDto.getClassNum(), requestDto.getNumber());
+        Object result = studentService.getStudentLeftover(userId, requestDto.getLeftoverDate(), requestDto.getGrade(),
+                requestDto.getClassNum(), requestDto.getNumber());
 
         if (result instanceof ErrorResponseDto) {
             ErrorResponseDto errorResponseDto = (ErrorResponseDto) result;
@@ -128,18 +132,21 @@ public class StudentController {
     }
 
     @PostMapping("/nfc/receive")
-    public ResponseEntity<?> receiveNfcData(
-            @RequestBody Long studentPk, Integer grade, Integer classNum, Integer number, String name, String gender, String status) {
+    public ResponseEntity<?> receiveNfcData(@RequestBody NfcStudentRequestDto dto) {
 
-        log.info("NFC 태깅 정보 수신 성공!");
-        log.info("학생 정보: PK={}, 이름={}, 학년={}, 반={}, 번호={}, 성별={}, 상태={}",
-                studentPk, name, grade, classNum, number, gender, status);
+        log.info("NFC 태깅 정보 수신: {}", dto); // Lombok @ToString 활용
 
-        // 요청이 성공적으로 처리되었음을 응답
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("message", "NFC 태깅 정보가 성공적으로 수신되었습니다.");
+        if (dto.getS3Url() != null && !dto.getS3Url().isEmpty()) {
+            dto.getS3Url().forEach((k, v) -> log.info("  {} = {}", k, v));
+        }
 
-        return ResponseEntity.ok(response);
+        Object result = nfcService.verifyStudentData(dto);
+
+        if (result instanceof ErrorResponseDto) {
+            ErrorResponseDto errorResponseDto = (ErrorResponseDto) result;
+            return ResponseEntity.status(errorResponseDto.getStatus()).body(result);
+        }
+
+        return ResponseEntity.ok(result);
     }
 }
