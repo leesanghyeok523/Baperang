@@ -183,7 +183,7 @@ public class StudentServiceImpl implements StudentService {
                                         .menuDate(leftoverDate)
                                         .menuName(menuName)
                                         .build();
-                                return menuRepository.save(newMenu);
+                                return menuRepository.saveAndFlush(newMenu);
                             });
 
                     log.info("기존 메뉴 사용 - 메뉴 ID: {}, 메뉴명: {}", menu.getId(), menuName);
@@ -194,7 +194,7 @@ public class StudentServiceImpl implements StudentService {
                             .menuDate(leftoverDate)
                             .menuName(menuName)
                             .build();
-                    menu = menuRepository.save(newMenu);
+                    menu = menuRepository.saveAndFlush(newMenu);
                 }
 
                 try {
