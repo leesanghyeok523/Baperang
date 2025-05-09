@@ -1,13 +1,24 @@
 package com.ssafy.baperang.domain.menunutrient.entity;
 
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
 import com.ssafy.baperang.domain.menu.entity.Menu;
 import com.ssafy.baperang.domain.nutrient.entity.Nutrient;
-import jakarta.persistence.*;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Embeddable;
+import jakarta.persistence.EmbeddedId;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.MapsId;
+import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Entity
 @Getter

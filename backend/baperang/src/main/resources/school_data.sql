@@ -1,3 +1,18 @@
+INSERT ignore INTO nutrient (nutrient_name, unit) VALUES
+  ('에너지', 'kcal'),
+  ('탄수화물', 'g'),
+  ('당류', 'g'),
+  ('지방', 'g'),
+  ('단백질', 'g'),
+  ('칼슘', 'mg'),
+  ('인', 'mg'),
+  ('나트륨', 'mg'),
+  ('칼륨', 'mg'),
+  ('마그네슘', 'mg'),
+  ('철', 'mg'),
+  ('아연', 'mg'),
+  ('콜레스테롤', 'mg');
+
 INSERT INTO school (학교명, 시도명) VALUES ('가락고등학교', '서울특별시');
 INSERT INTO school (학교명, 시도명) VALUES ('가락중학교', '서울특별시');
 INSERT INTO school (학교명, 시도명) VALUES ('가산중학교', '서울특별시');
