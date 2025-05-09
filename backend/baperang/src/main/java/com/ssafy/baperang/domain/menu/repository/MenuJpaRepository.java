@@ -50,7 +50,4 @@ public interface MenuJpaRepository extends JpaRepository<Menu, Long> {
             School school,
             LocalDate menuDate
     );
-    
-    // 특정 학교의 메뉴를 날짜 기준 내림차순으로 조회 (최신 메뉴부터)
-    List<Menu> findBySchoolOrderByMenuDateDesc(School school);
 }
