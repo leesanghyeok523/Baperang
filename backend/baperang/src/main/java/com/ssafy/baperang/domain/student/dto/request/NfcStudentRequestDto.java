@@ -5,6 +5,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.util.Map;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -16,4 +18,6 @@ public class NfcStudentRequestDto {
     private Integer grade;
     private Integer number;
     private String gender;
+    private String status;
+    private Map<String, String> s3Url;
 }

@@ -39,6 +39,9 @@ logging.basicConfig(
 pk_queue = queue.Queue()
 
 def extract_ndef_text():
+    from smartcard.System import readers
+    import logging
+
     r = readers()
     if not r:
         logging.error("NFC not found.")
@@ -49,35 +52,49 @@ def extract_ndef_text():
         conn = reader.createConnection()
         conn.connect()
     except Exception as e:
-        logging.error(f"connect faild: {e}")
+        logging.error(f"connect failed: {e}")
         return None
 
-
+    # ---------- 1. 태그 메모리(4~15블록) 읽기 ----------
     ndef_data = []
     for block in range(4, 16):
-        cmd = [0xFF, 0xB0, 0x00, block, 4]
-        response, sw1, sw2 = conn.transmit(cmd)
-        if sw1 == 0x90:
-            ndef_data.extend(response)
-        else:
-            logging.warning(f"block {block} read faild: {sw1:02X} {sw2:02X}")
+        #     CLA  INS  P1  P2  Le
+        cmd = [0xFF, 0xB0, 0x00, block, 4]   # READ_BINARY 4bytes
+        resp, sw1, sw2 = conn.transmit(cmd)
+        if sw1 == 0x90:                      # 0x90 0x00 = OK
+            ndef_data.extend(resp)
+        else:                                # 더는 읽을 데이터 없음
             break
 
+    # ---------- 2. NDEF-T(Text) 파싱 ----------
     try:
-        idx = ndef_data.index(0xD1)
-        if ndef_data[idx + 3] != 0x54:
-            logging.error("Not NDEF text code.")
-            return None
-
-        length = ndef_data[idx + 2] - 3
-        lang_len = ndef_data[idx + 4]
-        text_bytes = ndef_data[idx + 5 + lang_len: idx + 5 + lang_len + length]
-        text_data = ''.join(chr(b) for b in text_bytes)
-        logging.info(f"NFC read data: {text_data}")
-        return text_data
-    except Exception as e:
-        logging.error(f"NDEF phasing faild: {e}")
+        idx = ndef_data.index(0xD1)          # MB|ME|SR=1, TNF=0x01
+    except ValueError:
+        logging.error("NDEF header 0xD1 not found")
         return None
+
+    type_len    = ndef_data[idx + 1]         # 보통 0x01
+    payload_len = ndef_data[idx + 2]         # 전체 payload 길이
+    if ndef_data[idx + 3] != 0x54:           # 'T' = 0x54
+        logging.error("Not a Text record")
+        return None
+
+    status      = ndef_data[idx + 4]         # 상태 바이트
+    lang_len    = status & 0x3F              # 하위 6비트 = 언어코드 길이
+    utf16       = bool(status & 0x80)        # 0 = UTF-8, 1 = UTF-16
+
+    text_start  = idx + 5 + lang_len
+    text_len    = payload_len - 1 - lang_len # (payload 전체) - status - lang
+    text_end    = text_start + text_len
+    text_bytes  = bytes(ndef_data[text_start:text_end])
+
+    try:
+        text = text_bytes.decode('utf-16' if utf16 else 'utf-8')
+    except UnicodeDecodeError as e:
+        logging.error(f"decode error: {e}")
+        return None
+
+    return text
 
 
 class NFCObserver(CardObserver):
@@ -88,6 +105,7 @@ class NFCObserver(CardObserver):
                 text_data = extract_ndef_text()
                 if text_data is not None:
                     pk_queue.put(text_data)
+                    logging.info(text_data)
                     logging.info("✨ pk save")
 
             except NoCardException:
@@ -106,7 +124,7 @@ def start_nfc_monitor():
 class TrayDetector:
     def __init__(self, camera_id=0):
         self.camera_id = camera_id
-        self.focus_threshold        = 300.0
+        self.focus_threshold        = 320.0
         self.region_presence_threshold = 2000.0
         self.detection_count     = 0
         self.required_detections = 5
@@ -194,7 +212,7 @@ def gen_frames():
             
             # 태깅 후에만 식판 검출 수행
             if (focus >= detector.focus_threshold and
-                region_ok and
+                # region_ok and
                 now - last_capture > detector.cooldown_time and
                 not pk_queue.empty()):
 
