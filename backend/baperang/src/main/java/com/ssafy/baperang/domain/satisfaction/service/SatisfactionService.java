@@ -9,7 +9,7 @@ public interface SatisfactionService {
      * 클라이언트의 SSE 연결 요청을 처리하고 SseEmitter를 반환
      * @return SseEmitter 객체
      */
-    SseEmitter subscribe();
+    SseEmitter subscribe(String token);
 
-    SatisfactionResponseDto processVote(String schoolName, String menuName, int satisfactionScore);
+    SatisfactionResponseDto processVote(String token, String schoolName, String menuName, int satisfactionScore);
 }

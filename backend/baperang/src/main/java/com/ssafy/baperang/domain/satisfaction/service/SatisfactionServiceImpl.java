@@ -13,6 +13,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -26,6 +27,9 @@ import com.ssafy.baperang.domain.school.entity.School;
 import com.ssafy.baperang.domain.menu.entity.Menu;
 import com.ssafy.baperang.domain.school.repository.SchoolRepository;
 import com.ssafy.baperang.domain.menu.repository.MenuRepository;
+import com.ssafy.baperang.global.jwt.JwtService;
+import com.ssafy.baperang.global.exception.BaperangErrorCode;
+import com.ssafy.baperang.global.exception.BaperangCustomException;
 
 import jakarta.transaction.Transactional;
 import jakarta.persistence.EntityNotFoundException;
@@ -39,7 +43,7 @@ public class SatisfactionServiceImpl implements SatisfactionService {
 
     private final SchoolRepository schoolRepository;
     private final MenuRepository menuRepository;
-
+    private final JwtService jwtService;
     // 모든 SSE 이벤트 Emitter를 저장하는 맵 (동시성 처리를 위해 ConcurrentHashMap 사용)
     private final Map<String, SseEmitter> emitters = new ConcurrentHashMap<>();
 
@@ -87,7 +91,14 @@ public class SatisfactionServiceImpl implements SatisfactionService {
 
     // SSE 구독 처리
     @Override
-    public SseEmitter subscribe() {
+    public SseEmitter subscribe(String token) {
+
+        // 토큰 유효성
+        if (!jwtService.validateToken(token)) {
+            log.info("subscribe - 토큰 유효하지 않음");
+            throw new BaperangCustomException(BaperangErrorCode.INVALID_TOKEN);
+        }
+
         // 고유 ID 생성 (타임스탬프 + 랜덤 값)
         String emitterId = System.currentTimeMillis() + "_" + Math.random();
 
@@ -116,7 +127,14 @@ public class SatisfactionServiceImpl implements SatisfactionService {
 
     @Transactional
     @Override
-    public SatisfactionResponseDto processVote(String schoolName, String menuName, int satisfactionScore) {
+    public SatisfactionResponseDto processVote(String token, String schoolName, String menuName, int satisfactionScore) {
+
+        // 토큰 유효성
+        if (!jwtService.validateToken(token)) {
+            log.info("subscribe - 토큰 유효하지 않음");
+            throw new BaperangCustomException(BaperangErrorCode.INVALID_TOKEN);
+        }
+
         log.info("만족도 투표 처리: 학교={}, 메뉴={}, 점수={}", schoolName, menuName, satisfactionScore);
         
         // 1. 학교 조회

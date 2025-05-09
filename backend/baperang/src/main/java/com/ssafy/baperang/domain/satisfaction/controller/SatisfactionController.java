@@ -8,7 +8,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-
+import org.springframework.web.bind.annotation.RequestHeader;
 
 import com.ssafy.baperang.domain.satisfaction.service.SatisfactionService;
 import com.ssafy.baperang.domain.satisfaction.dto.request.SatisfactionRequestDto;
@@ -29,16 +29,23 @@ public class SatisfactionController {
      * 클라이언트는 이 엔드포인트로 EventSource 연결을 맺을 수 있음
      * @return SseEmitter 객체
      */
-    @GetMapping(value = "/subscribe", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter subscribe() {
+    @GetMapping(
+        value = "/subscribe", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter subscribe(
+        @RequestHeader("Authorization") String authorizationHeader) {
         log.info("새로운 SSE 구독 요청 수신");
-        return satisfactionService.subscribe();
+        String token = authorizationHeader.substring(7);
+        return satisfactionService.subscribe(token);
     }
 
     @PostMapping("/vote")
-    public ResponseEntity<?> submitVote(@RequestBody SatisfactionRequestDto satisfactionRequestDto) {
+    public ResponseEntity<?> submitVote(
+        @RequestHeader("Authorization") String authorizationHeader,
+        @RequestBody SatisfactionRequestDto satisfactionRequestDto) {
         try {
+            String token = authorizationHeader.substring(7);
             SatisfactionResponseDto satisfactionResponseDto = satisfactionService.processVote(
+                token,
                 satisfactionRequestDto.getSchoolName(),
                 satisfactionRequestDto.getMenuname(),
                 satisfactionRequestDto.getSatisfactionScore()
