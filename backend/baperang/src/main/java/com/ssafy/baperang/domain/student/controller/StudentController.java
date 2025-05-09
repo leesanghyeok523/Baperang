@@ -146,10 +146,10 @@ public class StudentController {
                         "message", "식전 이미지 저장 완료"
                 ));
             } else if ("after".equalsIgnoreCase(dto.getImageType())) {
-                nfcService.CheckAfterImageUrl(dto);
+                nfcService.checkAfterImageUrl(dto);
                 return ResponseEntity.ok(Map.of(
                         "success", true,
-                        "message", "식후 이미지 저장 완료"
+                        "message", "식후 이미지 확인 완료"
                 ));
             }
         }

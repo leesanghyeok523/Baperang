@@ -1,5 +1,8 @@
 package com.ssafy.baperang.domain.student.service;
 
+//import aj.org.objectweb.asm.TypeReference;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.baperang.domain.student.dto.request.NfcStudentRequestDto;
 import com.ssafy.baperang.domain.student.dto.response.ErrorResponseDto;
 import com.ssafy.baperang.domain.student.entity.Student;
@@ -9,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.fasterxml.jackson.core.type.TypeReference;
 
 import java.time.LocalDate;
 import java.util.*;
@@ -19,6 +23,7 @@ import java.util.*;
 public class NfcServiceImpl implements NfcService {
 
     private final StudentRepository studentRepository;
+    private final ObjectMapper objectMapper;
 
     @Override
     @Transactional(readOnly = true)
@@ -144,32 +149,37 @@ public class NfcServiceImpl implements NfcService {
 
             Student student = studentOpt.get();
 
-            // URL 리스트 추출
-            List<String> urlList = new ArrayList<>(requestDto.getS3Url().values());
-            String combinedUrls = String.join("||", urlList);
+            // json 형식으로 url 변환
+            String jsonUrls;
+            try {
+                jsonUrls = objectMapper.writeValueAsString(requestDto.getS3Url());
+            } catch (JsonProcessingException e) {
+                log.error("URL JSON 변환 오류: {}", e.getMessage(), e);
+                return;
+            }
 
             // URL 확인 로그
-            log.info("학생: {}, 저장할 URL 개수: {}", student.getStudentName(), urlList.size());
-            for (int i = 0; i < urlList.size(); i++) {
-                log.info("URL {}: {}", i+1, urlList.get(i));
-            }
+            log.info("학생: {}, 저장할 URL 개수: {}", student.getStudentName(), requestDto.getS3Url().size());
+            requestDto.getS3Url().forEach((key, url) -> {
+                log.info("URL {}: {}", key, url);
+            });
 
             // 현재 날짜
             LocalDate today = LocalDate.now();
 
             // 날짜 검증 - DB 날짜와 오늘 날짜 비교
-            LocalDate studentDate = student.getDate();
+            LocalDate studentDate = student.getImageDate();
             boolean dateMatches = (studentDate != null && studentDate.equals(today));
 
             log.info("날짜 검증: DB 날짜={}, 오늘 날짜={}, 일치 여부={}",
                     studentDate, today, dateMatches);
 
             // student 엔티티의 updateImage 메서드 사용
-            Student updatedStudent = Student.updateImage(student, combinedUrls);
+            Student updatedStudent = Student.updateImage(student, jsonUrls);
             Student saved = studentRepository.saveAndFlush(updatedStudent);
 
             log.info("식전 이미지 URL 저장 완료: 학생={}, 저장된 URL 수={}, 날짜 변경 여부={}",
-                    saved.getStudentName(), urlList.size(), !dateMatches);
+                    saved.getStudentName(), requestDto.getS3Url(), !dateMatches);
 
         } catch (Exception e) {
             log.error("식사 전 이미지 URL 저장 중 오류: {}", e.getMessage(), e);
@@ -177,7 +187,7 @@ public class NfcServiceImpl implements NfcService {
     }
 
     @Override
-    public void CheckAfterImageUrl(NfcStudentRequestDto requestDto) {
+    public void checkAfterImageUrl(NfcStudentRequestDto requestDto) {
         log.info("식사 후 이미지 확인 시작: studentPk={}", requestDto.getStudentPk());
 
         if (requestDto.getStudentPk() == null) {
@@ -201,27 +211,35 @@ public class NfcServiceImpl implements NfcService {
 
             LocalDate today = LocalDate.now();
 
-            if (student.getDate() == null || !student.getDate().equals(today) || student.getImage() == null) {
+            if (student.getImageDate() == null || !student.getImageDate().equals(today) || student.getImage() == null) {
                 log.error("오늘 날짜의 식전 이미지 없음");
                 return;
             }
 
             // 식전 이미지 파싱
-            List<String> beforeImageUrls = new ArrayList<>();
+            Map<String, String> beforeImageUrlMap = new HashMap<>();
             if (student.getImage() != null && !student.getImage().isEmpty()) {
-                String[] urls = student.getImage().split("\\|\\|");
-                beforeImageUrls.addAll(Arrays.asList(urls));
+                try {
+                    beforeImageUrlMap = objectMapper.readValue(student.getImage(), new TypeReference<Map<String, String>>() {});
+                } catch (JsonProcessingException e) {
+                    log.error("저장된 이미지 URL JSON 파싱 오류: {}", e.getMessage(), e);
+                    return;
+                }
             }
 
             // 식후 이미지 url 리스트 생성
-            List<String> afterImageUrls = new ArrayList<>(requestDto.getS3Url().values());
+            Map<String, String> afterImageUrlMap = requestDto.getS3Url();
 
-            log.info("식전 이미지 url 수: {}", beforeImageUrls.size());
-            log.info("식후 이미지 url 수: {}", afterImageUrls.size());
+            log.info("식전 이미지 url 수: {}", beforeImageUrlMap.size());
+            log.info("식후 이미지 url 수: {}", afterImageUrlMap.size());
 
-            for (int i = 0; i < afterImageUrls.size(); i++) {
-                log.info("식후 이미지 url {}: {}", student.getStudentName());
-            }
+            beforeImageUrlMap.forEach((key, url) -> {
+                log.info("식전 이미지 URL {}: {}", key, url);
+            });
+
+            afterImageUrlMap.forEach((key, url) -> {
+                log.info("식후 이미지 URL {}: {}", key, url);
+            });
 
             log.info("식후 이미지 확인 완료: 학생={}", student.getStudentName());
         } catch (Exception e) {

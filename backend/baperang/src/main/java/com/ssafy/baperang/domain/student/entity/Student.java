@@ -63,18 +63,24 @@ public class Student {
     @Column(name = "weight", nullable = false)
     private Float weight;
 
-    @Column(name = "date")
-    private LocalDate date;
+    @Column(name = "image")
+    private String image;
+
+    @Column(name = "iamge_date")
+    private LocalDate imageDate;
 
     @Column(name = "content", columnDefinition = "TEXT")
     private String content;
 
-    @Column(name = "image")
-    private String image;
+    @Column(name = "content_date")
+    private LocalDate contentDate;
+
+
 
     @Builder
     public Student(String studentName, String gender, Integer grade, Integer classNum,
-                   Float height, Float weight, School school, Integer number, LocalDate date, String content, String image) {
+                   Float height, Float weight, School school, Integer number, LocalDate imageDate,
+                   String content, String image, LocalDate contentDate) {
         this.studentName = studentName;
         this.gender = gender;
         this.classNum = classNum;
@@ -83,9 +89,10 @@ public class Student {
         this.weight = weight;
         this.school = school;
         this.number = number;
-        this.date = date;
         this.content = content;
+        this.contentDate = contentDate;
         this.image = image;
+        this.imageDate = imageDate;
     }
 
     public static Student updateImage(Student original, String imageUrl) {
@@ -98,9 +105,10 @@ public class Student {
                 .weight(original.getWeight())
                 .school(original.getSchool())
                 .number(original.getNumber())
-                .date(LocalDate.now())
-                .content(original.getContent())
                 .image(imageUrl)
+                .imageDate(LocalDate.now())
+                .content(original.getContent())
+                .contentDate(original.getContentDate())
                 .build();
     }
 }
