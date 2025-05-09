@@ -8,7 +8,7 @@
 
 </aside>
 
-예: **Feat/FE-main page**
+예: **Feat/FE-main-page**
 
 </aside>
 
