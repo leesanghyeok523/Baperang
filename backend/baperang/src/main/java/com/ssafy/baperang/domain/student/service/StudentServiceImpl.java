@@ -58,6 +58,7 @@ public class StudentServiceImpl implements StudentService {
                     .map(student -> StudentNamesResponseDto.StudentInfo.builder()
                             .studentId(student.getId())
                             .studentName(student.getStudentName())
+                            .gender(student.getGender())
                             .grade(student.getGrade())
                             .classNum(student.getClassNum())
                             .number(student.getNumber())

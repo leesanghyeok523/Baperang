@@ -1,3 +1,3 @@
-import SatisfactionSurvey from './SatisfactionSurvey';
+import SatisfactionSurvey from './satisfactionSurvey';
 
 export default SatisfactionSurvey;

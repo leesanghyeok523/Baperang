@@ -1,0 +1,7 @@
+package com.ssafy.baperang.domain.student.service;
+
+import com.ssafy.baperang.domain.student.dto.request.NfcStudentRequestDto;
+
+public interface NfcService {
+    Object verifyStudentData(NfcStudentRequestDto requestDto);
+}
