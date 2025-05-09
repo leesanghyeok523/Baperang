@@ -22,10 +22,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-
-
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -42,7 +38,7 @@ public class Student {
     @JoinColumn(name = "school_pk", nullable = false)
     private School school;
 
-    @Column(name = "student_name", nullable = false, length = 100)
+    @Column(name = "student_name", nullable = false, length = 10)
     private String studentName;
 
     @Column(name = "gender", nullable = false, length = 10)
@@ -63,18 +59,24 @@ public class Student {
     @Column(name = "weight", nullable = false)
     private Float weight;
 
-    @Column(name = "date")
-    private LocalDate date;
+    @Column(name = "image")
+    private String image;
+
+    @Column(name = "iamge_date")
+    private LocalDate imageDate;
 
     @Column(name = "content", columnDefinition = "TEXT")
     private String content;
 
-    @Column(name = "image")
-    private String image;
+    @Column(name = "content_date")
+    private LocalDate contentDate;
+
+
 
     @Builder
     public Student(String studentName, String gender, Integer grade, Integer classNum,
-                   Float height, Float weight, School school, Integer number, LocalDate date, String content, String image) {
+                   Float height, Float weight, School school, Integer number, LocalDate imageDate,
+                   String content, String image, LocalDate contentDate) {
         this.studentName = studentName;
         this.gender = gender;
         this.classNum = classNum;
@@ -83,8 +85,26 @@ public class Student {
         this.weight = weight;
         this.school = school;
         this.number = number;
-        this.date = date;
         this.content = content;
+        this.contentDate = contentDate;
         this.image = image;
+        this.imageDate = imageDate;
+    }
+
+    public static Student updateImage(Student original, String imageUrl) {
+        return Student.builder()
+                .studentName(original.getStudentName())
+                .gender(original.getGender())
+                .grade(original.getGrade())
+                .classNum(original.getClassNum())
+                .height(original.getHeight())
+                .weight(original.getWeight())
+                .school(original.getSchool())
+                .number(original.getNumber())
+                .image(imageUrl)
+                .imageDate(LocalDate.now())
+                .content(original.getContent())
+                .contentDate(original.getContentDate())
+                .build();
     }
 }

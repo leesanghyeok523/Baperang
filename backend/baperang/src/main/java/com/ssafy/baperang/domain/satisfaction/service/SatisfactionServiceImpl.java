@@ -13,7 +13,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -89,9 +88,43 @@ public class SatisfactionServiceImpl implements SatisfactionService {
         });
     }
 
+    /**
+     * 오늘의 메뉴 만족도 정보를 조회하여 반환
+     */
+    private List<MenuSatisfactionDto> getTodayMenuSatisfactions(String schoolName) {
+        LocalDate today = LocalDate.now();
+        log.info("메뉴 만족도 조회: 오늘 날짜 = {}", today);
+        
+        // 학교 조회 시도
+        School school = schoolRepository.findBySchoolName(schoolName)
+            .orElseThrow(() -> new EntityNotFoundException("학교를 찾을 수 없습니다: " + schoolName));
+
+        List<String> menuNames = menuRepository.findDistinctMenuNamesBySchoolAndMenuDate(school, today);
+        
+        List<MenuSatisfactionDto> menuSatisfactions = new ArrayList<>();
+        
+        DecimalFormat df = new DecimalFormat("#.##");
+        for (String menuName : menuNames) {
+            Menu menuItem = menuRepository.findBySchoolAndMenuDateAndMenuName(school, today, menuName);
+            int votes = menuItem.getVoteCount();
+            double avgSatisfaction = (votes > 0) ? (double) menuItem.getTotalFavorite() / votes : 0;
+            String formattedAvg = df.format(avgSatisfaction);
+            
+            MenuSatisfactionDto menuDto = MenuSatisfactionDto.builder()
+                .menuId(menuItem.getId())
+                .menuName(menuItem.getMenuName())
+                .averageSatisfaction(formattedAvg)
+                .build();
+            menuSatisfactions.add(menuDto);
+        }
+        
+        log.info("조회된 메뉴 수: {}", menuSatisfactions.size());
+        return menuSatisfactions;
+    }
+
     // SSE 구독 처리
     @Override
-    public SseEmitter subscribe(String token) {
+    public SseEmitter subscribe(String token, String schoolName) {
 
         // 토큰 유효성
         if (!jwtService.validateToken(token)) {
@@ -117,6 +150,14 @@ public class SatisfactionServiceImpl implements SatisfactionService {
         // 최초 연결 시 더미 이벤트 전송 (연결 유지 목적)
         try {
             emitter.send(SseEmitter.event().name("connect").data("SSE 연결됨!"));
+            
+            // 초기 연결 시 오늘의 메뉴 만족도 정보 전송
+            List<MenuSatisfactionDto> menuSatisfactions = getTodayMenuSatisfactions(schoolName);
+            emitter.send(SseEmitter.event()
+                    .name("initial-satisfaction")
+                    .data(menuSatisfactions));
+            
+            log.info("초기 메뉴 만족도 데이터 전송 완료 (메뉴 수: {})", menuSatisfactions.size());
         } catch (IOException e) {
             log.error("SSE 연결 중 에러 발생: {}", e.getMessage(), e);
             emitters.remove(emitterId);
@@ -175,28 +216,7 @@ public class SatisfactionServiceImpl implements SatisfactionService {
         DecimalFormat df = new DecimalFormat("#.##");
         String formattedAverage = df.format(averageSatisfaction);
         
-        // 7. SSE로 전송할 데이터 준비
-        Map<String, Object> eventData = new HashMap<>();
-        eventData.put("menuId", menu.getId());
-        eventData.put("menuName", menu.getMenuName());
-        eventData.put("totalVotes", totalVotes);
-        eventData.put("averageSatisfaction", formattedAverage);
-        eventData.put("updatedAt", LocalDateTime.now().toString());
-        
-        // 8. 모든 구독자에게 알림 전송
-        emitters.forEach((id, emitter) -> {
-            try {
-                emitter.send(SseEmitter.event()
-                        .name("satisfaction-update")
-                        .data(eventData));
-                log.info("SSE 이벤트 전송 성공: {}", id);
-            } catch (IOException e) {
-                log.error("SSE 전송 실패: {}", e.getMessage());
-                emitters.remove(id);
-            }
-        });
-        
-        // 9. 해당 날짜의 모든 메뉴 정보 조회
+        // 7. 해당 날짜의 모든 메뉴 정보 조회
         List<Menu> allMenus = menuRepository.findBySchoolAndMenuDate(school, today);
         List<MenuSatisfactionDto> menuSatisfactions = new ArrayList<>();
         
@@ -213,7 +233,20 @@ public class SatisfactionServiceImpl implements SatisfactionService {
             menuSatisfactions.add(menuDto);
         }
         
-        // 10. 응답 데이터 생성
+        // SSE로 전체 메뉴 만족도 정보 전송
+        emitters.forEach((id, emitter) -> {
+            try {
+                emitter.send(SseEmitter.event()
+                        .name("satisfaction-update")
+                        .data(menuSatisfactions));
+                log.info("SSE 이벤트 전송 성공: {}", id);
+            } catch (IOException e) {
+                log.error("SSE 전송 실패: {}", e.getMessage());
+                emitters.remove(id);
+            }
+        });
+        
+        // 8. 응답 데이터 생성
         SatisfactionResponseDto responseDto = SatisfactionResponseDto.builder()
                 .allMenuSatisfactions(menuSatisfactions)
                 .build();
