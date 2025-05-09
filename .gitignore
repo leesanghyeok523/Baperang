@@ -194,3 +194,15 @@ poetry.toml
 pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/python,jupyternotebooks
+
+# 라즈베리파이 전용 구성 - 필요한 파일만 포함
+# 백엔드 폴더 제외
+/backend/
+/ai/
+
+# package-lock.json 추적 허용 (의존성 파일 유지)
+!/frontend/package-lock.json
+
+# TaggingPage 외의 페이지 제외
+/frontend/src/pages/*
+!/frontend/src/pages/TaggingPage.tsx
