@@ -21,6 +21,7 @@ public class StudentNamesResponseDto {
     public static class StudentInfo {
         private Long studentId;
         private String studentName;
+        private String gender;
         private int grade;
         private int classNum;
         private int number;

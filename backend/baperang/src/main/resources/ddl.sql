@@ -19,7 +19,6 @@ CREATE TABLE school (
                         school_pk    BIGINT       PRIMARY KEY AUTO_INCREMENT,
                         school_name  VARCHAR(100) NOT NULL,
                         city         VARCHAR(20) NOT NULL,
-                        school_type  VARCHAR(100)  NOT NULL,
                         created_at   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
                         updated_at   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -71,6 +70,7 @@ CREATE TABLE menu (
                       school_pk  BIGINT       NOT NULL,
                       menu_date  DATE         NOT NULL,
                       menu_name  TEXT NOT NULL,
+                      amount INT,
                       favorite   FLOAT,
                       FOREIGN KEY (school_pk)
                           REFERENCES school(school_pk)

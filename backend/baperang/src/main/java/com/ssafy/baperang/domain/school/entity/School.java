@@ -45,7 +45,7 @@ public class School {
     private LocalDateTime updatedAt;
 
     @Builder
-    public School(String schoolName, String city, String schoolType) {
+    public School(String schoolName, String city) {
         this.schoolName = schoolName;
         this.city = city;
     }

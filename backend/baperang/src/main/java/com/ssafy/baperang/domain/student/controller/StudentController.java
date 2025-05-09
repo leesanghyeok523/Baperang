@@ -4,6 +4,7 @@ import com.ssafy.baperang.domain.leftover.dto.response.ErrorResponseDto;
 import com.ssafy.baperang.domain.student.dto.request.GetStudentLeftoverRequestDto;
 import com.ssafy.baperang.domain.student.dto.request.NfcStudentRequestDto;
 import com.ssafy.baperang.domain.student.dto.request.SaveStudentLeftoverRequestDto;
+import com.ssafy.baperang.domain.student.service.NfcService;
 import com.ssafy.baperang.domain.student.service.StudentService;
 import com.ssafy.baperang.global.exception.BaperangErrorCode;
 import com.ssafy.baperang.global.jwt.JwtService;
@@ -23,6 +24,7 @@ public class StudentController {
 
     private final StudentService studentService;
     private final JwtService jwtService;
+    private final NfcService nfcService;
 
     @GetMapping("/studentname/all")
     public ResponseEntity<?> getAllStudentNames(@RequestHeader("Authorization") String authorizationHeader) {
@@ -138,9 +140,14 @@ public class StudentController {
             dto.getS3Url().forEach((k, v) -> log.info("  {} = {}", k, v));
         }
 
-        return ResponseEntity.ok(Map.of(
-                "success", true,
-                "message", "NFC 태깅 정보가 성공적으로 수신되었습니다."));
+        Object result = nfcService.verifyStudentData(dto);
+
+        if (result instanceof ErrorResponseDto) {
+            ErrorResponseDto errorResponseDto = (ErrorResponseDto) result;
+            return ResponseEntity.status(errorResponseDto.getStatus()).body(result);
+        }
+
+        return ResponseEntity.ok(result);
     }
 
 }
