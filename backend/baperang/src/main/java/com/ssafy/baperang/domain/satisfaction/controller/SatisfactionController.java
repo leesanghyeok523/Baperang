@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import com.ssafy.baperang.domain.satisfaction.service.SatisfactionService;
 import com.ssafy.baperang.domain.satisfaction.dto.request.SatisfactionRequestDto;
@@ -32,10 +33,12 @@ public class SatisfactionController {
     @GetMapping(
         value = "/subscribe", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter subscribe(
-        @RequestHeader("Authorization") String authorizationHeader) {
+        @RequestHeader("Authorization") String authorizationHeader,
+        @RequestParam String schoolName) {
         log.info("새로운 SSE 구독 요청 수신");
         String token = authorizationHeader.substring(7);
-        return satisfactionService.subscribe(token);
+
+        return satisfactionService.subscribe(token, schoolName);
     }
 
     @PostMapping("/vote")
