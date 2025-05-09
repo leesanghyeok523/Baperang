@@ -2,14 +2,12 @@ package com.ssafy.baperang.domain.menu.repository;
 
 import com.ssafy.baperang.domain.menu.entity.Menu;
 import com.ssafy.baperang.domain.school.entity.School;
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface MenuRepository {
@@ -38,5 +36,18 @@ public interface MenuRepository {
             School school,
             LocalDate menuDate,
             String menuName
+    );
+    
+    // 특정 학교, 날짜, 메뉴명으로 메뉴 조회
+    Menu findBySchoolAndMenuDateAndMenuName(
+            School school,
+            LocalDate menuDate,
+            String menuName
+    );
+    
+    // 특정 학교, 날짜의 모든 메뉴 조회
+    List<Menu> findBySchoolAndMenuDate(
+            School school,
+            LocalDate menuDate
     );
 }

@@ -59,8 +59,29 @@ public class MenuController {
             log.info("getTodayMenu 컨트롤러 함수 에러 응답");
             return ResponseEntity.status(errorResponse.getStatus()).body(result);
         }
-
+        
         log.info("getTodayMenu 컨트롤러 함수 정상 응답");
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/oneday")
+    public ResponseEntity<?> getOneDayMenu(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @RequestParam String date) {
+
+        log.info("getOneDayMenu 컨트롤러 함수 호출");
+
+        String token = authorizationHeader.substring(7);
+
+        Object result = menuService.getOneDayMenu(token, date);
+
+        if (result instanceof ErrorResponseDto) {
+            ErrorResponseDto errorResponse = (ErrorResponseDto) result;
+            log.info("getOneDayMenu 컨트롤러 함수 에러 응답");
+            return ResponseEntity.status(errorResponse.getStatus()).body(result);
+        }
+
+        log.info("getOneDayMenu 컨트롤러 함수 정상 응답");
         return ResponseEntity.ok(result);
     }
 }

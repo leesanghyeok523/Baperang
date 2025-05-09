@@ -46,4 +46,14 @@ public class MenuRepositoryImpl implements MenuRepository {
     public List<String> findDistinctMenuNamesBySchoolAndMenuDate(School school, LocalDate menuDate) {
         return menuJpaRepository.findDistinctMenuNamesBySchoolAndMenuDate(school, menuDate);
     }
+    
+    @Override
+    public Menu findBySchoolAndMenuDateAndMenuName(School school, LocalDate menuDate, String menuName) {
+        return menuJpaRepository.findBySchoolAndMenuDateAndMenuName(school, menuDate, menuName);
+    }
+    
+    @Override
+    public List<Menu> findBySchoolAndMenuDate(School school, LocalDate menuDate) {
+        return menuJpaRepository.findBySchoolAndMenuDate(school, menuDate);
+    }
 }

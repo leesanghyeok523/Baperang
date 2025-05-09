@@ -11,6 +11,7 @@ public interface SchoolRepository {
     List<School> findAll();
     Optional<School> findById(Long schoolId);
     School saveAndFlush(School school);
+    Optional<School> findBySchoolName(String schoolName);
     Optional<School> findBySchoolNameAndCity(String schoolName, String city);
     boolean existsBySchoolNameAndCity(String schoolName, String city);
     List<String> findCities();

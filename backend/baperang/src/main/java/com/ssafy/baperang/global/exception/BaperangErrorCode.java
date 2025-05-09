@@ -46,6 +46,7 @@ public enum BaperangErrorCode {
     INVALID_LEFTOVER_RATE(400, "LO003", "유효하지 않은 잔반율입니다. 0~100 사이의 값을 입력해주세요."),
 
     // 메뉴관련
+    MENU_NOT_FOUND(404, "M001", "메뉴를 찾을 수 없습니다."),
 
     // 친구 관련 에러
     FRIEND_NOT_FOUND(404, "F001", "존재하지 않는 친구 요청입니다."),
