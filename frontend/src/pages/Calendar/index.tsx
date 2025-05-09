@@ -10,7 +10,6 @@ import API_CONFIG from '../../config/api';
 import axios from 'axios';
 import { useAuthStore } from '../../store/authStore';
 import {
-  MenuItem,
   DayMenuData,
   MenuResponse,
   MenuDataType,
@@ -18,6 +17,9 @@ import {
   DishWasteRate,
   ChartClickData,
 } from '../../types/types';
+
+// MenuDataType 재내보내기
+export type { MenuDataType };
 
 // br 태그로 분리된 메뉴 이름을 배열로 분리하는 함수
 const parseMenuName = (menuName: string): string[] => {

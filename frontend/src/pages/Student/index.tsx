@@ -8,23 +8,6 @@ import axios from 'axios';
 import { useAuthStore } from '../../store/authStore';
 import { StudentListResponse, StudentDetailResponse, StudentType } from '../../types/types';
 
-// 학생 타입 재정의
-interface StudentType {
-  id: number;
-  name: string;
-  grade: number;
-  classNum: number;
-  number: number;
-  gender: string;
-  bmi?: number;
-  wasteRate?: number;
-  height?: number;
-  weight?: number;
-  date?: string;
-  content?: string;
-  schoolName?: string;
-}
-
 const StudentManagement = () => {
   const [selectedGrade, setSelectedGrade] = useState<number | ''>('');
   const [selectedClass, setSelectedClass] = useState<number | ''>('');
