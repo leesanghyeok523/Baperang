@@ -147,12 +147,13 @@ with app.app_context():
     
 
 def gen_frames():
+    # 카메라와 식판 사이거리 32CM
     cap = cv2.VideoCapture(detector.camera_id, cv2.CAP_DSHOW)
     fourcc = cv2.VideoWriter_fourcc(*'MJPG')
     cap.set(cv2.CAP_PROP_FOURCC, fourcc)
     cap.set(cv2.CAP_PROP_AUTOFOCUS, 1)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH,  800)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 600)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH,  1024)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 768)
 
     if not cap.isOpened():
         logging.error("camera open error")
@@ -172,11 +173,18 @@ def gen_frames():
             
             # 프레임 기본 처리
             h, w = frame.shape[:2]
+
+            margin_x = int(w * 0.05)
+            margin_y = int(h * 0.05)
+
+            inner_w  = w - 2 * margin_x
+            inner_h  = h - 2 * margin_y
+
             gray  = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             focus = cv2.Laplacian(gray, cv2.CV_64F).var()
 
             r_top, r_bot = detector.vert_split_ratio
-            split_y = int(h * r_top / (r_top + r_bot))
+            split_y = margin_y + int(inner_h * r_top / (r_top + r_bot))
 
             regions = {}
 
@@ -184,19 +192,19 @@ def gen_frames():
             acc = 0
             for name, ratio in zip(("side_1","side_2","side_3"),
                                    detector.top_col_ratios):
-                x1 = int(w * acc / sum_top)
+                x1 = margin_x + int(inner_w * acc / sum_top)
                 acc += ratio
-                x2 = int(w * acc / sum_top)
-                regions[name] = (x1, 0, x2, split_y)
+                x2 = margin_x + int(inner_w * acc / sum_top)
+                regions[name] = (x1, margin_y, x2, split_y)
 
             sum_bot = sum(detector.bot_col_ratios)
             acc = 0
             for name, ratio in zip(("rice","soup"),
                                    detector.bot_col_ratios):
-                x1 = int(w * acc / sum_bot)
+                x1 = margin_x + int(inner_w * acc / sum_bot)
                 acc += ratio
-                x2 = int(w * acc / sum_bot)
-                regions[name] = (x1, split_y, x2, h)
+                x2 = margin_x + int(inner_w * acc / sum_bot)
+                regions[name] = (x1, split_y, x2, margin_y + inner_h)
 
             region_ok = True
             for name,(x1,y1,x2,y2) in regions.items():
@@ -205,6 +213,14 @@ def gen_frames():
                 cv2.rectangle(frame,(x1,y1),(x2,y2),(0,255,0),2)
                 if var < detector.region_presence_threshold:
                     region_ok = False
+            
+            cv2.rectangle(
+                frame,
+                (margin_x, margin_y),
+                (margin_x + inner_w, margin_y + inner_h),
+                (0, 255, 0),
+                2
+            )
 
             cv2.putText(frame,f"Focus:{focus:.0f}",
                         (10,30), cv2.FONT_HERSHEY_SIMPLEX,

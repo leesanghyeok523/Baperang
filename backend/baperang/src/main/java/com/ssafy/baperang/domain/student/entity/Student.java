@@ -22,10 +22,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-
-
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -42,7 +38,7 @@ public class Student {
     @JoinColumn(name = "school_pk", nullable = false)
     private School school;
 
-    @Column(name = "student_name", nullable = false, length = 100)
+    @Column(name = "student_name", nullable = false, length = 10)
     private String studentName;
 
     @Column(name = "gender", nullable = false, length = 10)
