@@ -40,5 +40,6 @@ settings = get_settings()
 
 # 디버그 로그
 if settings.DEBUG:
+    print(f"[CONFIG] DEBUG mode: {settings.DEBUG}")
     print(f"[CONFIG] OPENAI_API_KEY: {settings.OPENAI_API_KEY[:4] if settings.OPENAI_API_KEY else 'Not set'}...")
     print(f"[CONFIG] LLM_MODEL: {settings.LLM_MODEL}")

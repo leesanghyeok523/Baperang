@@ -2,13 +2,18 @@
 from typing import Dict, Any, List, Optional
 from datetime import datetime, date, timedelta
 import calendar
-import json
+import json, time
+
+from ..config import settings
 
 class PromptTemplates:
     """프롬프트 템플릿 모음"""
 
     @staticmethod
     def get_next_month_range():
+        if settings.DEBUG:
+            print(f"[PROMPT][get_next_month_range] Starting with parameters...")
+            start_time = time.time()
         """
         다음 달의 시작일과 종료일 계산
         """
@@ -29,6 +34,9 @@ class PromptTemplates:
         _, last_day = calendar.monthrange(next_year, next_month)
         end_date = date(next_year, next_month, last_day)
 
+        if settings.DEBUG:
+            print(f"[PROMPT][get_next_month_range] Completed in {time.time() - start_time:.4f} seconds")
+
         return {
             "start": start_date.isoformat(),
             "end": end_date.isoformat()
@@ -37,6 +45,11 @@ class PromptTemplates:
     @staticmethod
     def organize_menu_by_category(menu_pool: List[str], categories: Optional[Dict[str, List[str]]]) -> Dict[str, List[str]]:
         """메뉴를 카테고리별로 정리"""
+
+        if settings.DEBUG:
+            print(f"[PROMPT][organize_menu_by_category] Starting with parameters...")
+            start_time = time.time()
+
         if categories:
             # 이미 카테고리 정보가 제공된 경우
             return categories
@@ -66,12 +79,18 @@ class PromptTemplates:
                     break
             if not categorized_flag:
                 categorized["기타"].append(menu)
-        
+
+        if settings.DEBUG:
+            print(f"[PROMPT][organize_menu_by_category] Completed in {time.time() - start_time:.4f} seconds")
+
         return categorized
 
     @staticmethod
     def organize_ratings_by_category(ratings: Dict[str, float], categorized_menu: Dict[str, List[str]]) -> Dict[str, Dict[str, float]]:
         """선호도 데이터를 카테고리별로 정리"""
+        if settings.DEBUG:
+            print(f"[PROMPT][organize_ratings_by_category] Starting with parameters...")
+            start_time = time.time()
         categorized_ratings = {}
 
         for category, menus in categorized_menu.items():
@@ -88,6 +107,9 @@ class PromptTemplates:
                 top_items = sorted_items[:10]
                 categorized_ratings[category] = dict(top_items)
         
+        if settings.DEBUG:
+            print(f"[PROMPT][organize_ratings_by_category] Completed in {time.time() - start_time:.4f} seconds")
+
         return categorized_ratings
 
     @staticmethod
@@ -95,6 +117,10 @@ class PromptTemplates:
         """
         잔반율 기반 식단 생성 프롬프트
         """
+        if settings.DEBUG:
+            print(f"[PROMPT][waste_based_templates] Starting with parameters...")
+            start_time = time.time()
+
         # 다음 달 날짜 자동 계산
         date_range = PromptTemplates.get_next_month_range()
 
@@ -108,6 +134,9 @@ class PromptTemplates:
 
         # 잔반율도 카테고리별로 정리
         categorized_leftover = PromptTemplates.organize_ratings_by_category(leftover_data, categories)
+
+        if settings.DEBUG:
+            print(f"[PROMPT][waste_based_templates] Completed in {time.time() - start_time:.4f} seconds")
 
         return f"""
         당신은 학교 급식 메뉴를 계획하는 영양사입니다.
@@ -149,6 +178,10 @@ class PromptTemplates:
         """
         영양소 기반 식단 생성 프롬프트
         """
+        if settings.DEBUG:
+            print(f"[PROMPT][nutrition_based_template] Starting with parameters...")
+            start_time = time.time()
+
         # 다음 달 날짜 자동 계산
         date_range = PromptTemplates.get_next_month_range()
         
@@ -166,6 +199,8 @@ class PromptTemplates:
         # 카테고리별 선호도 정리
         categorized_ratings = PromptTemplates.organize_ratings_by_category(ratings, categorized_menu)
 
+        if settings.DEBUG:
+            print(f"[PROMPT][nutrition_based_template] Completed in {time.time() - start_time:.4f} seconds")
 
         return f"""
         당신은 영양 균형에 정통한 식단 플래너입니다.
@@ -225,6 +260,10 @@ class PromptTemplates:
         """
         통합 식단 생성 프롬프트
         """
+        if settings.DEBUG:
+            print(f"[PROMPT][integration_template] Starting with parameters...")
+
+
         return f"""
         당신은 다양한 요구사항을 균형있게 반영하는 메뉴 통합 전문가입니다.
 

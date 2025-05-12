@@ -1,7 +1,9 @@
 from typing import Dict, List, Any, Optional
-import json
+import json, time
 import re
 from datetime import datetime, date
+
+from ..config import settings
 
 def parse_date(date_str: str) -> date:
     """
@@ -13,7 +15,12 @@ def parse_date(date_str: str) -> date:
     Returns:
         date: 파싱된 날짜
     """
+    if settings.DEBUG:
+        print(f"[UTILS][parse_date] Starting with parameters...")
+        start_time = time.time()
     try:
+        if settings.DEBUG:
+            print(f"[UTILS][parse_date] Completed in {time.time() - start_time:.4f} seconds")
         return datetime.strptime(date_str, "%Y-%m-%d").date()
     except ValueError:
         raise ValueError(f"Invalid date format: {date_str}. Expected format: YYYY-MM-DD")
@@ -27,6 +34,8 @@ def parse_llm_json(text: str) -> Dict[str, Any]:
     Returns:
         Dict: 파싱된 JSON 객체
     """
+    if settings.DEBUG:
+        print(f"[UTILS][parse_llm_json] Starting with parameters...")
     # JSON 블록 추출
     json_pattern = r'```(?:json)?\s*\n([\s\S]*?)\n```'
     matches = re.findall(json_pattern, text)

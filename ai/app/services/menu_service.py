@@ -1,6 +1,6 @@
 from typing import Dict, List, Any, Optional
 import aiohttp
-import json
+import json, time
 import random
 from ..config import settings
 from collections import defaultdict
@@ -15,6 +15,13 @@ class MenuService:
         pass
     
     def extract_menu_data(self, menu_data: Dict[str, Dict[str, Dict[str, Dict[str, Any]]]], menu_pool: Dict[str, str]) -> Dict[str, Any]:
+        if settings.DEBUG:
+            print(f"[MENU][extract_menu_data] Extracting menu data from {len(menu_data)} days of data")
+            start_time = time.time()
+
+        if settings.DEBUG:
+            menu_count = len(menu_pool) if menu_pool else 0
+            print(f"[MENU][extract_menu_data] Organizing {menu_count} menus by category")
         """
         Spring에서 받은 날짜별 메뉴 데이터에서 유용한 정보 추출
 
@@ -66,6 +73,12 @@ class MenuService:
                 # 잔반율 통계 수집
                 if "leftover" in menu_info:
                     leftover_stats[menu_name].append(menu_info["leftover"])
+        
+        if settings.DEBUG:
+            print(f"[MENU][extract_menu_data] Collected data for {len(menu_nutrition)} menus with nutrition info")
+            print(f"[MENU][extract_menu_data] Found {len(nutrition_keys)} unique nutrition keys")
+            print(f"[MENU][extract_menu_data] Calculating average preferences and leftover rates")
+
         # 메뉴별 평균 선호도 계산
         for menu_name, values in preference_stats.items():
             # 기본값 3.0
@@ -75,7 +88,15 @@ class MenuService:
         for menu_name, values in leftover_stats.items():
             # 기본값 0.2
             menu_leftover[menu_name] = statistics.mean(values) if values else 0.2
-        
+
+        if settings.DEBUG:
+            print(f"[MENU][extract_menu_data] Extraction completed with:")
+            print(f"  - {len(categorized_menus)} categories")
+            print(f"  - {len(menu_nutrition)} menus with nutrition data")
+            print(f"  - {len(menu_preference)} menus with preference data")
+            print(f"  - {len(menu_leftover)} menus with leftover data")
+            print(f"[MENU][extract_menu_data] Processing time: {time.time() - start_time:.4f} seconds")
+    
         # 결과 반환
         return {
             "categorized_menus": dict(categorized_menus),
@@ -98,24 +119,24 @@ class MenuService:
         """
 
         # 메뉴 데이터 추출
-        menu_data = self.extract_menu_data(historical_data)
+        extracted_data = self.extract_menu_data(menu_data, menu_pool)
 
         # 이미 카테고리화된 메뉴 사용
-        categorized_menu = menu_data["cateogorized_menus"]
+        categorized_menu = extracted_data["categorized_menus"]
 
         # 카테고리별 선호도 데이터 구성
         categorized_preference = {}
         for category, menus in categorized_menu.items():
             category_prefs = {}
             for menu in menus:
-                if menu in menu_data["menu_preference"]:
-                    category_prefs[menu] = menu_data["menu_preference"][menu]
+                if menu in extracted_data["menu_preference"]:
+                    category_prefs[menu] = extracted_data["menu_preference"][menu]
 
             # 선호도 기준 상위 10개만 포함
             if category_prefs:
                 sorted_items = sorted(category_prefs.items(), key=lambda x: x[1], reverse=True)
                 top_items = sorted_items[:10]
-                categorized_preference
+                categorized_preference[category] = dict(top_items)
 
         # 카테고리별 잔반율 데이터 구성
         categorized_leftover = {}

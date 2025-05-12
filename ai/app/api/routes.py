@@ -1,25 +1,21 @@
 from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
 from typing import Dict, List, Any
+from ..config import settings
+import time
 
 from .models import (
     PlanRequest,
     PlanResponse,
     AnalyzeRequest,           
-    AnalyzeResponse,          
+    AnalyzeResponse,
+    MenuOption, 
+    DailyMenu
 )
 
 from ..services.menu_service import MenuService
 from ..services.analyze_service import AnalyzeService
 from ..workflows.graph import MenuPlanningWorkflow
 import asyncio
-
-
-# from ..services import (
-#     generate_waste_plan,
-#     generate_nutrition_plan,
-#     integrate_plans,
-#     analyze_leftover
-# )
 
 router = APIRouter(prefix="/ai")
 
@@ -60,67 +56,96 @@ async def generate_menu_plan(
     menu_service: MenuService = Depends(get_menu_service),
     workflow: MenuPlanningWorkflow = Depends(get_workflow_service)
 ):
+    if settings.DEBUG:
+        print(f"[ROUTE][generate_menu_plan] Request Received with {len(request.menuData)} menu data items")
+        if request.menuPool:
+            print(f"[Route][generate_menu_plan] Menu Pool provided with {len(request.menuPool)} items")
+        start_time = time.time()
     """
     통합 식단 계획 생성 엔드포인트
     
     선호도와 잔반율, 영양 데이터 기반으로 식단 셍성
     """
     try:
+        menu_data = request.menuData
+        menu_pool = request.menuPool
+
+        if settings.DEBUG:
+            print(f"[ROUTE][generate_menu_plan] Preparing data for LLM")
+
         # 메뉴 데이터 추출 및 LLM 입력용으로 변환
-        processed_data = await menu_service.extract_menu_data(request.historical_data)
-        optimized_data = await menu_service.prepare_for_llm(request.hstorical_data)
+        processed_data = await menu_service.prepare_for_llm(menu_data, menu_pool)
+
+        if settings.DEBUG:
+            print(f"[ROUTE][generate_menu_plan] Data prepared, running workflow")
 
         # 워크 플로우 실행
-        result = await workflow.run_workflow(optimized_data)
+        result = await workflow.run_workflow(processed_data)
 
-        # 생성된 식단 검증
-        validated_plan = await menu_service.validate_menu_plan(
-            result["integrated_plan"],
-            optimized_data["menu_pool"]
-        )
+        # 통합 식단 검증 - 메뉴 풀 활용
+        integrated_plan = result.get("integrated_plan", {})
 
-        # 영양소 지표 계산(선택)
-        nutrition_metrics = menu_service.calculate_nutrition_metrics(
-            validated_plan,
-            processed_data
-        )
+        # 메뉴 형식을 DailyMenu로 변환
+        formatted_plan = {}
+        for date, menus in integrated_plan.items():
+            if len(menus) >= 5: # 최소 5개의 메뉴가 있는 경우
+                # 메뉴 타입별 분류
+                soup_menu = next((m for m in menus if menu_pool.get(m) == "soup"), menus[0])
+                rice_menu = next((m for m in menus if menu_pool.get(m) == "rice"), menus[1])
+                main_menu = next((m for m in menus if menu_pool.get(m) == "main"), menus[2])
+                side_menu = next((m for m in menus if menu_pool.get(m) == "side"), menus[3])
 
-        # 대체 메뉴 생성
-        alternatives = menu_service.generate_alternatives(
-            validated_plan,
-            processed_data
-        )
+                # side가 부족한 경우 다른 메뉴로 보충
+                if len(side_menu) < 2:
+                    available_menus = [m for m in menus if m not in [soup_menu, rice_menu, main_menu] and m not in side_menu]
+                    side_menu.extend(available_menus[:2-len(side_menu)])
+                
+                # 대체 메뉴 생성
+                alternatives = menu_service.generate_alternatives(
+                    {date: menus},
+                    {"categorized_menus" : processed_data["menu_pool"]}
+                ).get(date, {})
+
+                # DailyMenu 구성
+                formatted_plan[date] = DailyMenu(
+                    soup=MenuOption(
+                        primary=soup_menu,
+                        alternatives=alternatives.get(soup_menu, [])[:3]
+                    ),
+                    rice=MenuOption(
+                        primary=rice_menu,
+                        alternatives=alternatives.get(rice_menu, [])[:3]
+                    ),
+                    main=MenuOption(
+                        primary=main_menu,
+                        alternatives=alternatives.get(main_menu, [])[:3]
+                    ),
+                    side=[
+                        MenuOption(
+                            primary=side_m,
+                            alternatives=alternatives.get(side_menu, [])[:3]
+                        ) for side_m in side_menu[:2]
+                    ]
+                )
 
         # 결과 지표 구성
-        metrics = {
-            **result.get("metrics", {}),
-            "nutrition": nutrition_metrics
-        }
+        metrics = result.get("metrics", {})
+
+        if settings.DEBUG:
+            print(f"[ROUTE][generate_menu_plan] Response prepared with {len(formatted_plan)} dates")
+            print(f"[ROUTE][generate_menu_plan] Processing time: {time.time() - start_time:.4f} seconds")
 
         return PlanResponse(
-            plan=validated_plan,
-            alternatives=alternatives,
+            plan=formatted_plan,
             metrics=metrics
         )
 
-        # #초기 상태 생성
-        # init_state = {
-        #     "leftover_data": request.leftover_data,
-        #     "preference_data": request.preference_data,
-        #     "menu_pool": request.menu_pool or []
-        # }
-
-        # # 비동기 작업으로 실행
-        # plan_result = await workflow.run_workflow(init_state)
-
-        # return PlanResponse(
-        #     plan=plan_result["integrated_plan"],
-        #     metrics=plan_result.get("metrics")
-        # )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"식단 생성 중 오류: {str(e)}")
 
 
+
+# 안 쓸 것 같음
 @router.get("/menu-pool", response_model=Dict[str, List[str]])
 async def get_menu_pool(
     menu_service: MenuService = Depends(get_menu_service)

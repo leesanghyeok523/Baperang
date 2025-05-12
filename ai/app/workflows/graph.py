@@ -1,5 +1,7 @@
 # LangGraph 워크플로우 정의 (식단 에이전트)
 import asyncio
+import time, json
+
 from typing import Dict, List, Any
 
 from .agents import WastePlanAgent, NutritionPlanAgent, IntegrationAgent
@@ -26,14 +28,30 @@ class MenuPlanningWorkflow:
         """
         # 디버그 로그
         if settings.DEBUG:
-            print(f"[WORKFLOW] Starting workflow with state: {init_state}")
+            print(f"[WORKFLOW] Starting workflow with input state keys: {', '.join(init_state.keys())}")
+            start_time = time.time()
+            if "menu_pool" in init_state:
+                total_menus = sum(len(menus) for menus in init_state["menu_pool"].values())
+                print(f"[WORKFLOW] Menu pool contains {total_menus} menus in {len(init_state['menu_pool'])} categories")
         
         # 1. 병렬로 잔반율 기반 식단과 영양소 기반 식단 생성
         waste_task = asyncio.create_task(self.waste_agent.process(init_state))
         nutrition_task = asyncio.create_task(self.nutrition_agent.process(init_state))
 
+        if settings.DEBUG:
+            print(f"[WORKFLOW] Starting parallel execution of waste and nutrition agents")
+            waste_start_time = time.time()
+
         # 병렬 실행 대기
         waste_result, nutrition_result = await asyncio.gather(waste_task, nutrition_task)
+
+        if settings.DEBUG:
+            waste_duration = time.time() - waste_start_time
+            print(f"[WORKFLOW] Parallel execution completed in {waste_duration:.4f} seconds")
+            if "waste_plan" in waste_result:
+                print(f"[WORKFLOW] Waste agent generated plan with {len(waste_result['waste_plan'])} days")
+            if "nutrition_plan" in nutrition_result:
+                print(f"[WORKFLOW] Nutrition agent generated plan with {len(nutrition_result['nutrition_plan'])} days")
 
         # 2. 상태 업데이터
         state = {**init_state, **waste_result, **nutrition_result}
@@ -50,6 +68,8 @@ class MenuPlanningWorkflow:
 
         # 디버그 로그
         if settings.DEBUG:
-            print(f"[WORKFLOW] Workflow completed with result keys : {final_result.keys()}")
-        
+            total_duration = time.time() - start_time
+            print(f"[WORKFLOW] Workflow completed in {total_duration:.4f} seconds")
+            print(f"[WORKFLOW] Final state has {len(state)} keys")
+            
         return state

@@ -1,8 +1,9 @@
 from typing import Dict, List, Any
-import json
+import json, time
 
 from ..services.llm_service import LLMService
 from ..core.prompts import PromptTemplates
+from ..config import settings
 
 class WastePlanAgent:
     """잔반율 기반 식단 생성 에이전트"""  
@@ -20,10 +21,20 @@ class WastePlanAgent:
         Returns:
             Dict: 처리 결과
         """
+        if settings.DEBUG:
+            print(f"[AGENT][WastePlanAgent] Processing state with keys: {', '.join(state.keys())}")
+            start_time = time.time()
 
         leftover_data = state.get("leftover_data", {})
         date_range = state.get("date_range", {})
         menu_pool = state.get("menu_pool", [])
+
+        if settings.DEBUG:
+            print(f"[AGENT][WastePlanAgent] Extracted data:")
+            print(f"  - Leftover data: {len(leftover_data)} items")
+            print(f"  - Date range: {date_range}")
+            print(f"  - Menu pool: {len(menu_pool)} items")
+            print(f"[AGENT][WastePlanAgent] Generating prompt")
 
         # 프롬프트 생성
         prompt = PromptTemplates.waste_based_templates(
@@ -32,8 +43,15 @@ class WastePlanAgent:
             menu_pool=menu_pool
         )
 
+        if settings.DEBUG:
+            print(f"[AGENT][WastePlanAgent] Calling LLM with prompt of length {len(prompt)}")
+        
         # LLM 호출
         waste_plan = await self.llm_service.generate_structured_response(prompt)
+
+        if settings.DEBUG:
+            print(f"[AGENT][WastePlanAgent] Received waste plan with {len(waste_plan)} days")
+            print(f"[AGENT][WastePlanAgent] Processing time: {time.time() - start_time:.4f} seconds")
 
         # 결과 반환
         return {"waste_plan": waste_plan}

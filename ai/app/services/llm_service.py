@@ -1,4 +1,4 @@
-import json
+import json, time
 from typing import Dict, Any, List, Optional
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -42,6 +42,16 @@ class LLMService:
         Returns:
             str: LLM 응답 텍스트
         """
+        if settings.DEBUG:
+            prompt_length = len(prompt)
+            system_length = len(system_prompt)
+            print(f"[LLM][generate_response] Sending request to {self.model_name}")
+            print(f"[LLM][generate_response] Prompt length: {prompt_length} chars")
+            if system_prompt:
+                print(f"[LLM][generate_response] System prompt length: {system_length} chars")
+            start_time = time.time()
+
+
         messages = []
 
         # 시스템 프롬프트 있는 경우 추가
@@ -51,6 +61,13 @@ class LLMService:
         
         # 사용자 프롬프트 추가
         messages.append(HumanMessage(content=prompt))
+
+        if settings.DEBUG:
+            response_length = len(response.content)
+            duration = time.time() - start_time
+            tokens_per_second = (prompt_length + system_length + response_length) / (4 * duration)  # rough estimation
+            print(f"[LLM][generate_response] Response received, length: {response_length} chars")
+            print(f"[LLM][generate_response] Request took {duration:.2f} seconds (~{tokens_per_second:.1f} tokens/sec)")
 
         # LLM 호출
         response = await self.llm.ainvoke(messages)
@@ -67,12 +84,24 @@ class LLMService:
         Returns:
             Dict: 파싱된 JSON객체
         """
+        if settings.DEBUG:
+            print(f"[LLM][generate_structured_response] Requesting structured response")
+            start_time = time.time
 
         # LLM응답 생성
         response_text = await self.generate_response(prompt, system_prompt)
 
+        if settings.DEBUG:
+            print(f"[LLM][generate_structured_response] Raw response received, parsing to JSON")
+
         # JSON 파싱
         try:
+            if settings.DEBUG:
+                if "```json" in json_match:
+                    print(f"[LLM][generate_structured_response] Extracted JSON block with ```json markers")
+                elif "```" in json_match:
+                    print(f"[LLM][generate_structured_response] Extracted JSON block with ``` markers")
+
             # JSON 블록 추출
             json_match = response_text.strip()
             if "```json" in json_match:
@@ -80,9 +109,17 @@ class LLMService:
             elif "```" in json_match:
                 json_match = json_match.split("```")[1].split("```")[0].strip()
 
+            if settings.DEBUG:
+                print(f"[LLM][generate_structured_response] Successfully parsed JSON with {len(result)} items")
+                print(f"[LLM][generate_structured_response] Total processing time: {time.time() - start_time:.4f} seconds")
+
             # JSON 파싱
             return json.loads(json_match)
+        
         except Exception as e:
+            if settings.DEBUG:
+                print(f"[LLM][generate_structured_response] JSON parsing failed: {str(e)}, trying manual parsing")
+
             # 파싱 실패하면 수동 파싱
             try:
                 # 줄별로 처리하여 날짜: 메뉴 형식 파싱

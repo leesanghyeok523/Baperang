@@ -2,6 +2,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
+import datetime
+from .config import settings
+
+if settings.DEBUG:
+    print(f"[MAIN] Initailizing {settings.API_TITLE} v{settings.API_VERSION}")
+
 
 from .api.routes import router
 from .config import settings
@@ -16,6 +22,8 @@ app.include_router(router)
 @app.get("/health")
 async def health_check():
     """애플리케이션 상태 확인 엔드포인트"""
+    if settings.DEBUG:
+        print(f"[HEALTH] Health check called at {datetime.datetime.now()}")
     return {"status": "healty", "version": settings.API_VERSION}
 
 # 메인 실행함수
