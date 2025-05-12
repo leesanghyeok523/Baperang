@@ -5,7 +5,6 @@ import API_CONFIG from '../../config/api';
 import axios from 'axios';
 import { useAuthStore } from '../../store/authStore';
 import { EventSourcePolyfill } from 'event-source-polyfill';
-import { SatisfactionUpdate } from '../../types/types';
 
 // 만족도 레벨 정의
 const satisfactionLevels = [
@@ -24,30 +23,16 @@ interface MenuItem {
   satisfactionVotes: number[]; // 각 만족도 레벨별 투표 수를 저장 (인덱스 0=만족도1, 인덱스1=만족도2 ...)
 }
 
-// Calendar에서 사용하는 MenuItem 인터페이스 (API 응답 형태)
-interface CalendarMenuItem {
+// 초기 만족도 데이터 DTO 인터페이스
+interface MenuSatisfactionDto {
   menuId: number;
   menuName: string;
+  averageSatisfaction: string;
+  totalVotes?: number; // 투표자 수 필드 추가
 }
 
-// Calendar에서 사용하는 DayMenuData 인터페이스 (API 응답 형태)
-interface DayMenuData {
-  date: string;
-  dayOfWeekName: string;
-  menu: CalendarMenuItem[];
-}
-
-// Calendar에서 사용하는 MenuResponse 인터페이스 (API 응답 형태)
-interface MenuResponse {
-  days: DayMenuData[];
-}
-
-// <br> 태그로 구분된 메뉴명을 분리하는 함수 (Calendar에서 가져옴)
-const parseMenuName = (menuName: string): string[] => {
-  // <br/>, <br>, <BR/>, <BR> 등 다양한 형태의 br 태그 처리
-  const regex = /<br\s*\/?>/gi;
-  return menuName.split(regex).filter((item) => item.trim() !== '');
-};
+// 메뉴 이름 정규화 함수 (공백 제거, 소문자 변환)
+const normalizeMenuName = (name: string): string => name.trim().toLowerCase();
 
 const SatisfactionSurvey = () => {
   const [todayMenus, setTodayMenus] = useState<MenuItem[]>([]);
@@ -59,120 +44,26 @@ const SatisfactionSurvey = () => {
   const [showConfirmation, setShowConfirmation] = useState<boolean>(false);
   const { isAuthenticated, accessToken, user } = useAuthStore();
 
-  // 오늘의 메뉴 가져오기 (Calendar API 활용)
-  useEffect(() => {
-    const fetchTodayMenus = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-
-        // 현재 날짜 정보
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = today.getMonth() + 1;
-        const day = today.getDate();
-        const dateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(
-          2,
-          '0'
-        )}`;
-
-        // 인증 토큰이 없는 경우
-        if (!isAuthenticated || !accessToken) {
-          console.log('인증되지 않은 상태 - 로그인이 필요합니다');
-          setError('로그인이 필요합니다');
-          setIsLoading(false);
-          return;
-        }
-
-        // Calendar API를 사용하여 이번 달 메뉴 데이터 가져오기
-        console.log('Calendar API 사용하여 메뉴 데이터 가져오기:', { year, month });
-
-        const endpoint = API_CONFIG.ENDPOINTS.MEAL.MENU_CALENDAR;
-        const url = API_CONFIG.getUrl(endpoint, {
-          year: year.toString(),
-          month: month.toString(),
-        });
-
-        // 토큰 형식 확인 및 처리
-        const authHeaderValue = accessToken.startsWith('Bearer ')
-          ? accessToken
-          : `Bearer ${accessToken}`;
-
-        const response = await axios.get(url, {
-          headers: {
-            Authorization: authHeaderValue,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        console.log('API 응답:', response.data);
-
-        // 오늘 날짜의 메뉴만 필터링
-        const menuData: MenuResponse = response.data;
-        const todayData = menuData.days?.find((day) => day.date === dateString);
-
-        if (!todayData || !todayData.menu || todayData.menu.length === 0) {
-          console.log('오늘의 메뉴 데이터가 없습니다.');
-          setError('오늘의 메뉴 데이터가 없습니다.');
-          setIsLoading(false);
-          return;
-        }
-
-        console.log('오늘의 메뉴 데이터:', todayData);
-
-        // <br> 태그로 분리된 메뉴명 처리
-        const processedMenus: MenuItem[] = [];
-
-        todayData.menu.forEach((item) => {
-          if (item.menuName) {
-            // <br> 태그로 분리
-            const parsedItems = parseMenuName(item.menuName);
-
-            // 각 메뉴를 개별 항목으로 추가
-            parsedItems.forEach((name, index) => {
-              processedMenus.push({
-                id: item.menuId * 100 + index, // 고유 ID 생성 (원본 ID * 100 + 인덱스)
-                name: name.trim(),
-                satisfaction: null,
-                votes: 0,
-                satisfactionVotes: [0, 0, 0, 0, 0], // 각 만족도 레벨(1-5)별 투표 수 초기화
-              });
-            });
-          }
-        });
-
-        console.log('처리된 메뉴 데이터:', processedMenus);
-
-        if (processedMenus.length === 0) {
-          setError('오늘의 메뉴 데이터가 없습니다.');
-        } else {
-          setTodayMenus(processedMenus);
-          setPreferenceData(
-            processedMenus.map((menu) => ({
-              name: menu.name,
-              잔반률: 0, // 초기값은 0으로 설정
-            }))
-          );
-        }
-      } catch (err) {
-        console.error('메뉴를 불러오는 중 오류 발생:', err);
-        setError('메뉴를 불러오는 중 오류가 발생했습니다.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchTodayMenus();
-  }, [isAuthenticated, accessToken]);
-
   // SSE 구독 설정 - 실시간 만족도 데이터 수신
   useEffect(() => {
-    if (!isAuthenticated || !accessToken) return;
+    if (!isAuthenticated || !accessToken) {
+      setError('로그인이 필요합니다');
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
 
     // SSE 구독 엔드포인트
     const subscribeUrl = API_CONFIG.getUrl(API_CONFIG.ENDPOINTS.SATISFACTION.SUBSCRIBE);
 
-    console.log('SSE 구독 시작:', subscribeUrl);
+    // 학교 이름 가져오기
+    const schoolName = user?.schoolName || '명호고등학교';
+
+    // schoolName을 쿼리 파라미터로 추가
+    const subscribeUrlWithSchool = `${subscribeUrl}?schoolName=${encodeURIComponent(schoolName)}`;
+
+    console.log('SSE 구독 시작:', subscribeUrlWithSchool);
 
     // 토큰 형식 확인 및 처리
     const authHeaderValue = accessToken.startsWith('Bearer ')
@@ -180,42 +71,128 @@ const SatisfactionSurvey = () => {
       : `Bearer ${accessToken}`;
 
     // EventSourcePolyfill 사용 (헤더 지원)
-    const eventSource = new EventSourcePolyfill(subscribeUrl, {
+    const eventSource = new EventSourcePolyfill(subscribeUrlWithSchool, {
       headers: {
         Authorization: authHeaderValue,
       },
       withCredentials: true,
     });
 
+    // 초기 만족도 데이터를 기반으로 선호도 데이터 업데이트하는 함수
+    const updatePreferenceDataFromSatisfactionData = (
+      satisfactionData: MenuSatisfactionDto[]
+    ): void => {
+      const updatedPreferenceData = satisfactionData.map((menuData) => {
+        const avgSatisfaction = parseFloat(menuData.averageSatisfaction);
+        // 1-5 척도에서 잔반률로 변환 (5점 만점이 0% 잔반률, 1점이 100% 잔반률)
+        const wasteRate = 100 - avgSatisfaction * 20;
+        return {
+          name: menuData.menuName,
+          잔반률: wasteRate,
+        };
+      });
+
+      setPreferenceData(updatedPreferenceData);
+    };
+
+    // 초기 만족도 데이터 처리
+    eventSource.addEventListener('initial-satisfaction', (event: any) => {
+      try {
+        const data = JSON.parse(event.data) as MenuSatisfactionDto[];
+        console.log('SSE로 수신된 초기 만족도 데이터:', data);
+        console.log(
+          'SSE 메뉴 이름들:',
+          data.map((item) => item.menuName)
+        );
+
+        if (Array.isArray(data) && data.length > 0) {
+          // SSE로 받은 메뉴 데이터로 todayMenus 초기화
+          const initialMenus: MenuItem[] = data.map((item, index) => {
+            const avgSatisfaction = parseFloat(item.averageSatisfaction);
+            // 투표자 수 - totalVotes 값이 있으면 사용하고 없으면 기본값으로 0 사용
+            const voteCount = item.totalVotes !== undefined ? item.totalVotes : 0;
+            console.log(`메뉴: ${item.menuName}, 만족도: ${avgSatisfaction}, 투표수: ${voteCount}`);
+
+            // 평균 만족도를 기반으로 레벨별 투표 배열 생성
+            const newSatisfactionVotes = [0, 0, 0, 0, 0];
+            const satisfactionLevel = Math.round(avgSatisfaction);
+            const mainLevel = Math.max(1, Math.min(5, satisfactionLevel));
+            // 모든 투표가 평균에 가장 가까운 레벨에 몰린 것으로 가정
+            newSatisfactionVotes[mainLevel - 1] = voteCount;
+
+            return {
+              id: item.menuId || index + 1, // menuId가 없으면 index 기반으로 id 생성
+              name: item.menuName,
+              satisfaction: null,
+              votes: voteCount,
+              satisfactionVotes: newSatisfactionVotes,
+            };
+          });
+
+          // 총 투표 수 계산
+          const totalVoteCount = initialMenus.reduce((total, menu) => total + menu.votes, 0);
+          setTotalVotes(totalVoteCount);
+
+          console.log('SSE로 초기화된 메뉴:', initialMenus);
+          console.log('총 투표 수:', totalVoteCount);
+          setTodayMenus(initialMenus);
+
+          // 선호도 데이터도 함께 업데이트
+          updatePreferenceDataFromSatisfactionData(data);
+
+          // 로딩 완료
+          setIsLoading(false);
+        } else {
+          console.log('SSE에서 받은 메뉴 데이터가 없거나 유효하지 않습니다');
+          setError('메뉴 데이터를 불러오는데 실패했습니다');
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('초기 만족도 데이터 처리 중 오류 발생:', error);
+        setError('메뉴 데이터를 불러오는데 실패했습니다');
+        setIsLoading(false);
+      }
+    });
+
     // 투표 이벤트 처리
     eventSource.addEventListener('satisfaction-update', (event: any) => {
       try {
-        const data = JSON.parse(event.data) as SatisfactionUpdate;
+        const data = JSON.parse(event.data);
         console.log('SSE로 수신된 데이터:', data);
 
-        // 투표 데이터 반영 로직
-        if (data.menuName && data.averageSatisfaction) {
-          // 평균 만족도 점수 (1-5 범위)
-          const avgSatisfaction = parseFloat(data.averageSatisfaction);
-          const totalVotes = parseInt(data.totalVotes.toString());
-
+        // 백엔드에서 배열 형태로 데이터를 보내므로 배열인지 확인
+        if (Array.isArray(data)) {
+          // 각 메뉴 항목에 대한 업데이트 처리
           setTodayMenus((prevMenus) => {
             return prevMenus.map((menu) => {
-              if (menu.name === data.menuName) {
-                // SSE로 받은 평균 만족도를 각 레벨별 투표수로 역산하기
-                // 이 부분은 평균 만족도를 기반으로 각 레벨별 투표수 추정
+              const normalizedMenuName = normalizeMenuName(menu.name);
+
+              // 해당 메뉴의 만족도 데이터 찾기 (정규화된 이름으로 비교)
+              const menuData = data.find(
+                (item) =>
+                  normalizeMenuName(item.menuName) === normalizedMenuName ||
+                  normalizeMenuName(item.menuName).includes(normalizedMenuName) ||
+                  normalizedMenuName.includes(normalizeMenuName(item.menuName))
+              );
+
+              if (menuData) {
+                console.log(`메뉴 업데이트 매칭: ${menu.name} <-> ${menuData.menuName}`);
+                const avgSatisfaction = parseFloat(menuData.averageSatisfaction);
+                // totalVotes 값이 있으면 사용하고 없으면 기본값으로 0 사용
+                const voteCount = menuData.totalVotes !== undefined ? menuData.totalVotes : 0;
+                console.log(
+                  `${menuData.menuName} 업데이트 - 만족도: ${avgSatisfaction}, 투표수: ${voteCount}`
+                );
+
+                // 평균 만족도를 기반으로 레벨별 투표 배열 생성
                 const newSatisfactionVotes = [0, 0, 0, 0, 0];
-
-                // 평균값을 1-5 범위 내에서 반올림하여 만족도 레벨 결정
                 const satisfactionLevel = Math.round(avgSatisfaction);
-
-                // 평균에 가장 가까운 레벨에 투표 집중 (1~5범위 보정)
                 const mainLevel = Math.max(1, Math.min(5, satisfactionLevel));
-                newSatisfactionVotes[mainLevel - 1] = totalVotes;
+                newSatisfactionVotes[mainLevel - 1] = voteCount;
 
                 return {
                   ...menu,
-                  votes: totalVotes,
+                  votes: voteCount,
                   satisfactionVotes: newSatisfactionVotes,
                 };
               }
@@ -223,10 +200,84 @@ const SatisfactionSurvey = () => {
             });
           });
 
+          // 총 투표 수 업데이트
+          const updatedMenus = [...todayMenus];
+          data.forEach((menuData) => {
+            const menuIndex = updatedMenus.findIndex(
+              (menu) =>
+                normalizeMenuName(menu.name) === normalizeMenuName(menuData.menuName) ||
+                normalizeMenuName(menu.name).includes(normalizeMenuName(menuData.menuName)) ||
+                normalizeMenuName(menuData.menuName).includes(normalizeMenuName(menu.name))
+            );
+
+            if (menuIndex >= 0 && menuData.totalVotes !== undefined) {
+              updatedMenus[menuIndex].votes = menuData.totalVotes;
+            }
+          });
+
+          const newTotalVotes = updatedMenus.reduce((total, menu) => total + menu.votes, 0);
+          setTotalVotes(newTotalVotes);
+          console.log('업데이트된 총 투표 수:', newTotalVotes);
+
+          // 선호도 데이터 업데이트
+          updatePreferenceDataFromSatisfactionData(data);
+        } else if (data.menuName && data.averageSatisfaction) {
+          // 단일 메뉴 업데이트 형식인 경우 (백엔드가 단일 객체로 보낼 경우)
+          const avgSatisfaction = parseFloat(data.averageSatisfaction);
+          // totalVotes 값이 없으면 기본값으로 0 사용
+          const voteCount = data.totalVotes !== undefined ? data.totalVotes : 0;
+
+          console.log(
+            `단일 메뉴 업데이트 시도: ${data.menuName}, 값: ${avgSatisfaction}, 투표수: ${voteCount}`
+          );
+
+          setTodayMenus((prevMenus) => {
+            const normalizedUpdateMenuName = normalizeMenuName(data.menuName);
+
+            return prevMenus.map((menu) => {
+              const normalizedMenuName = normalizeMenuName(menu.name);
+
+              // 메뉴 이름 비교 (정확히 일치하거나 포함 관계인 경우)
+              const isMatch =
+                normalizedMenuName === normalizedUpdateMenuName ||
+                normalizedMenuName.includes(normalizedUpdateMenuName) ||
+                normalizedUpdateMenuName.includes(normalizedMenuName);
+
+              if (isMatch) {
+                console.log(`단일 메뉴 업데이트 매칭: ${menu.name} <-> ${data.menuName}`);
+                // SSE로 받은 평균 만족도를 각 레벨별 투표수로 역산하기
+                const newSatisfactionVotes = [0, 0, 0, 0, 0];
+                const satisfactionLevel = Math.round(avgSatisfaction);
+                const mainLevel = Math.max(1, Math.min(5, satisfactionLevel));
+                newSatisfactionVotes[mainLevel - 1] = voteCount;
+
+                return {
+                  ...menu,
+                  votes: voteCount,
+                  satisfactionVotes: newSatisfactionVotes,
+                };
+              }
+              return menu;
+            });
+          });
+
+          // 총 투표 수 업데이트
+          const updatedTotalVotes = todayMenus.reduce((total, menu) => {
+            // 해당 메뉴면 새 투표수 사용, 아니면 기존 투표수 사용
+            const isTargetMenu =
+              normalizeMenuName(menu.name) === normalizeMenuName(data.menuName) ||
+              normalizeMenuName(menu.name).includes(normalizeMenuName(data.menuName)) ||
+              normalizeMenuName(data.menuName).includes(normalizeMenuName(menu.name));
+
+            return total + (isTargetMenu ? voteCount : menu.votes);
+          }, 0);
+
+          setTotalVotes(updatedTotalVotes);
+          console.log('단일 메뉴 업데이트 후 총 투표 수:', updatedTotalVotes);
+
           // 선호도 데이터도 함께 업데이트
           setPreferenceData((prevData) => {
             const menuIndex = prevData.findIndex((item) => item.name === data.menuName);
-
             // 1-5 척도에서 잔반률로 변환 (5점 만점이 0% 잔반률, 1점이 100% 잔반률)
             const wasteRate = 100 - avgSatisfaction * 20;
 
@@ -248,8 +299,8 @@ const SatisfactionSurvey = () => {
             }
           });
         }
-      } catch (err) {
-        console.error('SSE 데이터 처리 중 오류:', err);
+      } catch (error) {
+        console.error('SSE 데이터 처리 중 오류 발생:', error);
       }
     });
 
@@ -274,7 +325,7 @@ const SatisfactionSurvey = () => {
       console.log('SSE 연결 종료');
       eventSource.close();
     };
-  }, [isAuthenticated, accessToken]);
+  }, [isAuthenticated, accessToken, user?.schoolName]);
 
   // 만족도 선택 처리 (API 호출)
   const handleSatisfactionChange = async (menuId: number, satisfactionValue: number) => {
