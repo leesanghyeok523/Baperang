@@ -59,10 +59,10 @@ public class Student {
     @Column(name = "weight", nullable = false)
     private Float weight;
 
-    @Column(name = "image")
+    @Column(name = "image", columnDefinition = "TEXT")
     private String image;
 
-    @Column(name = "iamge_date")
+    @Column(name = "image_date")
     private LocalDate imageDate;
 
     @Column(name = "content", columnDefinition = "TEXT")
@@ -106,5 +106,10 @@ public class Student {
                 .content(original.getContent())
                 .contentDate(original.getContentDate())
                 .build();
+    }
+
+    public void updateImageDirectly(String imageUrl) {
+        this.image = imageUrl;
+        this.imageDate = LocalDate.now();
     }
 }
