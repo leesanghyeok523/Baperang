@@ -14,25 +14,26 @@ class MenuService:
         """메뉴 서비스 초기화"""
         pass
     
-    def extract_menu_data(self, historical_data: Dict[str, Dict[str, Dict[str,Any]]]) -> Dict[str, Any]:
+    def extract_menu_data(self, menu_data: Dict[str, Dict[str, Dict[str, Dict[str, Any]]]], menu_pool: Dict[str, str]) -> Dict[str, Any]:
         """
         Spring에서 받은 날짜별 메뉴 데이터에서 유용한 정보 추출
 
         Args:
-            historical_data: {날짜: {메뉴: {잔반율, 선호도, 카테고리, 영양소: {kcal, fat, ...}}}}
+            menu_data: {날짜: {메뉴명: {잔반율, 선호도, 영양소:{kcal, fat, ...}}}}
+            menu_pool: {메뉴명: 카테고리}
         Returns:
             Dict: 추출된 메뉴 데이터        
         """
 
         # 결과 저장용 구조
-        menu_pool = set()
-        menu_categories = {}
         menu_nutrition = {}
         menu_preference = {}
         menu_leftover = {}
 
         # 카테고리별 메뉴 그룹핑
         categorized_menus = defaultdict(list)
+        for menu_name, category in menu_pool.items():
+            categorized_menus[category].append(menu_name)
 
         # 메뉴별 통계 수집 (여러 날짜에 걸친 값들)
         preference_stats = defaultdict(list)
@@ -41,18 +42,9 @@ class MenuService:
         nutrition_keys = set()
 
         # 날짜별 데이터 순회
-        for date, daily_menus in historical_data.items():
+        for date, daily_menus in menu_data.items():
             # 일별 메뉴 순회
             for menu_name, menu_info in daily_menus.items():
-                # 메뉴 풀에 추가
-                menu_pool.add(menu_name)
-
-                # 카테고리 정보 저장(제공된 카테고리 사용) -> 나중에 변경
-                if "category" in menu_info:
-                    category = menu_info["category"]
-                    menu_categories[menu_name] = category
-                    categorized_menus[category].append(menu_name)
-                  
                 # 영양소 정보 수집
                 if "nutrition" in menu_info and isinstance(menu_info["nutrition"], dict):
                     # 아직 이 메뉴의 영양소 정보가 없으면 세 딕셔너리 생성
@@ -86,21 +78,20 @@ class MenuService:
         
         # 결과 반환
         return {
-            "menu_pool": list(menu_pool),
-            "menu_categories": menu_categories,
-            "categorized_menus": categorized_menus,
+            "categorized_menus": dict(categorized_menus),
             "menu_nutrition": menu_nutrition,
             "menu_preference": menu_preference,
             "menu_leftover": menu_leftover,
             "nutrition_keys": list(nutrition_keys)
         }
 
-    def prepare_for_llm(self, historical_data: Dict[str, Dict[str, Dict[str,Any]]]) -> Dict[str, Any]:
+    def prepare_for_llm(self, menu_data: Dict[str, Dict[str, Dict[str,Dict[str,Any]]]], menu_pool: Dict[str, str]) -> Dict[str, Any]:
         """
         LLM 요청을 위한 데이터 준비 (토큰 최적화)
 
         Args:
-            historical_data: Spring에서 받은 날짜별 메뉴 데이터
+            menu_data : {날짜: {메뉴명: {잔반율, 선호도, 영양소: {}}}}
+            menu_pool : {메뉴명: 카테고리}
 
         Returns:
             Dict: LLM 입력용 최적화된 데이터
@@ -208,6 +199,20 @@ class MenuService:
             validated_plan[date] = valid_menus
         
         return validated_plan
+    
+    async def validate_menu_plan_async(self, plan: Dict[str, List[str]], menu_pool_by_category: Dict[str, List[str]]) -> Dict[str, List[str]]:
+        """
+        LLM이 생성한 식단 계획 검증 및 수정 (비동기 버전)
+
+        Args:
+            plan: 생성된 식단 계획
+            menu_pool_by_category: 카테고리 별 메뉴 풀
+
+        Returns:
+            Dict: 검증 및 수정된 식단 계획
+        """
+        # 기존 동기 메서드 활용
+        return self.validate_menu_plan(plan, menu_pool_by_category)
 
     def _find_similar_menu(self, menu: str, menu_pool: List[str]) -> Optional[str]:
         """메뉴 풀에서 유사한 메뉴 찾기"""
@@ -326,6 +331,19 @@ class MenuService:
 
         return alternatives
     
+    async def generate_alternatives_async(self, plan: Dict[str, List[str]], menu_data:Dict[str, Any])  -> Dict[str, Dict[str, List[str]]]:
+        """
+        각 메뉴별 대체 메뉴 생성 (비동기 버전)
+
+        Args:
+            plan: 검증된 식단 계획
+            menu_data: 메뉴 데이터
+        Returns:
+            Dict: 날짜별, 메뉴별 대체 메뉴 목록
+        """
+        # 기존 동기 메서드 활용
+        return self.generate_alternatives(plan, menu_data)
+
     async def get_menu_data(self, menu_ids: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """
         메뉴 데이터 조회

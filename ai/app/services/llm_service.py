@@ -69,7 +69,7 @@ class LLMService:
         """
 
         # LLM응답 생성
-        response_text = self.generate_response(prompt, system_prompt)
+        response_text = await self.generate_response(prompt, system_prompt)
 
         # JSON 파싱
         try:

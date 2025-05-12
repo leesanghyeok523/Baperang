@@ -34,7 +34,6 @@ def get_analyze_service():
 def get_workflow_service():
     return MenuPlanningWorkflow()
 
-
 @router.post("/analyze-leftover", response_model=AnalyzeResponse)
 async def analyze_leftover_endpoint(
     request: AnalyzeRequest,
