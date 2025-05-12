@@ -123,7 +123,7 @@ const MyPage: React.FC = () => {
         bg-center
       "
     >
-      <div className="w-full max-w-sm space-y-5 h-[65vh]">
+      <div className="w-full mt-10 max-w-sm space-y-5 h-[65vh]">
         <InputCard
           placeholder="이름을 입력하세요"
           name="nutritionistName"
