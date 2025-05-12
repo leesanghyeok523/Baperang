@@ -70,6 +70,7 @@ CREATE TABLE menu (
                       school_pk  BIGINT       NOT NULL,
                       menu_date  DATE         NOT NULL,
                       menu_name  TEXT NOT NULL,
+                      category   VARCHAR(20)  NOT NULL ,
                       amount INT,
                       favorite   FLOAT,
                       FOREIGN KEY (school_pk)

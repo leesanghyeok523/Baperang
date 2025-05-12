@@ -1,14 +1,13 @@
 package com.ssafy.baperang.domain.satisfaction.service;
 
 import java.io.IOException;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.concurrent.ConcurrentHashMap;
+import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -16,24 +15,22 @@ import java.util.concurrent.TimeUnit;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import com.ssafy.baperang.domain.menu.entity.Menu;
+import com.ssafy.baperang.domain.menu.repository.MenuRepository;
 import com.ssafy.baperang.domain.satisfaction.dto.response.SatisfactionResponseDto;
 import com.ssafy.baperang.domain.satisfaction.dto.response.SatisfactionResponseDto.MenuSatisfactionDto;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
 import com.ssafy.baperang.domain.school.entity.School;
-import com.ssafy.baperang.domain.menu.entity.Menu;
 import com.ssafy.baperang.domain.school.repository.SchoolRepository;
-import com.ssafy.baperang.domain.menu.repository.MenuRepository;
-import com.ssafy.baperang.global.jwt.JwtService;
-import com.ssafy.baperang.global.exception.BaperangErrorCode;
 import com.ssafy.baperang.global.exception.BaperangCustomException;
+import com.ssafy.baperang.global.exception.BaperangErrorCode;
+import com.ssafy.baperang.global.jwt.JwtService;
 
-import jakarta.transaction.Transactional;
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
@@ -50,7 +47,7 @@ public class SatisfactionServiceImpl implements SatisfactionService {
     private static final long SSE_TIMEOUT = 60 * 60 * 1000L;
     
     // 하트비트 주기 (21초)
-    private static final long HEARTBEAT_INTERVAL = 21;
+    private static final long HEARTBEAT_INTERVAL = 5;
     
     // 하트비트를 위한 스케줄러
     private ScheduledExecutorService heartbeatScheduler;
@@ -111,8 +108,8 @@ public class SatisfactionServiceImpl implements SatisfactionService {
             String formattedAvg = df.format(avgSatisfaction);
             
             MenuSatisfactionDto menuDto = MenuSatisfactionDto.builder()
-                .menuId(menuItem.getId())
                 .menuName(menuItem.getMenuName())
+                .voteCount(votes)
                 .averageSatisfaction(formattedAvg)
                 .build();
             menuSatisfactions.add(menuDto);
@@ -207,14 +204,8 @@ public class SatisfactionServiceImpl implements SatisfactionService {
         log.info("메뉴 만족도 업데이트 완료: id={}, votes={}, favorite={}", 
                  menu.getId(), menu.getVoteCount(), menu.getFavorite());
         
-        // 6. 업데이트된 메뉴 정보 준비
-        int totalVotes = menu.getVoteCount();
-        int totalFavorite = menu.getTotalFavorite();
-        double averageSatisfaction = (totalVotes > 0) ? (double) totalFavorite / totalVotes : 0;
-        
         // 소수점 두 자리까지 포맷팅
         DecimalFormat df = new DecimalFormat("#.##");
-        String formattedAverage = df.format(averageSatisfaction);
         
         // 7. 해당 날짜의 모든 메뉴 정보 조회
         List<Menu> allMenus = menuRepository.findBySchoolAndMenuDate(school, today);
@@ -226,8 +217,8 @@ public class SatisfactionServiceImpl implements SatisfactionService {
             String formattedAvg = df.format(avgSatisfaction);
             
             MenuSatisfactionDto menuDto = MenuSatisfactionDto.builder()
-                .menuId(menuItem.getId())
                 .menuName(menuItem.getMenuName())
+                .voteCount(votes)
                 .averageSatisfaction(formattedAvg)
                 .build();
             menuSatisfactions.add(menuDto);
