@@ -232,7 +232,7 @@ const StudentManagement = () => {
     else wasteComment = '개선이 필요합니다';
 
     // 개선 방안 리스트 생성
-    const improvementList = [];
+    const improvementList: string[] = [];
     if (bmiStatus !== '정상') improvementList.push('규칙적인 운동 습관을 기르세요.');
     if (bmiStatus === '저체중') improvementList.push('영양가 있는 음식을 충분히 섭취하세요.');
     if (bmiStatus === '과체중' || bmiStatus === '비만')

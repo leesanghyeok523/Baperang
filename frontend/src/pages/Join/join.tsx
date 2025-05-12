@@ -153,7 +153,7 @@ const JoinPage: React.FC = () => {
       console.log('학교 검색 원본 응답 데이터:', data);
 
       // 백엔드 응답 형식에 맞게 처리
-      let schoolsList = [];
+      let schoolsList: string[] = [];
 
       if (data && Array.isArray(data.schools)) {
         // { schools: [...] } 형식의 응답
