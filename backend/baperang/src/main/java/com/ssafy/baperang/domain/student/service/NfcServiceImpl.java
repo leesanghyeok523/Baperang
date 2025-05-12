@@ -3,6 +3,7 @@ package com.ssafy.baperang.domain.student.service;
 //import aj.org.objectweb.asm.TypeReference;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ssafy.baperang.domain.leftover.service.LeftoverService;
 import com.ssafy.baperang.domain.student.dto.request.NfcStudentRequestDto;
 import com.ssafy.baperang.domain.student.dto.response.ErrorResponseDto;
 import com.ssafy.baperang.domain.student.entity.Student;
@@ -10,9 +11,15 @@ import com.ssafy.baperang.domain.student.repository.StudentRepository;
 import com.ssafy.baperang.global.exception.BaperangErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.fasterxml.jackson.core.type.TypeReference;
+import org.springframework.web.client.RestTemplate;
+
 
 import java.time.LocalDate;
 import java.util.*;
@@ -24,6 +31,7 @@ public class NfcServiceImpl implements NfcService {
 
     private final StudentRepository studentRepository;
     private final ObjectMapper objectMapper;
+    private final LeftoverService leftoverService;
 
     @Override
     @Transactional(readOnly = true)
@@ -175,11 +183,11 @@ public class NfcServiceImpl implements NfcService {
                     studentDate, today, dateMatches);
 
             // student 엔티티의 updateImage 메서드 사용
-            Student updatedStudent = Student.updateImage(student, jsonUrls);
-            Student saved = studentRepository.saveAndFlush(updatedStudent);
+            student.updateImageDirectly(jsonUrls);
+            Student saved = studentRepository.saveAndFlush(student);
 
             log.info("식전 이미지 URL 저장 완료: 학생={}, 저장된 URL 수={}, 날짜 변경 여부={}",
-                    saved.getStudentName(), requestDto.getS3Url(), !dateMatches);
+                    saved.getStudentName(), requestDto.getS3Url().size(), !dateMatches);
 
         } catch (Exception e) {
             log.error("식사 전 이미지 URL 저장 중 오류: {}", e.getMessage(), e);
@@ -241,11 +249,57 @@ public class NfcServiceImpl implements NfcService {
                 log.info("식후 이미지 URL {}: {}", key, url);
             });
 
+            // AI 서버로 url 전송
+            try {
+                // 나중에 배포 서버에서 할 경우 .env 파일로 baseurl 수정
+                String aiServerUrl = "http://127.0.0.1:8001/ai/analyze-leftover";;
+
+                Map<String, Object> requestBody = new HashMap<>();
+                requestBody.put("before_images", beforeImageUrlMap);
+                requestBody.put("after_images", afterImageUrlMap);
+
+                Map<String, Object> studentInfo = new HashMap<>();
+                studentInfo.put("id", student.getId());
+                studentInfo.put("name", student.getStudentName());
+                studentInfo.put("grade", student.getGrade());
+                studentInfo.put("class", student.getClassNum());
+                studentInfo.put("number", student.getNumber());
+                requestBody.put("student_info", studentInfo);
+
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+
+                // HTTP 요청 엔티티 생성
+                HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestBody, headers);
+
+                // AI 서버에 POST 요청 보내기
+                log.info("AI 서버로 이미지 url 전송: {}", objectMapper.writeValueAsString(requestBody));
+
+                RestTemplate restTemplate = new RestTemplate();
+                ResponseEntity<String> responseEntity = restTemplate.postForEntity(
+                        aiServerUrl, requestEntity, String.class
+                );
+
+                // AI 서버 응답 처리
+                if (responseEntity.getStatusCode().is2xxSuccessful() && responseEntity.getBody() != null) {
+                    Map<String, Object> responseData = objectMapper.readValue(
+                            responseEntity.getBody(),
+                            new TypeReference<Map<String, Object>>() {}
+                    );
+
+                    // LeftoverService로 처리 위임
+                    Object result = leftoverService.saveLeftovers(student.getId(), responseData);
+                    log.info("잔반율 저장 결과: {}", result);
+                } else {
+                    log.error("AI 서버 응답이 성공이 아님: {}", responseEntity.getStatusCode());
+                }
+            } catch (Exception e) {
+                log.error("AI 서버 통신 중 오류: {}", e.getMessage(), e);
+            }
+
             log.info("식후 이미지 확인 완료: 학생={}", student.getStudentName());
         } catch (Exception e) {
             log.error("식후 이미지 확인 중 오류: {}", e.getMessage(), e);
         }
     }
-
-
 }
