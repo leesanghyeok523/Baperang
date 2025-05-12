@@ -390,6 +390,24 @@ def nfc_info():
     except Exception as e:
         logging.error(f"NFC 정보 제공 에러: {e}")
         return jsonify({"error": str(e), "isTagged": False}), 500
+    
+
+# nfc 없이 테스트용용
+@app.route('/test-nfc', methods=['GET'])
+def test_nfc():
+    try:
+        # 하드코딩된 학생 정보
+        nfc_data = "1 2 6 17 이상화 남자 식후"
+        
+        # 큐에 데이터 추가
+        pk_queue.put(nfc_data)
+        logging.info(nfc_data)
+        logging.info("✨ pk save (test)")
+        
+        return jsonify({"success": True, "message": "테스트 NFC 태그가 시뮬레이션되었습니다"})
+    except Exception as e:
+        logging.error(f"테스트 NFC 에러: {e}")
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == '__main__':

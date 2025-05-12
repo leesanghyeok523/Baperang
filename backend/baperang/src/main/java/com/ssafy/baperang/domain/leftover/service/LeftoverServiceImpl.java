@@ -5,6 +5,11 @@ import com.ssafy.baperang.domain.leftover.dto.response.LeftoverDateResponseDto;
 import com.ssafy.baperang.domain.leftover.dto.response.LeftoverMonthResponseDto;
 import com.ssafy.baperang.domain.leftover.entity.Leftover;
 import com.ssafy.baperang.domain.leftover.repository.LeftoverRepository;
+import com.ssafy.baperang.domain.menu.entity.Menu;
+import com.ssafy.baperang.domain.menu.repository.MenuRepository;
+import com.ssafy.baperang.domain.school.entity.School;
+import com.ssafy.baperang.domain.student.entity.Student;
+import com.ssafy.baperang.domain.student.repository.StudentRepository;
 import com.ssafy.baperang.global.exception.BaperangErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,11 +20,10 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
+
+import static com.ssafy.baperang.domain.school.entity.QSchool.school;
 
 @Slf4j
 @Service
@@ -27,6 +31,8 @@ import java.util.stream.Collectors;
 public class LeftoverServiceImpl implements LeftoverService {
 
     private final LeftoverRepository leftoverRepository;
+    private final MenuRepository menuRepository;
+    private final StudentRepository studentRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -149,4 +155,60 @@ public class LeftoverServiceImpl implements LeftoverService {
 
         return result;
     }
+
+    @Override
+    @Transactional
+    public Object saveLeftovers(Long studentId, Map<String, Object> aiResponse) {
+        log.info("학생 ID: {}의 잔반율 데이터 저장 시작", studentId);
+
+        try {
+            Optional<Student> studentOpt = studentRepository.findById(studentId);
+            if (studentOpt.isEmpty()) {
+                return ErrorResponseDto.of(BaperangErrorCode.STUDENT_NOT_FOUND);
+            }
+
+            Student student = studentOpt.get();
+            LocalDate today = LocalDate.now();
+            School schoolEntity = student.getSchool();
+
+            // 지정된 키가 존재하는지 확인
+            if (aiResponse.containsKey("leftover_rate")) {
+                Map<String, Object> leftoverData = (Map<String, Object>) aiResponse.get("leftover_rate");
+                List<Leftover> savedLeftovers = new ArrayList<>();
+
+                for (Map.Entry<String, Object> entry : leftoverData.entrySet()) {
+                    String menuName = entry.getKey();
+
+                    float leftoverRate = ((Number) entry.getValue()).floatValue();
+
+                    Menu menu = menuRepository.findBySchoolAndMenuDateAndMenuName(schoolEntity, today, menuName);
+
+                    Leftover leftover = Leftover.builder()
+                            .menu(menu)
+                            .student(student)
+                            .leftoverDate(today)
+                            .leftMenuName(menuName)
+                            .leftoverRate(leftoverRate)
+                            .build();
+
+                    savedLeftovers.add(leftoverRepository.save(leftover));
+                }
+
+                log.info("학생 ID: {}의 메뉴 {}개 잔반율 저장 완료", studentId, savedLeftovers.size());
+
+                Map<String, Object> result = new HashMap<>();
+                result.put("success", true);
+                result.put("message", "학생 잔반율 저장 완료");
+                result.put("leftoverCount", savedLeftovers.size());
+
+                return result;
+            }
+            else {
+                return ErrorResponseDto.of(BaperangErrorCode.INVALID_INPUT_VALUE);
+            }
+        } catch (Exception e) {
+            return ErrorResponseDto.of(BaperangErrorCode.INTERNAL_SERVER_ERROR);
+        }
+    }
+
 }

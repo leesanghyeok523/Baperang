@@ -139,13 +139,13 @@ public class StudentController {
         if (dto.getS3Url() != null && !dto.getS3Url().isEmpty()) {
             dto.getS3Url().forEach((k, v) -> log.info("  {} = {}", k, v));
 
-            if ("before".equalsIgnoreCase(dto.getImageType())) {
+            if ("식전".equals(dto.getStatus())) {
                 nfcService.saveBeforeImageUrls(dto);
                 return ResponseEntity.ok(Map.of(
                         "success", true,
                         "message", "식전 이미지 저장 완료"
                 ));
-            } else if ("after".equalsIgnoreCase(dto.getImageType())) {
+            } else if ("식후".equals(dto.getStatus())) {
                 nfcService.checkAfterImageUrl(dto);
                 return ResponseEntity.ok(Map.of(
                         "success", true,
