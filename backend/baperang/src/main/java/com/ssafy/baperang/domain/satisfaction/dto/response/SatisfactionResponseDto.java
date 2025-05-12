@@ -2,11 +2,11 @@ package com.ssafy.baperang.domain.satisfaction.dto.response;
 
 import java.util.List;
 
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
 @Setter
@@ -22,8 +22,8 @@ public class SatisfactionResponseDto {
     @AllArgsConstructor
     @Builder
     public static class MenuSatisfactionDto {
-        private Long menuId;
         private String menuName;
+        private Integer voteCount;
         private String averageSatisfaction;
     }
 } 

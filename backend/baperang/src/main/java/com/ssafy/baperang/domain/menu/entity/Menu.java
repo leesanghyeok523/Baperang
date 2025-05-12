@@ -43,6 +43,9 @@ public class Menu {
     @Column(name = "menu_name", nullable = false, columnDefinition = "TEXT")
     private String menuName;
 
+    @Column(name = "category", nullable = false)
+    private String category;
+
     @Column(name = "amount")
     private Integer amount;
 
@@ -53,10 +56,11 @@ public class Menu {
     private Integer votes;
 
     @Builder
-    public Menu(School school, LocalDate menuDate, String menuName, Integer amount, Float favorite, Integer votes) {
+    public Menu(School school, LocalDate menuDate, String menuName, String category, Integer amount, Float favorite, Integer votes) {
         this.school = school;
         this.menuDate = menuDate;
         this.menuName = menuName;
+        this.category = category;
         this.amount = amount != null ? amount : 0;
         this.favorite = favorite != null ? favorite : 0.0f;
         this.votes = votes != null ? votes : 0;

@@ -1,5 +1,0 @@
-{
-  "devDependencies": {
-    "@types/event-source-polyfill": "^1.0.5"
-  }
-}
