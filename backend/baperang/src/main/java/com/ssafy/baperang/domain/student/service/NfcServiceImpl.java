@@ -252,9 +252,15 @@ public class NfcServiceImpl implements NfcService {
             // AI 서버로 url 전송
             try {
                 // 나중에 배포 서버에서 할 경우 .env 파일로 baseurl 수정
-                String aiServerUrl = "http://127.0.0.1:8001/ai/analyze-leftover";;
+                String aiServerUrl = "http://127.0.0.1:8001/ai/analyze-leftover";
 
                 Map<String, Object> requestBody = new HashMap<>();
+
+                Map<String, String> formattedBeforeImageMap = formatImageKeyNames(beforeImageUrlMap);
+                Map<String, String> formattedAfterImageMap = formatImageKeyNames(afterImageUrlMap);
+
+
+
                 requestBody.put("before_images", beforeImageUrlMap);
                 requestBody.put("after_images", afterImageUrlMap);
 
@@ -301,5 +307,19 @@ public class NfcServiceImpl implements NfcService {
         } catch (Exception e) {
             log.error("식후 이미지 확인 중 오류: {}", e.getMessage(), e);
         }
+    }
+
+    private Map<String, String> formatImageKeyNames(Map<String, String> imageMap) {
+        Map<String, String> formattedMap = new HashMap<>();
+
+        for (Map.Entry<String, String> entry : imageMap.entrySet()) {
+            String key = entry.getKey();
+            // side_1 -> side1, side_2 -> side2 형태로 변환
+            String formattedKey = key.replace("side_", "side")
+                    .replace("_", "");
+            formattedMap.put(formattedKey, entry.getValue());
+        }
+
+        return formattedMap;
     }
 }
