@@ -102,7 +102,7 @@ const TaggingPage = () => {
         className="flex justify-center items-center"
         style={{ paddingTop: '75px', height: 'calc(100vh - 60px)' }}
       >
-        <div className="flex w-full max-w-[1200px] p-4 gap-24">
+        <div className="flex w-full max-w-[1200px] p-4 gap-24 justify-center">
           {/* 왼쪽: 학생 정보 표시 영역 */}
           <div className="w-1/3 bg-opacity-80 rounded-xl p-2 flex flex-col items-center">
             <div className="mb-6 mt-4">

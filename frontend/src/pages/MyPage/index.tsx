@@ -7,8 +7,9 @@ import apiClient from '../../utils/apiClient';
 import API_CONFIG from '../../config/api';
 
 const MyPage: React.FC = () => {
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // 사용자 데이터로 초기화
   const [formData, setFormData] = useState({
@@ -87,6 +88,31 @@ const MyPage: React.FC = () => {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+
+      // 로그아웃 API 호출
+      await apiClient.post(
+        API_CONFIG.getUrl(API_CONFIG.ENDPOINTS.AUTH.LOGOUT),
+        {} // 빈 객체를 두 번째 인자로 전달
+      );
+
+      // 로그아웃 처리 (상태 초기화)
+      logout();
+
+      // 홈페이지로 이동
+      navigate('/');
+    } catch (error) {
+      console.error('로그아웃 중 오류가 발생했습니다:', error);
+      // 오류가 발생해도 로컬 상태는 로그아웃 처리
+      logout();
+      navigate('/');
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
   return (
     <div
       className="
@@ -97,7 +123,7 @@ const MyPage: React.FC = () => {
         bg-center
       "
     >
-      <div className="w-full max-w-sm space-y-5 h-[65vh]">
+      <div className="w-full mt-10 max-w-sm space-y-5 h-[65vh]">
         <InputCard
           placeholder="이름을 입력하세요"
           name="nutritionistName"
@@ -145,11 +171,11 @@ const MyPage: React.FC = () => {
 
         <div className="flex justify-center gap-4">
           <Button
-            className="w-full max-w-[200px] py-3 bg-white/50 hover:bg-green-500 hover:text-white"
-            onClick={() => navigate(-1)}
-            disabled={isLoading}
+            className="w-full max-w-[200px] py-3 bg-white/50 hover:bg-red-500 hover:text-white"
+            onClick={handleLogout}
+            disabled={isLoggingOut}
           >
-            취소
+            {isLoggingOut ? '로그아웃 중...' : '로그아웃'}
           </Button>
           <Button className="w-full max-w-[200px] py-3" onClick={handleUpdate} disabled={isLoading}>
             {isLoading ? '수정 중...' : '수정하기'}
