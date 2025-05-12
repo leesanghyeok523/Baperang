@@ -1,5 +1,7 @@
 package com.ssafy.baperang.domain.user.service;
 
+import com.ssafy.baperang.domain.user.dto.request.UpdateUserRequestDto;
+import com.ssafy.baperang.domain.user.dto.response.*;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -8,10 +10,6 @@ import com.ssafy.baperang.domain.school.entity.School;
 import com.ssafy.baperang.domain.school.repository.SchoolRepository;
 import com.ssafy.baperang.domain.user.dto.request.LoginRequestDto;
 import com.ssafy.baperang.domain.user.dto.request.SignupRequestDto;
-import com.ssafy.baperang.domain.user.dto.response.ErrorResponseDto;
-import com.ssafy.baperang.domain.user.dto.response.LoginResponseDto;
-import com.ssafy.baperang.domain.user.dto.response.LogoutResponseDto;
-import com.ssafy.baperang.domain.user.dto.response.SignupResponseDto;
 import com.ssafy.baperang.domain.user.entity.User;
 import com.ssafy.baperang.domain.user.repository.UserRepository;
 import com.ssafy.baperang.global.exception.BaperangErrorCode;
@@ -200,6 +198,151 @@ public class UserServiceImpl implements UserService{
         log.info("refreshAccessToken 함수 성공 종료");
         // 빈 응답 본문 반환
         return new LoginResponseDto();
+    }
+    @Transactional(readOnly = true)
+    public Object getUserDetail(String token) {
+        log.info("getUserDetail 함수 실행");
+
+        // 토큰 유효성 검사
+        if (!jwtService.validateToken(token)) {
+            log.info("getUserDetail - 토큰 유효하지 않음");
+            return ErrorResponseDto.of(BaperangErrorCode.INVALID_TOKEN);
+        }
+
+        // 토큰에서 유저 ID 추출
+        Long userId = jwtService.getUserId(token);
+
+        // 사용자 존재 여부 확인
+        User user = userRepository.findById(userId)
+                .orElse(null);
+
+        if (user == null) {
+            log.info("getUserDetail - 사용자 없음");
+            return ErrorResponseDto.of(BaperangErrorCode.USER_NOT_FOUND);
+        }
+
+        // 사용자 정보 DTO로 변환하여 반환
+        UserDetailResponseDto responseDto = UserDetailResponseDto.builder()
+                .loginId(user.getLoginId())
+                .nutritionistName(user.getNutritionistName())
+                .schoolName(user.getSchool().getSchoolName())
+                .city(user.getSchool().getCity())
+                .build();
+
+        log.info("getUserDetail 함수 성공 종료");
+        return responseDto;
+    }
+
+    @Transactional
+    public Object updateUser(String token, UpdateUserRequestDto requestDto) {
+        log.info("updateUser 함수 실행");
+
+        // 토큰 유효성 검사
+        if (!jwtService.validateToken(token)) {
+            log.info("updateUser - 토큰 유효하지 않음");
+            return ErrorResponseDto.of(BaperangErrorCode.INVALID_TOKEN);
+        }
+
+        // 토큰에서 유저 ID 추출
+        Long userId = jwtService.getUserId(token);
+
+        // 사용자 존재 여부 확인
+        User user = userRepository.findById(userId)
+                .orElse(null);
+
+        if (user == null) {
+            log.info("updateUser - 사용자 없음");
+            return ErrorResponseDto.of(BaperangErrorCode.USER_NOT_FOUND);
+        }
+
+        try {
+            // 변경 메시지 구성
+            StringBuilder messageBuilder = new StringBuilder();
+
+            // 영양사 이름 변경 검사
+            if (requestDto.getNutritionistName() != null && !requestDto.getNutritionistName().isEmpty()
+                    && !requestDto.getNutritionistName().equals(user.getNutritionistName())) {
+                messageBuilder.append("이름이 변경되었습니다. ");
+                log.info("updateUser - 영양사 이름 변경: {} -> {}",
+                        user.getNutritionistName(), requestDto.getNutritionistName());
+            }
+
+            // 비밀번호 변경 검사
+            if (requestDto.getPassword() != null && !requestDto.getPassword().isEmpty()) {
+                messageBuilder.append("비밀번호가 변경되었습니다. ");
+                log.info("updateUser - 비밀번호 변경됨");
+            }
+
+            // 학교 정보 변경 검사
+            boolean schoolChanged = false;
+            School school = null;
+            if (requestDto.getSchoolName() != null && requestDto.getCity() != null) {
+                // 현재 학교와 다른지 확인
+                if (!requestDto.getSchoolName().equals(user.getSchool().getSchoolName()) ||
+                        !requestDto.getCity().equals(user.getSchool().getCity())) {
+
+                    schoolChanged = true;
+                    school = schoolRepository.findBySchoolNameAndCity(
+                                    requestDto.getSchoolName(), requestDto.getCity())
+                            .orElseGet(() -> {
+                                log.info("updateUser() - 새 학교 생성");
+                                School newSchool = School.builder()
+                                        .schoolName(requestDto.getSchoolName())
+                                        .city(requestDto.getCity())
+                                        .build();
+                                return schoolRepository.saveAndFlush(newSchool);
+                            });
+
+                    messageBuilder.append("학교 정보가 변경되었습니다. ");
+                    log.info("updateUser - 학교 정보 변경: {}({}) -> {}({})",
+                            user.getSchool().getSchoolName(), user.getSchool().getCity(),
+                            requestDto.getSchoolName(), requestDto.getCity());
+                } else {
+                    // 학교 정보가 동일한 경우 null로 설정하여 업데이트하지 않음
+                    school = null;
+                }
+            }
+
+            // 아무 변경사항이 없는 경우
+            if (messageBuilder.length() == 0) {
+                messageBuilder.append("변경된 정보가 없습니다.");
+                log.info("updateUser - 변경 사항 없음");
+            }
+
+            // 비밀번호 암호화 (비밀번호가 변경된 경우에만)
+            String encodedPassword = null;
+            if (requestDto.getPassword() != null && !requestDto.getPassword().isEmpty()) {
+                encodedPassword = bCryptPasswordEncoder.encode(requestDto.getPassword());
+            }
+
+            // 사용자 정보 업데이트
+            user.updateUser(
+                    requestDto.getNutritionistName(),
+                    encodedPassword,
+                    schoolChanged ? school : null
+            );
+
+            // 변경 사항 저장
+            userRepository.saveAndFlush(user);
+
+            // 응답 DTO 생성
+            UpdateUserResponseDto.UpdateUserContent content = UpdateUserResponseDto.UpdateUserContent.builder()
+                    .loginId(user.getLoginId())
+                    .nutritionistName(user.getNutritionistName())
+                    .schoolName(user.getSchool().getSchoolName())
+                    .city(user.getSchool().getCity())
+                    .build();
+
+            log.info("updateUser 함수 성공 종료");
+            return UpdateUserResponseDto.builder()
+                    .message(messageBuilder.toString().trim())
+                    .content(content)
+                    .build();
+
+        } catch (Exception e) {
+            log.info("updateUser 함수 예외 발생: {}", e.getMessage());
+            return ErrorResponseDto.of(BaperangErrorCode.INTERNAL_SERVER_ERROR);
+        }
     }
 
 }
