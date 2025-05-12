@@ -284,9 +284,6 @@ const SatisfactionSurvey = () => {
       const selectedMenu = todayMenus.find((menu) => menu.id === menuId);
       if (!selectedMenu) return;
 
-      // 만족도 점수는 1-5 사이의 값 사용 (value 값 그대로 사용)
-      const satisfactionScore = satisfactionValue;
-
       // 만족도 투표 API 요청 데이터
       const voteData = {
         schoolName: user?.schoolName || '명호고등학교',
