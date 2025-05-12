@@ -23,12 +23,11 @@ interface MenuItem {
   satisfactionVotes: number[]; // 각 만족도 레벨별 투표 수를 저장 (인덱스 0=만족도1, 인덱스1=만족도2 ...)
 }
 
-// 초기 만족도 데이터 DTO 인터페이스
+// 초기 만족도 데이터 DTO 인터페이스 - 백엔드 DTO와 일치시킴
 interface MenuSatisfactionDto {
-  menuId: number;
   menuName: string;
+  voteCount?: number; // 백엔드에서는 voteCount로 투표 수를 전달
   averageSatisfaction: string;
-  totalVotes?: number; // 투표자 수 필드 추가
 }
 
 // 메뉴 이름 정규화 함수 (공백 제거, 소문자 변환)
@@ -110,7 +109,7 @@ const SatisfactionSurvey = () => {
           const initialMenus: MenuItem[] = data.map((item, index) => {
             const avgSatisfaction = parseFloat(item.averageSatisfaction);
             // 투표자 수 - totalVotes 값이 있으면 사용하고 없으면 기본값으로 0 사용
-            const voteCount = item.totalVotes !== undefined ? item.totalVotes : 0;
+            const voteCount = item.voteCount !== undefined ? item.voteCount : 0;
             console.log(`메뉴: ${item.menuName}, 만족도: ${avgSatisfaction}, 투표수: ${voteCount}`);
 
             // 평균 만족도를 기반으로 레벨별 투표 배열 생성
@@ -121,7 +120,7 @@ const SatisfactionSurvey = () => {
             newSatisfactionVotes[mainLevel - 1] = voteCount;
 
             return {
-              id: item.menuId || index + 1, // menuId가 없으면 index 기반으로 id 생성
+              id: index + 1, // menuId가 없으면 index 기반으로 id 생성
               name: item.menuName,
               satisfaction: null,
               votes: voteCount,
@@ -179,7 +178,7 @@ const SatisfactionSurvey = () => {
                 console.log(`메뉴 업데이트 매칭: ${menu.name} <-> ${menuData.menuName}`);
                 const avgSatisfaction = parseFloat(menuData.averageSatisfaction);
                 // totalVotes 값이 있으면 사용하고 없으면 기본값으로 0 사용
-                const voteCount = menuData.totalVotes !== undefined ? menuData.totalVotes : 0;
+                const voteCount = menuData.voteCount !== undefined ? menuData.voteCount : 0;
                 console.log(
                   `${menuData.menuName} 업데이트 - 만족도: ${avgSatisfaction}, 투표수: ${voteCount}`
                 );
@@ -210,8 +209,8 @@ const SatisfactionSurvey = () => {
                 normalizeMenuName(menuData.menuName).includes(normalizeMenuName(menu.name))
             );
 
-            if (menuIndex >= 0 && menuData.totalVotes !== undefined) {
-              updatedMenus[menuIndex].votes = menuData.totalVotes;
+            if (menuIndex >= 0 && menuData.voteCount !== undefined) {
+              updatedMenus[menuIndex].votes = menuData.voteCount;
             }
           });
 
@@ -225,7 +224,7 @@ const SatisfactionSurvey = () => {
           // 단일 메뉴 업데이트 형식인 경우 (백엔드가 단일 객체로 보낼 경우)
           const avgSatisfaction = parseFloat(data.averageSatisfaction);
           // totalVotes 값이 없으면 기본값으로 0 사용
-          const voteCount = data.totalVotes !== undefined ? data.totalVotes : 0;
+          const voteCount = data.voteCount !== undefined ? data.voteCount : 0;
 
           console.log(
             `단일 메뉴 업데이트 시도: ${data.menuName}, 값: ${avgSatisfaction}, 투표수: ${voteCount}`
