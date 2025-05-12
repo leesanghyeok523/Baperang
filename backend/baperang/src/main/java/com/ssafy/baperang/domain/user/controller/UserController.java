@@ -1,5 +1,6 @@
 package com.ssafy.baperang.domain.user.controller;
 
+import com.ssafy.baperang.domain.user.dto.request.UpdateUserRequestDto;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -110,6 +111,47 @@ public class UserController {
         }
         
         log.info("refreshAccessToken 컨트롤러 함수 정상 응답");
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/profile")
+    @Operation(summary = "회원정보 조회", description = "회원정보 조회 기능")
+    public ResponseEntity<?> getUserDetail(
+            @RequestHeader("Authorization") String authorizationHeader) {
+        log.info("getUserDetail 컨트롤러 함수 호출");
+
+        String token = authorizationHeader.substring(7); // "Bearer " 이후의 토큰 추출
+
+        Object result = userService.getUserDetail(token);
+
+        if (result instanceof ErrorResponseDto) {
+            ErrorResponseDto errorResponse = (ErrorResponseDto) result;
+            log.info("getUserDetail 컨트롤러 함수 에러 응답");
+            return ResponseEntity.status(errorResponse.getStatus()).body(result);
+        }
+
+        log.info("getUserDetail 컨트롤러 함수 정상 응답");
+        return ResponseEntity.ok(result);
+    }
+
+    @PutMapping("/profile")
+    @Operation(summary = "회원정보 수정", description = "회원정보 수정 기능")
+    public ResponseEntity<?> updateUser(
+            @RequestBody UpdateUserRequestDto requestDto,
+            @RequestHeader("Authorization") String authorizationHeader) {
+        log.info("updateUser 컨트롤러 함수 호출");
+
+        String token = authorizationHeader.substring(7); // "Bearer " 이후의 토큰 추출
+
+        Object result = userService.updateUser(token, requestDto);
+
+        if (result instanceof ErrorResponseDto) {
+            ErrorResponseDto errorResponse = (ErrorResponseDto) result;
+            log.info("updateUser 컨트롤러 함수 에러 응답");
+            return ResponseEntity.status(errorResponse.getStatus()).body(result);
+        }
+
+        log.info("updateUser 컨트롤러 함수 정상 응답");
         return ResponseEntity.ok(result);
     }
 }
