@@ -54,4 +54,18 @@ public class User {
         this.nutritionistName = nutritionistName;
         this.school = school;
     }
+
+    public void updateUser(String nutritionistName, String password, School school) {
+        if (nutritionistName != null && !nutritionistName.isEmpty()) {
+            this.nutritionistName = nutritionistName;
+        }
+
+        if (password != null && !password.isEmpty()) {
+            this.password = password;
+        }
+
+        if (school != null) {
+            this.school = school;
+        }
+    }
 }
