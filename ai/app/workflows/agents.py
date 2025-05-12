@@ -24,22 +24,19 @@ class WastePlanAgent:
         if settings.DEBUG:
             print(f"[AGENT][WastePlanAgent] Processing state with keys: {', '.join(state.keys())}")
             start_time = time.time()
-
+        # print(state)
         leftover_data = state.get("leftover_data", {})
-        date_range = state.get("date_range", {})
         menu_pool = state.get("menu_pool", [])
-
         if settings.DEBUG:
             print(f"[AGENT][WastePlanAgent] Extracted data:")
             print(f"  - Leftover data: {len(leftover_data)} items")
-            print(f"  - Date range: {date_range}")
             print(f"  - Menu pool: {len(menu_pool)} items")
             print(f"[AGENT][WastePlanAgent] Generating prompt")
 
         # 프롬프트 생성
+        # print(leftover_data)
         prompt = PromptTemplates.waste_based_templates(
             leftover_data=leftover_data,
-            date_range=date_range,
             menu_pool=menu_pool
         )
 
@@ -74,13 +71,11 @@ class NutritionPlanAgent:
         """
         # 필요한 데이터 추출
         preference_data = state.get("preference_data", {})
-        date_range = state.get("date_range", {})
         menu_pool = state.get("menu_pool", {})
 
         # 프롬프트 생성
         prompt = PromptTemplates.nutrition_based_template(
             preference_data=preference_data,
-            date_range=date_range,
             menu_pool=menu_pool
         )
 

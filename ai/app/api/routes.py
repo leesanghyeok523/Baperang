@@ -59,7 +59,7 @@ async def generate_menu_plan(
     if settings.DEBUG:
         print(f"[ROUTE][generate_menu_plan] Request Received with {len(request.menuData)} menu data items")
         if request.menuPool:
-            print(f"[Route][generate_menu_plan] Menu Pool provided with {len(request.menuPool)} items")
+            print(f"[ROUTE][generate_menu_plan] Menu Pool provided with {len(request.menuPool)} items")
         start_time = time.time()
     """
     통합 식단 계획 생성 엔드포인트
@@ -73,14 +73,16 @@ async def generate_menu_plan(
         if settings.DEBUG:
             print(f"[ROUTE][generate_menu_plan] Preparing data for LLM")
 
-        # 메뉴 데이터 추출 및 LLM 입력용으로 변환
-        processed_data = await menu_service.prepare_for_llm(menu_data, menu_pool)
+        # 메뉴 데이터 추출 및 LLM 입력용으로 변환(토큰 절약)
+        processed_data = menu_service.prepare_for_llm(menu_data, menu_pool)
 
         if settings.DEBUG:
             print(f"[ROUTE][generate_menu_plan] Data prepared, running workflow")
 
         # 워크 플로우 실행
+        print(f"[ROUTE][generate_menu_plan] Before awaiting workflow")
         result = await workflow.run_workflow(processed_data)
+        print(f"[ROUTE][generate_menu_plan] After awaiting workflow, result type: {type(result)}")
 
         # 통합 식단 검증 - 메뉴 풀 활용
         integrated_plan = result.get("integrated_plan", {})

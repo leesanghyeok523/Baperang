@@ -45,6 +45,16 @@ class MenuPlanningWorkflow:
         # 병렬 실행 대기
         waste_result, nutrition_result = await asyncio.gather(waste_task, nutrition_task)
 
+        print(waste_result)
+        print(nutrition_result)
+
+        # 결과 출력 (디버깅용)
+        if settings.DEBUG:
+            print("\n=== WASTE PLAN RESULT ===")
+            print(json.dumps(waste_result, ensure_ascii=False, indent=2))
+            print("\n=== NUTRITION PLAN RESULT ===")
+            print(json.dumps(nutrition_result, ensure_ascii=False, indent=2))
+
         if settings.DEBUG:
             waste_duration = time.time() - waste_start_time
             print(f"[WORKFLOW] Parallel execution completed in {waste_duration:.4f} seconds")
@@ -63,8 +73,12 @@ class MenuPlanningWorkflow:
         # 3. 통합 에이전트 실행
         final_result = await self.integration_agent.process(state)
 
+        print(f"final_reuslt: {final_result}")
+
         # 4. 최종 상태 업데이트
         state.update(final_result)
+
+        print(f"state{state}")
 
         # 디버그 로그
         if settings.DEBUG:

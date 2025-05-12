@@ -22,6 +22,7 @@ class MenuService:
         if settings.DEBUG:
             menu_count = len(menu_pool) if menu_pool else 0
             print(f"[MENU][extract_menu_data] Organizing {menu_count} menus by category")
+        
         """
         Spring에서 받은 날짜별 메뉴 데이터에서 유용한 정보 추출
 
@@ -117,6 +118,9 @@ class MenuService:
         Returns:
             Dict: LLM 입력용 최적화된 데이터
         """
+        if settings.DEBUG:
+            print(f"[MENU][prepare_for_llm] Input menu_data keys: {menu_data.keys()}")
+            print(f"[MENU][prepare_for_llm] Input menu_pool size: {len(menu_pool)}")
 
         # 메뉴 데이터 추출
         extracted_data = self.extract_menu_data(menu_data, menu_pool)
@@ -142,9 +146,14 @@ class MenuService:
         categorized_leftover = {}
         for category, menus in categorized_menu.items():
             category_leftover = {}
-            for menu in menus:
-                if menu in menu_data["menu_leftover"]:
-                    category_leftover[menu] = menu_data["menu_leftover"][menu]
+            try:
+                for menu in menus:
+                    if "menu_leftover" in extracted_data and menu in extracted_data["menu_leftover"]:
+                        category_leftover[menu] = extracted_data["menu_leftover"][menu]
+            except Exception as e:
+                if settings.DEBUG:
+                    print(f"[MENU][prepare_for_llm] Error accessing menu_leftover: {str(e)}")
+                    print(f"[MENU][prepare_for_llm] extracted_data structure: {extracted_data.keys()}")
             
             # 잔반율 기준 상위 10개 포함
             if category_leftover:
@@ -163,7 +172,16 @@ class MenuService:
         nutrition_info = {}
 
         # 발견된 영양소 키 중 우선순위가 있는 것 먼저 포함, 나머지는 선택적 포함
-        available_keys = set(menu_data["nutrition_keys"])
+        try:
+            # 발견된 영양소 키 중 우선순위가 있는 것 먼저 포함, 나머지는 선택적 포함
+            available_keys = set(extracted_data.get("nutrition_keys", []))
+            if settings.DEBUG:
+                print(f"[MENU][prepare_for_llm] Available nutrition keys: {available_keys}")
+        except Exception as e:
+            if settings.DEBUG:
+                print(f"[MENU][prepare_for_llm] Error processing nutrition keys: {str(e)}")
+            # 오류 발생 시 기본값 사용
+            available_keys = set()
         selected_keys = [k for k in priority_nutrients if k in available_keys]
 
         # 추가 영양소 키
@@ -172,7 +190,7 @@ class MenuService:
             selected_keys.extend(remaining_keys[:3])
 
         # 메뉴별 영양소 정보 구성
-        for menu, nutrients in menu_data["menu_nutrition"].items():
+        for menu, nutrients in extracted_data["menu_nutrition"].items():
             nutrition_info[menu] = {k: nutrients.get(k) for k in selected_keys if k in nutrients}
         
         # LLM 입력용 최적화 데이터
@@ -232,6 +250,8 @@ class MenuService:
         Returns:
             Dict: 검증 및 수정된 식단 계획
         """
+        # 최소한 비동기 추가
+        await asyncio.sleep(0)
         # 기존 동기 메서드 활용
         return self.validate_menu_plan(plan, menu_pool_by_category)
 
@@ -362,6 +382,7 @@ class MenuService:
         Returns:
             Dict: 날짜별, 메뉴별 대체 메뉴 목록
         """
+        await asyncio.sleep(0)
         # 기존 동기 메서드 활용
         return self.generate_alternatives(plan, menu_data)
 

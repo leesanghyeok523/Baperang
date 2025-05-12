@@ -58,15 +58,15 @@ class PromptTemplates:
         categorized = {
             "soup": [],
             "rice": [],
-            "sidedish": [],
-            "maindish": []
+            "side": [],
+            "main": []
         }
 
         category_keywords = {
             "rice": ["밥", "덮밥", "볶음밥", "비빔밥"],
             "soup": ["국", "탕", "찌개", "전골", "스프"],
-            "maindish": ["구이", "볶음", "찜", "조림", "불고기", "갈비", "고기", "생선"],
-            "sidedish": ["나물", "무침", "장아찌", "샐러드", "김치", "깍두기"],
+            "main": ["구이", "볶음", "찜", "조림", "불고기", "갈비", "고기", "생선"],
+            "side": ["나물", "무침", "장아찌", "샐러드", "김치", "깍두기"],
         }
 
         # 메뉴 분류
@@ -78,42 +78,42 @@ class PromptTemplates:
                     categorized_flag = True
                     break
             if not categorized_flag:
-                categorized["기타"].append(menu)
+                categorized["side"].append(menu)
 
         if settings.DEBUG:
             print(f"[PROMPT][organize_menu_by_category] Completed in {time.time() - start_time:.4f} seconds")
 
         return categorized
 
-    @staticmethod
-    def organize_ratings_by_category(ratings: Dict[str, float], categorized_menu: Dict[str, List[str]]) -> Dict[str, Dict[str, float]]:
-        """선호도 데이터를 카테고리별로 정리"""
-        if settings.DEBUG:
-            print(f"[PROMPT][organize_ratings_by_category] Starting with parameters...")
-            start_time = time.time()
-        categorized_ratings = {}
+    # @staticmethod
+    # def organize_ratings_by_category(ratings: Dict[str, float], categorized_menu: Dict[str, List[str]]) -> Dict[str, Dict[str, float]]:
+    #     """선호도 데이터를 카테고리별로 정리"""
+    #     if settings.DEBUG:
+    #         print(f"[PROMPT][organize_ratings_by_category] Starting with parameters...")
+    #         start_time = time.time()
+    #     categorized_ratings = {}
+    #     # print(categorized_menu)
+    #     for category, menus in categorized_menu.items():
+    #         # 각 카테고리 별로 해당 메뉴의 선호도만 추출
+    #         category_ratings ={}
+    #         for menu in menus:
+    #             if menu in ratings:
+    #                 category_ratings[menu] = ratings[menu]
 
-        for category, menus in categorized_menu.items():
-            # 각 카테고리 별로 해당 메뉴의 선호도만 추출
-            category_ratings ={}
-
-            for menu in menus:
-                if menu in ratings:
-                    category_ratings[menu] = ratings[menu]
-
-            # 상위 10개만 유지(카테고리별 토큰 최적화)
-            if category_ratings:
-                sorted_items = sorted(category_ratings.items(), key=lambda x: x[1], reverse=True)
-                top_items = sorted_items[:10]
-                categorized_ratings[category] = dict(top_items)
+    #         # 상위 10개만 유지(카테고리별 토큰 최적화)
+    #         # print(categorized_ratings)
+    #         if category_ratings:
+    #             sorted_items = sorted(category_ratings.items(), key=lambda x: x[1], reverse=True)
+    #             top_items = sorted_items[:10]
+    #             categorized_ratings[category] = dict(top_items)
         
-        if settings.DEBUG:
-            print(f"[PROMPT][organize_ratings_by_category] Completed in {time.time() - start_time:.4f} seconds")
+    #     if settings.DEBUG:
+    #         print(f"[PROMPT][organize_ratings_by_category] Completed in {time.time() - start_time:.4f} seconds")
 
-        return categorized_ratings
+    #     return categorized_ratings
 
     @staticmethod
-    def waste_based_templates(leftover_data: Dict[str,float], date_range: Dict[str, Any], menu_pool: List[str], categories: Optional[Dict[str, List[str]]] = None) -> str:
+    def waste_based_templates(leftover_data: Dict[str, Any], menu_pool: Dict[str, List[str]]) -> str:
         """
         잔반율 기반 식단 생성 프롬프트
         """
@@ -124,16 +124,15 @@ class PromptTemplates:
         # 다음 달 날짜 자동 계산
         date_range = PromptTemplates.get_next_month_range()
 
-        # 카테고리별 메뉴 정리
-        categorized_menu = PromptTemplates.organize_menu_by_category(menu_pool, categories)
-
         # 카테고리별 메뉴 제한 (각 카테고리당 최대 20개)
         limited_menu = {}
-        for category, menus in categorized_menu.items():
+        for category, menus in menu_pool.items():
             limited_menu[category] = menus[:20] if len(menus) > 20 else menus
 
+        # print(limited_menu)
+        print(leftover_data)
         # 잔반율도 카테고리별로 정리
-        categorized_leftover = PromptTemplates.organize_ratings_by_category(leftover_data, categories)
+        categorized_leftover = leftover_data
 
         if settings.DEBUG:
             print(f"[PROMPT][waste_based_templates] Completed in {time.time() - start_time:.4f} seconds")
@@ -165,16 +164,16 @@ class PromptTemplates:
         ## 출력 형식
         날짜별 메뉴 목록을 JSON 형식으로 작성해주세요:
         ```json
-        {
+        {{
           "2025-06-01": ["찹쌀밥", "미역국", "돈육불고기", "시금치나물", "콩나물무침"],
           "2025-06-02": ["잡곡밥", "된장찌개", "고등어구이", "도라지무침", "배추김치"],
           ...
-        }
+        }}
         ```
         """
     
     @staticmethod
-    def nutrition_based_template(preference_data: Dict[str, Dict[str, float]], date_range: Dict[str, Any], menu_pool: List[str], categories: Optional[Dict[str, List[str]]]=None) -> str:
+    def nutrition_based_template(preference_data: Dict[str, Dict[str, float]], menu_pool: List[str]) -> str:
         """
         영양소 기반 식단 생성 프롬프트
         """
@@ -185,19 +184,16 @@ class PromptTemplates:
         # 다음 달 날짜 자동 계산
         date_range = PromptTemplates.get_next_month_range()
         
-        # 카테고리별 메뉴 정리
-        categorized_menu = PromptTemplates.organize_menu_by_category(menu_pool, categories)
-        
         # 카테고리별 메뉴 제한 (각 카테고리당 최대 20개)
         limited_menu = {}
-        for category, menus in categorized_menu.items():
+        for category, menus in menu_pool.items():
             limited_menu[category] = menus[:20] if len(menus) > 20 else menus
         
+        print(limited_menu)
         # 선호도 데이터 정리 (average_rating 키에서 추출)
         ratings = preference_data.get("average_rating", {})
 
-        # 카테고리별 선호도 정리
-        categorized_ratings = PromptTemplates.organize_ratings_by_category(ratings, categorized_menu)
+        categorized_ratings = ratings
 
         if settings.DEBUG:
             print(f"[PROMPT][nutrition_based_template] Completed in {time.time() - start_time:.4f} seconds")
@@ -247,11 +243,11 @@ class PromptTemplates:
         ## 출력 형식
         날짜별 메뉴 목록을 JSON 형식으로 작성해주세요:
         ```json
-        {
+        {{
           "2025-06-01": ["찹쌀밥", "미역국", "돈육불고기", "시금치나물", "콩나물무침"],
           "2025-06-02": ["잡곡밥", "된장찌개", "고등어구이", "도라지무침", "배추김치"],
           ...
-        }
+        }}
         ```
         """
     
@@ -263,6 +259,20 @@ class PromptTemplates:
         if settings.DEBUG:
             print(f"[PROMPT][integration_template] Starting with parameters...")
 
+        example_output = {
+          "2025-06-01": ["찹쌀밥", "미역국", "돈육불고기", "시금치나물", "콩나물무침"],
+          "2025-06-02": ["잡곡밥", "된장찌개", "고등어구이", "도라지무침", "배추김치"]
+        }
+        exemple_alternatives={
+          "alternatives": {
+            "2025-06-01": {
+              "밥류": ["잡곡밥", "흰밥"],
+              "국류": ["된장국", "콩나물국"],
+              "메인반찬": ["제육볶음", "닭갈비"],
+              "부반찬": ["무생채", "도라지무침", "오이무침"]
+            }
+          }
+        }
 
         return f"""
         당신은 다양한 요구사항을 균형있게 반영하는 메뉴 통합 전문가입니다.
@@ -291,25 +301,11 @@ class PromptTemplates:
         ## 출력 형식
         날짜별 메뉴 목록을 JSON 형식으로 작성해주세요:
         ```json
-        {{
-          "2025-06-01": ["찹쌀밥", "미역국", "돈육불고기", "시금치나물", "콩나물무침"],
-          "2025-06-02": ["잡곡밥", "된장찌개", "고등어구이", "도라지무침", "배추김치"],
-          ...
-        }}
+        {example_output}
         ```
         
         또한 각 카테고리별로 대체 메뉴 옵션도 함께 제공해주세요:
         ```json
-        {{
-          "alternatives": {
-            "2025-06-01": {
-              "밥류": ["잡곡밥", "흰밥"],
-              "국류": ["된장국", "콩나물국"],
-              "메인반찬": ["제육볶음", "닭갈비"],
-              "부반찬": ["무생채", "도라지무침", "오이무침"]
-            },
-            ...
-          }
-        }}
+        {exemple_alternatives}
         ```
         """

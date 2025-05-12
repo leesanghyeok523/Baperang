@@ -1,4 +1,6 @@
 import json, time
+import os
+
 from typing import Dict, Any, List, Optional
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -19,6 +21,15 @@ class LLMService:
 
         self.model_name = model_name or settings.LLM_MODEL
         self.temperature = temperature or settings.LLM_TEMPERATURE
+
+        # 캐싱 딕셔너리
+        self.response_cache = {}
+
+        # 캐시 사용 여부 설정
+        self.use_cache = settings.DEBUG and os.getenv("USE_LLM_CACHE", "True").lower() == "true"
+
+        if self.use_cache and settings.DEBUG:
+            print(f"[LLM] 캐싱 활성화: 동일한 프롬프트에 대한 중복 API 호출 방지")
 
         # LLM 클라이언트 초기화
         self.llm = ChatOpenAI(
@@ -44,12 +55,22 @@ class LLMService:
         """
         if settings.DEBUG:
             prompt_length = len(prompt)
-            system_length = len(system_prompt)
-            print(f"[LLM][generate_response] Sending request to {self.model_name}")
-            print(f"[LLM][generate_response] Prompt length: {prompt_length} chars")
             if system_prompt:
-                print(f"[LLM][generate_response] System prompt length: {system_length} chars")
+                system_length = len(system_prompt)
+            else:
+                system_length = 0
+            print(f"[LLM][generate_response] System prompt length: {system_length} chars")
+            print(f"[LLM][generate_response] Sending request to {self.model_name}")
+            print(f"[LLM][generate_response] Prompt length: {prompt_length} chars")                
             start_time = time.time()
+
+        cache_key = f"{system_prompt or ''}|||{prompt}"
+        
+        # 캐시에서 응답 찾기
+        if self.use_cache and cache_key in self.response_cache:
+            if settings.DEBUG:
+                print(f"[LLM][generate_response] 캐시에서 응답 찾음! API 호출 없음")
+            return self.response_cache[cache_key]
 
 
         messages = []
@@ -62,6 +83,15 @@ class LLMService:
         # 사용자 프롬프트 추가
         messages.append(HumanMessage(content=prompt))
 
+        # LLM 호출
+        response = await self.llm.ainvoke(messages)
+        
+        # 캐시에 응답 저장
+        if self.use_cache:
+            self.response_cache[cache_key] = response.content
+            if settings.DEBUG:
+                print(f"[LLM][generate_response] 응답을 캐시에 저장 (캐시 크기: {len(self.response_cache)})")
+        
         if settings.DEBUG:
             response_length = len(response.content)
             duration = time.time() - start_time
@@ -69,8 +99,7 @@ class LLMService:
             print(f"[LLM][generate_response] Response received, length: {response_length} chars")
             print(f"[LLM][generate_response] Request took {duration:.2f} seconds (~{tokens_per_second:.1f} tokens/sec)")
 
-        # LLM 호출
-        response = await self.llm.ainvoke(messages)
+
         return response.content
     
     async def generate_structured_response(self, prompt: str, system_prompt: Optional[str] = None) -> Dict[str, Any]:
@@ -86,14 +115,20 @@ class LLMService:
         """
         if settings.DEBUG:
             print(f"[LLM][generate_structured_response] Requesting structured response")
-            start_time = time.time
+            start_time = time.time()
 
+        print(f"사용자 프롬프트: {prompt}")
+        # print(system_prompt)
         # LLM응답 생성
         response_text = await self.generate_response(prompt, system_prompt)
 
+        print(f"사용자 응답: {response_text}")
         if settings.DEBUG:
             print(f"[LLM][generate_structured_response] Raw response received, parsing to JSON")
-
+        
+        
+        json_match = response_text.strip()
+        
         # JSON 파싱
         try:
             if settings.DEBUG:
@@ -103,18 +138,20 @@ class LLMService:
                     print(f"[LLM][generate_structured_response] Extracted JSON block with ``` markers")
 
             # JSON 블록 추출
-            json_match = response_text.strip()
+
             if "```json" in json_match:
                 json_match = json_match.split("```json")[1].split("```")[0].strip()
             elif "```" in json_match:
                 json_match = json_match.split("```")[1].split("```")[0].strip()
+
+            result = json.loads(json_match)
 
             if settings.DEBUG:
                 print(f"[LLM][generate_structured_response] Successfully parsed JSON with {len(result)} items")
                 print(f"[LLM][generate_structured_response] Total processing time: {time.time() - start_time:.4f} seconds")
 
             # JSON 파싱
-            return json.loads(json_match)
+            return result
         
         except Exception as e:
             if settings.DEBUG:
@@ -130,6 +167,8 @@ class LLMService:
                         date = date.strip()
                         menus_list = [m.strip() for m in menus.replace("[", "").replace("]","").split(",")]
                         result[date] = menus_list
+                if settings.DEBUG:
+                    print(f"[LLM][generate_structured_response] Manual parsing succeeded with {len(result)} items")
                 return result
             except:
                 # 모든 파싱 실패 시 원본 반환

@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     # 로깅 설정 -> DEBUG 면 로그에 민감한 것 설정
     DEBUG: bool = os.getenv("DEBUG", "False")
 
+    # LLM 캐싱
+    USE_LLM_CACHE: bool = os.getenv("USE_LLM_CACHE", "True").lower() == "true"
+
     class Config:
         env_file = ".env"
 
