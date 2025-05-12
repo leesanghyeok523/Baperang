@@ -61,14 +61,6 @@ const PreferenceChart: React.FC<PreferenceChartProps> = ({ data }) => {
 
   return (
     <div className="relative h-full w-full flex flex-col" ref={chartRef}>
-      <div className="text-center mb-2">
-        <span className="text-sm text-gray-500">
-          {preferenceData.every((item) => item.선호도 === 0)
-            ? '아직 만족도 데이터가 없습니다'
-            : '메뉴별 만족도 점수 (5점 만점)'}
-        </span>
-      </div>
-
       {isVisible && (
         <div className="flex-1">
           <ResponsiveContainer width="100%" height="100%">
