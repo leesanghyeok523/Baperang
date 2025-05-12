@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import React, { ReactNode } from 'react';
 import LoginPage from './pages/Login/login';
 import JoinPage from './pages/Join/join';
 import MainPage from './pages/Main';
@@ -49,6 +50,26 @@ const NoHeaderLayout = () => {
   );
 };
 
+// 이미 인증된 사용자의 로그인 페이지 접근 방지를 위한 인터페이스
+interface RequireNoAuthProps {
+  children: ReactNode;
+}
+
+// 이미 인증된 사용자의 로그인 페이지 접근 방지
+const RequireNoAuth: React.FC<RequireNoAuthProps> = ({ children }) => {
+  const { isAuthenticated, isLoading } = useAuthStore();
+
+  if (isLoading) {
+    return <div className="flex justify-center items-center h-screen">로딩 중...</div>;
+  }
+
+  if (isAuthenticated) {
+    return <Navigate to="/main" replace />;
+  }
+
+  return <>{children}</>;
+};
+
 function App() {
   const { isAuthenticated } = useAuthStore();
 
@@ -56,7 +77,14 @@ function App() {
     <BrowserRouter>
       <Routes>
         {/* 인증이 필요하지 않은 페이지들 */}
-        <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="/login"
+          element={
+            <RequireNoAuth>
+              <LoginPage />
+            </RequireNoAuth>
+          }
+        />
         <Route path="/join" element={<JoinPage />} />
         <Route path="/forgot" element={<ForgotAccountPage />} />
         <Route path="/survey" element={<SatisfactionSurvey />} />

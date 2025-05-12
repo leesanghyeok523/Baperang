@@ -64,6 +64,37 @@ const MainPage = () => {
     // 커스텀 이벤트 타입 (실제 이벤트 구조에 맞게 정의)
     type SSEMessageEvent = Event & { data: string };
 
+    // 초기 만족도 데이터 이벤트 처리 추가
+    // @ts-expect-error EventSourcePolyfill 타입 정의 불일치
+    eventSource.addEventListener('initial-satisfaction', (event: SSEMessageEvent) => {
+      try {
+        const menuSatisfactions = JSON.parse(event.data);
+        console.log('초기 선호도 데이터 수신:', menuSatisfactions);
+
+        if (Array.isArray(menuSatisfactions)) {
+          // 수신된 데이터를 WasteData 배열로 변환
+          const initialData: WasteData[] = menuSatisfactions.map((item) => {
+            // 선호도 점수 파싱 (문자열에서 숫자로)
+            const avgSatisfaction = parseFloat(item.averageSatisfaction || '0');
+
+            return {
+              name: item.menuName,
+              선호도: avgSatisfaction, // averageSatisfaction을 선호도로 설정
+              잔반률: 0, // 초기 잔반률 값은 0으로 설정
+            };
+          });
+
+          // 유효한 선호도 데이터가 있는 경우에만 상태 업데이트
+          if (initialData.length > 0) {
+            console.log('초기 선호도 데이터 적용:', initialData);
+            setTodayWasteData(initialData);
+          }
+        }
+      } catch (err) {
+        console.error('초기 선호도 데이터 처리 중 오류:', err);
+      }
+    });
+
     // 투표 이벤트 처리
     // EventSourcePolyfill의 타입 호환성 문제로 타입 검사 예외 처리
     // @ts-expect-error EventSourcePolyfill 타입 정의 불일치
