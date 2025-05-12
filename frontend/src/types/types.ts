@@ -184,3 +184,12 @@ export interface MenuData {
   date: string;
   meals: string[];
 }
+
+// 만족도 조사 관련 타입
+export interface SatisfactionUpdate {
+  menuId: number;
+  menuName: string;
+  totalVotes: number;
+  averageSatisfaction: string;
+  updatedAt: string;
+}
