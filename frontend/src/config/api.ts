@@ -16,6 +16,7 @@ const API_CONFIG = {
       FIND_ID: '/api/v1/user/find-id',
       NEW_PASSWORD: '/api/v1/user/new-password',
       USER_INFO: '/api/v1/user/users', // /{user-id} 파라미터 필요
+      MYPAGE: '/api/v1/user/profile',
       REFRESH_TOKEN: '/api/v1/user/refresh-token',
       DELETE_USER: '/api/v1/user/users',
     },
