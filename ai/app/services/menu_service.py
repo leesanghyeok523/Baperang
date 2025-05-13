@@ -334,12 +334,22 @@ class MenuService:
         Returns:
             Dict: 날짜별, 메뉴별 대체 메뉴 목록
         """
+        print("[MENU][generate_alternatives] menu_data : ", {menu_data})
+
         # 메뉴별 카테고리 매핑
-        menu_categories = menu_data["menu_categories"]
-        categorized_menus = menu_data["categorized_menus"]
-        menu_preference = menu_data["menu_preference"]
+        menu_categories = menu_data.get("menu_categories", {})
+        categorized_menus = menu_data.get("categorized_menus", {})
+        menu_preference = menu_data.get("menu_preference", {})
 
         alternatives = {}
+
+        # menu_categories가 없는 경우 추가 처리
+        if not menu_categories and "categorized_menus" in menu_data:
+            menu_categories = {}
+            # 역방향 매핑 생성
+            for category, menus in menu_data["categorized_menus"].items():
+                for menu in menus:
+                    menu_categories[menu] = category
 
         # 날짜별 대체 메뉴 생성
         for date, menus in plan.items():

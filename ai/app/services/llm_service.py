@@ -1,11 +1,84 @@
 import json, time
 import os
+import asyncio
 
 from typing import Dict, Any, List, Optional
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
+from openai import OpenAI
 
 from ..config import settings
+openai_client = OpenAI(api_key=settings.OPENAI_API_KEY)
+
+# schema 정의부
+waste_plan_fn: Dict[str, Any] = {
+    "name": "waste_plan",
+    "description": "잔반율을 최소화하는 식단 플랜 생성",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "plan": {
+                "type": "object",
+                "description": "날짜별 카테고리화된 메뉴 구성 (날짜를 키로, 메뉴명-카테고리 매핑을 값으로)",
+                "additionalProperties": {
+                    "type": "object",
+                    "description": "메뉴 이름을 키로, 카테고리를 값으로 하는 매핑",
+                    "additionalProperties": {
+                        "type": "string",
+                        "enum": ["soup", "rice", "main", "side"]
+                    }
+                }
+            }
+        },
+        "required": ["plan"]
+    }
+}
+
+nutrition_plan_fn: Dict[str, Any] = {
+    "name": "nutrition_plan",
+    "description": "영양 균형을 고려한 식단 플랜",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "plan": {
+                "type": "object",
+                "description": "날짜별 카테고리화된 메뉴 구성 (날짜를 키로, 메뉴명-카테고리 매핑을 값으로)",
+                "additionalProperties": {
+                    "type": "object",
+                    "description": "메뉴 이름을 키로, 카테고리를 값으로 하는 매핑",
+                    "additionalProperties": {
+                        "type": "string",
+                        "enum": ["soup", "rice", "main", "side"]
+                    }
+                }
+            }
+        },
+        "required": ["plan"]
+    }
+}
+
+integration_plan_fn: Dict[str, Any] = {
+    "name": "integration_plan",
+    "description": "영양 균형과 선호도를 고려한 균형적인 식단 플랜",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "plan": {
+                "type": "object",
+                "description": "날짜별 카테고리화된 메뉴 구성 (날짜를 키로, 메뉴명-카테고리 매핑을 값으로)",
+                "additionalProperties": {
+                    "type": "object",
+                    "description": "메뉴 이름을 키로, 카테고리를 값으로 하는 매핑",
+                    "additionalProperties": {
+                        "type": "string",
+                        "enum": ["soup", "rice", "main", "side"]
+                    }
+                }
+            }
+        },
+        "required": ["plan"]
+    }
+}
 
 class LLMService:
     """LLM 서비스 클래스"""
@@ -23,7 +96,7 @@ class LLMService:
         self.temperature = temperature or settings.LLM_TEMPERATURE
 
         # 캐싱 딕셔너리
-        self.response_cache = {}
+        self.response_cache: Dict[str, str] = {}
 
         # 캐시 사용 여부 설정
         self.use_cache = settings.DEBUG and os.getenv("USE_LLM_CACHE", "True").lower() == "true"
@@ -32,77 +105,19 @@ class LLMService:
             print(f"[LLM] 캐싱 활성화: 동일한 프롬프트에 대한 중복 API 호출 방지")
 
         # LLM 클라이언트 초기화
-        self.llm = ChatOpenAI(
-            model_name=self.model_name,
-            temperature=self.temperature,
-            openai_api_key=settings.OPENAI_API_KEY
+        self.llm = OpenAI(
+            # model_name=self.model_name,
+            # temperature=self.temperature,
+            api_key=settings.OPENAI_API_KEY
         )
 
         # 로깅
         if settings.DEBUG:
             print(f"[LLM] Initialized with model: {self.model_name}, temp: {self.temperature}")
     
-    async def generate_response(self, prompt: str, system_prompt: Optional[str] = None) -> str:
-        """
-        프롬프트에 대한 응답 생성
-
-        Args:
-            prompt: 사용자 프롬프트
-            system_prompt: 시스템 프롬프트 (옵션)
-
-        Returns:
-            str: LLM 응답 텍스트
-        """
-        if settings.DEBUG:
-            prompt_length = len(prompt)
-            if system_prompt:
-                system_length = len(system_prompt)
-            else:
-                system_length = 0
-            print(f"[LLM][generate_response] System prompt length: {system_length} chars")
-            print(f"[LLM][generate_response] Sending request to {self.model_name}")
-            print(f"[LLM][generate_response] Prompt length: {prompt_length} chars")                
-            start_time = time.time()
-
-        cache_key = f"{system_prompt or ''}|||{prompt}"
-        
-        # 캐시에서 응답 찾기
-        if self.use_cache and cache_key in self.response_cache:
-            if settings.DEBUG:
-                print(f"[LLM][generate_response] 캐시에서 응답 찾음! API 호출 없음")
-            return self.response_cache[cache_key]
-
-
-        messages = []
-
-        # 시스템 프롬프트 있는 경우 추가
-        if system_prompt:
-            messages.append(SystemMessage(content=system_prompt))
-
-        
-        # 사용자 프롬프트 추가
-        messages.append(HumanMessage(content=prompt))
-
-        # LLM 호출
-        response = await self.llm.ainvoke(messages)
-        
-        # 캐시에 응답 저장
-        if self.use_cache:
-            self.response_cache[cache_key] = response.content
-            if settings.DEBUG:
-                print(f"[LLM][generate_response] 응답을 캐시에 저장 (캐시 크기: {len(self.response_cache)})")
-        
-        if settings.DEBUG:
-            response_length = len(response.content)
-            duration = time.time() - start_time
-            tokens_per_second = (prompt_length + system_length + response_length) / (4 * duration)  # rough estimation
-            print(f"[LLM][generate_response] Response received, length: {response_length} chars")
-            print(f"[LLM][generate_response] Request took {duration:.2f} seconds (~{tokens_per_second:.1f} tokens/sec)")
-
-
-        return response.content
-    
-    async def generate_structured_response(self, prompt: str, system_prompt: Optional[str] = None) -> Dict[str, Any]:
+    async def generate_structured_response(self, prompt: str,
+                                           function_def: Dict[str, Any] = None, system_prompt: Optional[str] = None
+                                           ) -> Dict[str, Any]:
         """
         구조화된 JSON 응답 생성
 
@@ -113,64 +128,56 @@ class LLMService:
         Returns:
             Dict: 파싱된 JSON객체
         """
+
+        # (1) JSON 전용 시스템 메시지
+        system = system_prompt or f"당신은 함수 호출만을 사용해 응답하는 AI입니다. {function_def['name']} 함수를 사용하여 결과를 반환하세요."
+
+        # (2) 메시지 페이로드를 dict로 구성
+        messages = [
+            {"role": "system", "content": system},
+            {"role": "user",   "content": prompt}
+        ]
+
         if settings.DEBUG:
             print(f"[LLM][generate_structured_response] Requesting structured response")
             start_time = time.time()
 
+        print(f"시스템 프롬프트: {system}")
         print(f"사용자 프롬프트: {prompt}")
-        # print(system_prompt)
-        # LLM응답 생성
-        response_text = await self.generate_response(prompt, system_prompt)
-
-        print(f"사용자 응답: {response_text}")
-        if settings.DEBUG:
-            print(f"[LLM][generate_structured_response] Raw response received, parsing to JSON")
         
+
+        # function calling을 위한 openai SDK 적용
+        resp = await asyncio.to_thread(
+            openai_client.chat.completions.create,
+            model=self.model_name,
+            messages=messages,
+            temperature=self.temperature,
+            functions=[function_def],
+            function_call="auto"
+            # function_call={"name": function_def["name"]}
+        )
         
-        json_match = response_text.strip()
-        
-        # JSON 파싱
-        try:
-            if settings.DEBUG:
-                if "```json" in json_match:
-                    print(f"[LLM][generate_structured_response] Extracted JSON block with ```json markers")
-                elif "```" in json_match:
-                    print(f"[LLM][generate_structured_response] Extracted JSON block with ``` markers")
+        print("[DEBUG] resp = :", resp)
 
-            # JSON 블록 추출
+        message = resp.choices[0].message
 
-            if "```json" in json_match:
-                json_match = json_match.split("```json")[1].split("```")[0].strip()
-            elif "```" in json_match:
-                json_match = json_match.split("```")[1].split("```")[0].strip()
+        print("[DEBUG] function_call =", message.function_call)
+        print("[DEBUG] function_call.name =", message.function_call.name)
+        print("[DEBUG] function_call.arguments =", message.function_call.arguments)
 
-            result = json.loads(json_match)
-
-            if settings.DEBUG:
-                print(f"[LLM][generate_structured_response] Successfully parsed JSON with {len(result)} items")
-                print(f"[LLM][generate_structured_response] Total processing time: {time.time() - start_time:.4f} seconds")
-
-            # JSON 파싱
-            return result
-        
-        except Exception as e:
-            if settings.DEBUG:
-                print(f"[LLM][generate_structured_response] JSON parsing failed: {str(e)}, trying manual parsing")
-
-            # 파싱 실패하면 수동 파싱
+        if message.function_call:
             try:
-                # 줄별로 처리하여 날짜: 메뉴 형식 파싱
-                result = {}
-                for line in response_text.splitlines():
-                    if ":" in line:
-                        date, menus = line.split(":", 1)
-                        date = date.strip()
-                        menus_list = [m.strip() for m in menus.replace("[", "").replace("]","").split(",")]
-                        result[date] = menus_list
-                if settings.DEBUG:
-                    print(f"[LLM][generate_structured_response] Manual parsing succeeded with {len(result)} items")
-                return result
-            except:
-                # 모든 파싱 실패 시 원본 반환
-                print(f"[LLM] JSON 파싱 실패: {str(e)}")
-                return {"error": "JSON 파싱 실패", "raw_response": response_text}
+                print(f"원본 함수 호출 응답: {message.function_call.arguments}")
+                payload = json.loads(message.function_call.arguments)
+                if len(payload) == 0:
+                    print(f"[ERROR] 빈 응답이 반환되었습니다. 프롬프트 내용을 확인하세요.")
+                    # 대체 로직 구현 또는 오류 발생
+                    return {}
+
+                if "plan" in payload:
+                    return payload["plan"]
+                else:
+                    return payload
+            except Exception as e:
+                print(f"[ERROR] 응답 처리 중 오류: {str(e)}")
+                raise

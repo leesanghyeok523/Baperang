@@ -85,33 +85,6 @@ class PromptTemplates:
 
         return categorized
 
-    # @staticmethod
-    # def organize_ratings_by_category(ratings: Dict[str, float], categorized_menu: Dict[str, List[str]]) -> Dict[str, Dict[str, float]]:
-    #     """선호도 데이터를 카테고리별로 정리"""
-    #     if settings.DEBUG:
-    #         print(f"[PROMPT][organize_ratings_by_category] Starting with parameters...")
-    #         start_time = time.time()
-    #     categorized_ratings = {}
-    #     # print(categorized_menu)
-    #     for category, menus in categorized_menu.items():
-    #         # 각 카테고리 별로 해당 메뉴의 선호도만 추출
-    #         category_ratings ={}
-    #         for menu in menus:
-    #             if menu in ratings:
-    #                 category_ratings[menu] = ratings[menu]
-
-    #         # 상위 10개만 유지(카테고리별 토큰 최적화)
-    #         # print(categorized_ratings)
-    #         if category_ratings:
-    #             sorted_items = sorted(category_ratings.items(), key=lambda x: x[1], reverse=True)
-    #             top_items = sorted_items[:10]
-    #             categorized_ratings[category] = dict(top_items)
-        
-    #     if settings.DEBUG:
-    #         print(f"[PROMPT][organize_ratings_by_category] Completed in {time.time() - start_time:.4f} seconds")
-
-    #     return categorized_ratings
-
     @staticmethod
     def waste_based_templates(leftover_data: Dict[str, Any], menu_pool: Dict[str, List[str]]) -> str:
         """
@@ -160,18 +133,33 @@ class PromptTemplates:
             - soup 1개, rice 1개, main_dish 1개, side_dishes 2개로 생성해주세요.
         3. 기존에 없는 메뉴는 임의로 생성하지 마세요.
         4. 같은 메뉴는 최소 5일 간격으로 배치해주세요
-
-        ## 출력 형식
-        날짜별 메뉴 목록을 JSON 형식으로 작성해주세요:
+    
+        ## 중요: waste_plan 함수 호출하기
+        결과는 반드시 waste_plan 함수를 통해 반환하세요. 함수의 plan 파라미터에 날짜별 메뉴 목록을 다음과 같은 형식의 JSON으로 입력하세요:
+        
         ```json
         {{
-          "2025-06-01": ["찹쌀밥", "미역국", "돈육불고기", "시금치나물", "콩나물무침"],
-          "2025-06-02": ["잡곡밥", "된장찌개", "고등어구이", "도라지무침", "배추김치"],
-          ...
+          "plan": {{
+            "2025-06-01": {{
+              "된장찌개": "soup",
+              "김치볶음밥": "rice",
+              "돈까스": "main",
+              "배추김치": "side",
+              "콩나물무침": "side"
+            }},
+            "2025-06-02": {{
+              "미역국": "soup",
+              "잡곡밥": "rice",
+              "고등어구이": "main",
+              "시금치나물": "side",
+              "깍두기": "side"
+            }}
+          }}
         }}
         ```
         """
-    
+
+
     @staticmethod
     def nutrition_based_template(preference_data: Dict[str, Dict[str, float]], menu_pool: List[str]) -> str:
         """
@@ -199,7 +187,7 @@ class PromptTemplates:
             print(f"[PROMPT][nutrition_based_template] Completed in {time.time() - start_time:.4f} seconds")
 
         return f"""
-        당신은 영양 균형에 정통한 식단 플래너입니다.
+        당신은 영양 균형을 고려한 학교 급식 식단 플래너입니다.
 
         ## 카테고리별 메뉴 풀
         ```json
@@ -233,22 +221,37 @@ class PromptTemplates:
         - 콜레스테롤 (mg)	≤ 300	≤ 100
 
         ## 요청사항
-        1. 영양 균형을 고려한 일일 식단을 구성해주세요. (가능하면 한 끼 섭취 권장량을 넘어가지 않게, 최대 하루 섭취 권장량을 넘어가지 않게 식단을 짜주세요.)
+        1. 영양 균형을 고려한 식단을 구성해주세요.
         2. 선호도가 높은 메뉴를 적절히 활용하되, 다양성도 고려해주세요.
         3. 기존에 없는 메뉴를 임의로 생성하지 마세요.
-        4. 각 날짜별로 메뉴 조합을 추천해주세요.
-            - soup 1개, rice 1개, main_dish 1개, side_dishes 2개로 생성해주세요.
+        4. soup 1개, rice 1개, main 1개, side 2개로 구성해주세요.
         5. 같은 메뉴는 최소 5일 간격으로 배치해주세요.
-            
-        ## 출력 형식
-        날짜별 메뉴 목록을 JSON 형식으로 작성해주세요:
+        6. 반드시 유효한 JSON만 반환해주세요. 설명, 주석, 코드 블록 없이 구조화된 데이터만 반환하세요.
+
+        ## 중요: nutrition_plan 함수 호출하기
+        결과는 반드시 nutrition_plan 함수를 통해 반환하세요. 함수의 plan 파라미터에 날짜별 메뉴 목록을 다음과 같은 형식의 JSON으로 입력하세요:
+        
         ```json
         {{
-          "2025-06-01": ["찹쌀밥", "미역국", "돈육불고기", "시금치나물", "콩나물무침"],
-          "2025-06-02": ["잡곡밥", "된장찌개", "고등어구이", "도라지무침", "배추김치"],
-          ...
+          "plan": {{
+            "2025-06-01": {{
+              "된장찌개": "soup",
+              "김치볶음밥": "rice",
+              "돈까스": "main",
+              "배추김치": "side",
+              "콩나물무침": "side"
+            }},
+            "2025-06-02": {{
+              "미역국": "soup",
+              "잡곡밥": "rice",
+              "고등어구이": "main",
+              "시금치나물": "side",
+              "깍두기": "side"
+            }}
+          }}
         }}
         ```
+        
         """
     
     @staticmethod
@@ -259,20 +262,20 @@ class PromptTemplates:
         if settings.DEBUG:
             print(f"[PROMPT][integration_template] Starting with parameters...")
 
-        example_output = {
-          "2025-06-01": ["찹쌀밥", "미역국", "돈육불고기", "시금치나물", "콩나물무침"],
-          "2025-06-02": ["잡곡밥", "된장찌개", "고등어구이", "도라지무침", "배추김치"]
-        }
-        exemple_alternatives={
-          "alternatives": {
-            "2025-06-01": {
-              "밥류": ["잡곡밥", "흰밥"],
-              "국류": ["된장국", "콩나물국"],
-              "메인반찬": ["제육볶음", "닭갈비"],
-              "부반찬": ["무생채", "도라지무침", "오이무침"]
-            }
-          }
-        }
+        # example_output = {
+        #   "2025-06-01": ["찹쌀밥", "미역국", "돈육불고기", "시금치나물", "콩나물무침"],
+        #   "2025-06-02": ["잡곡밥", "된장찌개", "고등어구이", "도라지무침", "배추김치"]
+        # }
+        # exemple_alternatives={
+        #   "alternatives": {
+        #     "2025-06-01": {
+        #       "밥류": ["잡곡밥", "흰밥"],
+        #       "국류": ["된장국", "콩나물국"],
+        #       "메인반찬": ["제육볶음", "닭갈비"],
+        #       "부반찬": ["무생채", "도라지무침", "오이무침"]
+        #     }
+        #   }
+        # }
 
         return f"""
         당신은 다양한 요구사항을 균형있게 반영하는 메뉴 통합 전문가입니다.
@@ -296,16 +299,43 @@ class PromptTemplates:
         5. 각 날짜별로 메뉴 조합을 추천해주세요.
             - soup 1개, rice 1개, main_dish 1개, side_dishes 2개로 생성해주세요.
         6. 같은 메뉴는 최소 5일 간격으로 배치해주세요.
+
+        ## 중요: integration_plan 함수 호출하기
+        결과는 반드시 integration_plan 함수를 통해 반환하세요. 함수의 plan 파라미터에 날짜별 메뉴 목록을 다음과 같은 형식의 JSON으로 입력하세요:
         
-        
-        ## 출력 형식
-        날짜별 메뉴 목록을 JSON 형식으로 작성해주세요:
         ```json
-        {example_output}
-        ```
-        
-        또한 각 카테고리별로 대체 메뉴 옵션도 함께 제공해주세요:
-        ```json
-        {exemple_alternatives}
+        {{
+          "plan": {{
+            "2025-06-01": {{
+              "된장찌개": "soup",
+              "김치볶음밥": "rice",
+              "돈까스": "main",
+              "배추김치": "side",
+              "콩나물무침": "side"
+            }},
+            "2025-06-02": {{
+              "미역국": "soup",
+              "잡곡밥": "rice",
+              "고등어구이": "main",
+              "시금치나물": "side",
+              "깍두기": "side"
+            }}
+          }}
+        }}
         ```
         """
+    
+
+        
+        
+        # ## 출력 형식
+        # 날짜별 메뉴 목록을 JSON 형식으로 작성해주세요:
+        # 중요: 반드시 아래 형식과 일치하는 유효한 JSON만 반환해주세요. 주석이나 코드는 포함하지 마세요.
+        # ```json
+        # {example_output}
+        # ```
+        
+        # 또한 각 카테고리별로 대체 메뉴 옵션도 함께 제공해주세요:
+        # ```json
+        # {exemple_alternatives}
+        # ```

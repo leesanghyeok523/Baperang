@@ -78,7 +78,7 @@ class MenuPlanningWorkflow:
         # 4. 최종 상태 업데이트
         state.update(final_result)
 
-        print(f"state{state}")
+        print(f"state: {state}")
 
         # 디버그 로그
         if settings.DEBUG:

@@ -1,7 +1,7 @@
 from typing import Dict, List, Any
 import json, time
 
-from ..services.llm_service import LLMService
+from ..services.llm_service import LLMService, waste_plan_fn, nutrition_plan_fn, integration_plan_fn
 from ..core.prompts import PromptTemplates
 from ..config import settings
 
@@ -44,7 +44,8 @@ class WastePlanAgent:
             print(f"[AGENT][WastePlanAgent] Calling LLM with prompt of length {len(prompt)}")
         
         # LLM 호출
-        waste_plan = await self.llm_service.generate_structured_response(prompt)
+        # waste_plan = await self.llm_service.generate_structured_response(prompt, waste_plan_fn)
+        waste_plan = await self.llm_service.generate_structured_response(prompt, function_def=waste_plan_fn)
 
         if settings.DEBUG:
             print(f"[AGENT][WastePlanAgent] Received waste plan with {len(waste_plan)} days")
@@ -80,8 +81,10 @@ class NutritionPlanAgent:
         )
 
         # LLM 호출
-        nutrition_plan = await self.llm_service.generate_structured_response(prompt)
-
+        # nutrition_plan = await self.llm_service.generate_structured_response(prompt)
+        print("before LLM Calling")
+        nutrition_plan = await self.llm_service.generate_structured_response(prompt, function_def=nutrition_plan_fn)
+        
         # 결과 반환
         return {"nutrition_plan" : nutrition_plan}
     
@@ -113,7 +116,7 @@ class IntegrationAgent:
         )
 
         # LLM 호출
-        integrated_plan = await self.llm_service.generate_structured_response(prompt)
+        integrated_plan = await self.llm_service.generate_structured_response(prompt, function_def=integration_plan_fn)
 
         # 통합 식단 평가 (메트릭 계산)
         metrics = self._calculate_metrics(integrated_plan, state)
