@@ -1,5 +1,4 @@
-# services/analyze_service.py
-
+import json
 from typing import Dict, Any
 from .llm_service import LLMService
 from ..config import settings
@@ -35,5 +34,10 @@ class ReportService:
         
         if settings.DEBUG:
             print("[ReportService] 건강 리포트 생성 완료")
-            
-        return report
+
+        # 하이젠버그 버그를 해결하기 위한 명시적 타입 지정
+        if isinstance(report, str):
+            try:
+                report = json.loads(report)
+            except json.JSONDecodeError:
+                report = {"analyzeReport": "오류 발생", "plan": "오류", "opinion": "오류"}
