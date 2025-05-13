@@ -3,19 +3,21 @@ from typing import Dict, List, Any
 from ..config import settings
 import time
 
+from ..core import dummy
+
 from .models import (
     PlanRequest,
     PlanResponse,
     AnalyzeRequest,           
     AnalyzeResponse,
-    MenuOption, 
-    DailyMenu,
-    MenuInfo
+    ReportRequest,
+    ReportResponse
 )
 
 from ..services.menu_service import MenuService
 from ..services.analyze_service import AnalyzeService
 from ..workflows.graph import MenuPlanningWorkflow
+from ..services.report_service import ReportService
 import asyncio
 
 router = APIRouter(prefix="/ai")
@@ -30,6 +32,10 @@ def get_analyze_service():
 
 def get_workflow_service():
     return MenuPlanningWorkflow()
+
+def get_report_service():
+    return ReportService()
+
 
 @router.post("/analyze-leftover", response_model=AnalyzeResponse)
 async def analyze_leftover_endpoint(
@@ -65,7 +71,7 @@ async def generate_menu_plan(
     else:
         # 더미데이터 반환(spring확인용)
         return PlanResponse(
-            plan={"2025-06-01":{"된장찌개":{"category":"soup","alternatives":["미역국","북어국","콩나물국"]},"김치볶음밥":{"category":"rice","alternatives":["잡곡밥","흰밥","비빔밥"]},"돈까스":{"category":"main","alternatives":["고등어구이","제육볶음","불고기"]},"배추김치":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]},"콩나물무침":{"category":"side","alternatives":["시금치나물","도라지무침","깍두기"]}},"2025-06-02":{"미역국":{"category":"soup","alternatives":["된장찌개","북어국","콩나물국"]},"잡곡밥":{"category":"rice","alternatives":["흰밥","김치볶음밥","비빔밥"]},"고등어구이":{"category":"main","alternatives":["돈까스","제육볶음","불고기"]},"시금치나물":{"category":"side","alternatives":["콩나물무침","도라지무침","깍두기"]},"깍두기":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]}},"2025-06-03":{"북어국":{"category":"soup","alternatives":["미역국","된장찌개","콩나물국"]},"흰밥":{"category":"rice","alternatives":["잡곡밥","김치볶음밥","비빔밥"]},"제육볶음":{"category":"main","alternatives":["돈까스","고등어구이","불고기"]},"오이무침":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]},"무생채":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]}},"2025-06-04":{"계란국":{"category":"soup","alternatives":["미역국","된장찌개","북어국"]},"비빔밥":{"category":"rice","alternatives":["잡곡밥","흰밥","김치볶음밥"]},"닭갈비":{"category":"main","alternatives":["돈까스","고등어구이","제육볶음"]},"배추김치":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]},"감자볶음":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]}},"2025-06-05":{"감자국":{"category":"soup","alternatives":["미역국","된장찌개","북어국"]},"덮밥":{"category":"rice","alternatives":["잡곡밥","흰밥","김치볶음밥"]},"오징어볶음":{"category":"main","alternatives":["돈까스","고등어구이","제육볶음"]},"콩나물무침":{"category":"side","alternatives":["시금치나물","도라지무침","깍두기"]},"김구이":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]}},"2025-06-06":{"맑은국":{"category":"soup","alternatives":["미역국","된장찌개","북어국"]},"잡곡밥":{"category":"rice","alternatives":["흰밥","김치볶음밥","비빔밥"]},"떡갈비":{"category":"main","alternatives":["돈까스","고등어구이","제육볶음"]},"도라지무침":{"category":"side","alternatives":["시금치나물","콩나물무침","깍두기"]},"깍두기":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]}},"2025-06-07":{"김치찌개":{"category":"soup","alternatives":["미역국","된장찌개","북어국"]},"볶음밥":{"category":"rice","alternatives":["잡곡밥","흰밥","김치볶음밥"]},"불고기":{"category":"main","alternatives":["돈까스","고등어구이","제육볶음"]},"숙주나물":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]},"배추김치":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]}},"2025-06-08":{"어묵국":{"category":"soup","alternatives":["미역국","된장찌개","북어국"]},"흰밥":{"category":"rice","alternatives":["잡곡밥","김치볶음밥","비빔밥"]},"치킨커틀릿":{"category":"main","alternatives":["돈까스","고등어구이","제육볶음"]},"오이무침":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]},"무생채":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]}},"2025-06-09":{"미역국":{"category":"soup","alternatives":["된장찌개","북어국","콩나물국"]},"카레라이스":{"category":"rice","alternatives":["잡곡밥","흰밥","김치볶음밥"]},"고등어구이":{"category":"main","alternatives":["돈까스","제육볶음","불고기"]},"시금치나물":{"category":"side","alternatives":["콩나물무침","도라지무침","깍두기"]},"깍두기":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]}},"2025-06-10":{"된장찌개":{"category":"soup","alternatives":["미역국","북어국","콩나물국"]},"잡곡밥":{"category":"rice","alternatives":["흰밥","김치볶음밥","비빔밥"]},"돈까스":{"category":"main","alternatives":["고등어구이","제육볶음","불고기"]},"배추김치":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]},"감자볶음":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]}},"2025-06-11":{"북어국":{"category":"soup","alternatives":["미역국","된장찌개","콩나물국"]},"비빔밥":{"category":"rice","alternatives":["잡곡밥","흰밥","김치볶음밥"]},"제육볶음":{"category":"main","alternatives":["돈까스","고등어구이","불고기"]},"콩나물무침":{"category":"side","alternatives":["시금치나물","도라지무침","깍두기"]},"김구이":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]}},"2025-06-12":{"계란국":{"category":"soup","alternatives":["미역국","된장찌개","북어국"]},"덮밥":{"category":"rice","alternatives":["잡곡밥","흰밥","김치볶음밥"]},"닭갈비":{"category":"main","alternatives":["돈까스","고등어구이","제육볶음"]},"도라지무침":{"category":"side","alternatives":["시금치나물","콩나물무침","깍두기"]},"깍두기":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]}},"2025-06-13":{"감자국":{"category":"soup","alternatives":["미역국","된장찌개","북어국"]},"볶음밥":{"category":"rice","alternatives":["잡곡밥","흰밥","김치볶음밥"]},"오징어볶음":{"category":"main","alternatives":["돈까스","고등어구이","제육볶음"]},"숙주나물":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]},"배추김치":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]}},"2025-06-14":{"맑은국":{"category":"soup","alternatives":["미역국","된장찌개","북어국"]},"흰밥":{"category":"rice","alternatives":["잡곡밥","김치볶음밥","비빔밥"]},"떡갈비":{"category":"main","alternatives":["돈까스","고등어구이","제육볶음"]},"오이무침":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]},"무생채":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]}},"2025-06-15":{"김치찌개":{"category":"soup","alternatives":["미역국","된장찌개","북어국"]},"잡곡밥":{"category":"rice","alternatives":["흰밥","김치볶음밥","비빔밥"]},"불고기":{"category":"main","alternatives":["돈까스","고등어구이","제육볶음"]},"시금치나물":{"category":"side","alternatives":["콩나물무침","도라지무침","깍두기"]},"깍두기":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]}},"2025-06-16":{"어묵국":{"category":"soup","alternatives":["미역국","된장찌개","북어국"]},"카레라이스":{"category":"rice","alternatives":["잡곡밥","흰밥","김치볶음밥"]},"치킨커틀릿":{"category":"main","alternatives":["돈까스","고등어구이","제육볶음"]},"배추김치":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]},"감자볶음":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]}},"2025-06-17":{"미역국":{"category":"soup","alternatives":["된장찌개","북어국","콩나물국"]},"비빔밥":{"category":"rice","alternatives":["잡곡밥","흰밥","김치볶음밥"]},"고등어구이":{"category":"main","alternatives":["돈까스","제육볶음","불고기"]},"콩나물무침":{"category":"side","alternatives":["시금치나물","도라지무침","깍두기"]},"김구이":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]}},"2025-06-18":{"된장찌개":{"category":"soup","alternatives":["미역국","북어국","콩나물국"]},"덮밥":{"category":"rice","alternatives":["잡곡밥","흰밥","김치볶음밥"]},"돈까스":{"category":"main","alternatives":["고등어구이","제육볶음","불고기"]},"도라지무침":{"category":"side","alternatives":["시금치나물","콩나물무침","깍두기"]},"깍두기":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]}},"2025-06-19":{"북어국":{"category":"soup","alternatives":["미역국","된장찌개","콩나물국"]},"볶음밥":{"category":"rice","alternatives":["잡곡밥","흰밥","김치볶음밥"]},"제육볶음":{"category":"main","alternatives":["돈까스","고등어구이","불고기"]},"숙주나물":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]},"배추김치":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]}},"2025-06-20":{"계란국":{"category":"soup","alternatives":["미역국","된장찌개","북어국"]},"흰밥":{"category":"rice","alternatives":["잡곡밥","김치볶음밥","비빔밥"]},"닭갈비":{"category":"main","alternatives":["돈까스","고등어구이","제육볶음"]},"오이무침":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]},"무생채":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]}},"2025-06-21":{"감자국":{"category":"soup","alternatives":["미역국","된장찌개","북어국"]},"잡곡밥":{"category":"rice","alternatives":["흰밥","김치볶음밥","비빔밥"]},"오징어볶음":{"category":"main","alternatives":["돈까스","고등어구이","제육볶음"]},"시금치나물":{"category":"side","alternatives":["콩나물무침","도라지무침","깍두기"]},"깍두기":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]}},"2025-06-22":{"맑은국":{"category":"soup","alternatives":["미역국","된장찌개","북어국"]},"비빔밥":{"category":"rice","alternatives":["잡곡밥","흰밥","김치볶음밥"]},"떡갈비":{"category":"main","alternatives":["돈까스","고등어구이","제육볶음"]},"배추김치":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]},"감자볶음":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]}},"2025-06-23":{"김치찌개":{"category":"soup","alternatives":["미역국","된장찌개","북어국"]},"덮밥":{"category":"rice","alternatives":["잡곡밥","흰밥","김치볶음밥"]},"불고기":{"category":"main","alternatives":["돈까스","고등어구이","제육볶음"]},"콩나물무침":{"category":"side","alternatives":["시금치나물","도라지무침","깍두기"]},"김구이":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]}},"2025-06-24":{"어묵국":{"category":"soup","alternatives":["미역국","된장찌개","북어국"]},"볶음밥":{"category":"rice","alternatives":["잡곡밥","흰밥","김치볶음밥"]},"치킨커틀릿":{"category":"main","alternatives":["돈까스","고등어구이","제육볶음"]},"도라지무침":{"category":"side","alternatives":["시금치나물","콩나물무침","깍두기"]},"깍두기":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]}},"2025-06-25":{"미역국":{"category":"soup","alternatives":["된장찌개","북어국","콩나물국"]},"흰밥":{"category":"rice","alternatives":["잡곡밥","김치볶음밥","비빔밥"]},"고등어구이":{"category":"main","alternatives":["돈까스","제육볶음","불고기"]},"숙주나물":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]},"배추김치":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]}},"2025-06-26":{"된장찌개":{"category":"soup","alternatives":["미역국","북어국","콩나물국"]},"잡곡밥":{"category":"rice","alternatives":["흰밥","김치볶음밥","비빔밥"]},"돈까스":{"category":"main","alternatives":["고등어구이","제육볶음","불고기"]},"오이무침":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]},"무생채":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]}},"2025-06-27":{"북어국":{"category":"soup","alternatives":["미역국","된장찌개","콩나물국"]},"카레라이스":{"category":"rice","alternatives":["잡곡밥","흰밥","김치볶음밥"]},"제육볶음":{"category":"main","alternatives":["돈까스","고등어구이","불고기"]},"배추김치":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]},"감자볶음":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]}},"2025-06-28":{"계란국":{"category":"soup","alternatives":["미역국","된장찌개","북어국"]},"비빔밥":{"category":"rice","alternatives":["잡곡밥","흰밥","김치볶음밥"]},"닭갈비":{"category":"main","alternatives":["돈까스","고등어구이","제육볶음"]},"콩나물무침":{"category":"side","alternatives":["시금치나물","도라지무침","깍두기"]},"깍두기":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]}},"2025-06-29":{"감자국":{"category":"soup","alternatives":["미역국","된장찌개","북어국"]},"덮밥":{"category":"rice","alternatives":["잡곡밥","흰밥","김치볶음밥"]},"오징어볶음":{"category":"main","alternatives":["돈까스","고등어구이","제육볶음"]},"시금치나물":{"category":"side","alternatives":["콩나물무침","도라지무침","깍두기"]},"김구이":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]}},"2025-06-30":{"맑은국":{"category":"soup","alternatives":["미역국","된장찌개","북어국"]},"흰밥":{"category":"rice","alternatives":["잡곡밥","김치볶음밥","비빔밥"]},"떡갈비":{"category":"main","alternatives":["돈까스","고등어구이","제육볶음"]},"도라지무침":{"category":"side","alternatives":["시금치나물","콩나물무침","깍두기"]},"배추김치":{"category":"side","alternatives":["시금치나물","콩나물무침","도라지무침"]}}})
+            plan=dummy.report_plan)
     
     """
     통합 식단 계획 생성 엔드포인트
@@ -159,77 +165,48 @@ async def generate_menu_plan(
             plan=menu_based_plan,
             # metrics=result.get("metrics", {})
         )
-        # # 요청된 모델로 응답
-        # return PlanResponse(
-        #     plan=integrated_plan,
-        #     metrics=result.get("metrics", {})
-        # )
-
-
-        # # 메뉴 형식을 DailyMenu로 변환
-        # formatted_plan = {}
-        # for date, menus in integrated_plan.items():
-        #     soup_menu = menus[0]
-        #     rice_menu = menus[1]
-        #     main_menu = menus[2]
-        #     side_menu = menus[3:5]
-
-        #     # 필요한 menu_data 구조 구성
-        #     complete_menu_data = {
-        #         "categorized_menus": processed_data["menu_pool"],
-        #         "menu_categories": menu_to_category,  # 카테고리 매핑 추가
-        #         "menu_preference": processed_data.get("menu_preference", {})  # 선호도 정보 추가
-        #     }
-            
-        #     print("[ROUTES] before_generate_alternatives : ", processed_data["menu_pool"])
-            
-        #     # 대체 메뉴 생성
-        #     alternatives = menu_service.generate_alternatives(
-        #         {date: menus},
-        #         complete_menu_data
-        #     ).get(date, {})
-
-        #     # DailyMenu 구성
-        #     formatted_plan[date] = DailyMenu(
-        #         soup=MenuOption(
-        #             primary=soup_menu,
-        #             alternatives=alternatives.get(soup_menu, [])[:3]
-        #         ),
-        #         rice=MenuOption(
-        #             primary=rice_menu,
-        #             alternatives=alternatives.get(rice_menu, [])[:3]
-        #         ),
-        #         main=MenuOption(
-        #             primary=main_menu,
-        #             alternatives=alternatives.get(main_menu, [])[:3]
-        #         ),
-        #         side=[
-        #             MenuOption(
-        #                 primary=side_m,
-        #                 alternatives=alternatives.get(side_m, [])[:3]  # side_m 사용 (개별 메뉴 항목)
-        #             ) for side_m in side_menu[:2]
-        #         ]
-        #     )
-
-        # # 결과 지표 구성
-        # metrics = result.get("metrics", {})
-
-        # if settings.DEBUG:
-        #     print(f"[ROUTE][generate_menu_plan] Response prepared with {len(formatted_plan)} dates")
-        #     print(f"[ROUTE][generate_menu_plan] Processing time: {time.time() - start_time:.4f} seconds")
-
-        # return PlanResponse(
-        #     plan=formatted_plan,
-        #     metrics=metrics
-        # )
-
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"식단 생성 중 오류: {str(e)}")
 
 
-@router.post("/health-report")
-async def create_health_report():
-    pass
+@router.post("/health-report", response_model=ReportResponse)
+async def create_health_report(
+    request: ReportRequest,
+    report_service:ReportService = Depends(get_report_service)
+):
+    dummy_analyze: str = "BMI 지수 21.1는 정상 상태입니다. 현재 건강한 상태를 유지하고 있습니다."
+    dummy_plan: str = "적정량의 음식을 선택해 잔반을 줄이세요."
+    dummy_opinion: str = "식습관 개선과 영양 균형에 주의가 필요합니다. 정기적인 운동과 균형 잡힌 식단 관리를 통해 건강 상태를 개선하시기 바랍니다."
+    
+    if settings.DEBUG:
+        print("[ROUTE][create_health_report] start create report")
+        print(f"요청 데이터: {request}")
+        try:
+            report = await report_service.create_health_report(
+                bmi=request.bmi,
+                leftover=request.leftover,
+                leftover_most=request.leftoverMost,
+                leftover_least=request.leftoverLeast,
+                nutrient=request.nutrient
+            )
+            print("생성결과 : ",report)
+            # 리포트 응답 반환
+            return ReportResponse(
+                analyzeReport=report["analyzeReport"],
+                plan=report["plan"],
+                opinion=report["opinion"]
+            )
+        except Exception as e:
+            error_msg = f"리포트 생성 중 오류: {str(e)}"
+            if settings.DEBUG:
+                print(f"[ERROR] {error_msg}")
+            raise HTTPException(status_code=500, detail=error_msg)
+    else:
+        return ReportResponse(
+            analyzeReport=dummy_analyze,
+            plan=dummy_plan,
+            opinion=dummy_opinion
+        )
 
 # 안 쓸 것 같음
 @router.get("/menu-pool", response_model=Dict[str, List[str]])

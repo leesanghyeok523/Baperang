@@ -339,3 +339,38 @@ class PromptTemplates:
         # ```json
         # {exemple_alternatives}
         # ```
+
+    @staticmethod
+    def report_template(bmi: float, leftover: Dict[str, Any],
+                        leftover_most: Dict[str, Any],
+                        leftover_least: Dict[str, Any],
+                        nutrient: Dict[str, Dict[str, Any]]) -> str:
+        
+        return f"""
+        다음 학생 식사 정보를 분석하여 건강리포트를 생성해주세요.
+
+        ## 학생 정보
+        BMI: {bmi}
+        잔반현황(%): {leftover}
+        가장 많이 남긴 음식: {leftover_most}
+        가장 적게 남긴 음식: {leftover_least}
+        영양소 섭취 현황: {nutrient}
+
+        ## 요청 사항
+        세 부분으로 구성된 건강 리포트를 작성해주세요
+        1. AnalyzeReport: 현재 BMI와 식습관을 분석하여 현재 건강 상태를 평가합니다.
+        2. Plan: 식습관 개선을 위한 구체적인 계획과 방법을 제안합니다.
+        3. Opinion: 전반적인 건강 상태와 개선 방향에 대한 의견을 제시합니다.
+
+        ## 중요
+        1. 각 부분은 학생의 정보를 구체적으로 반영하여 맞춤형으로 작성해주세요.
+        2. 각각의 리포트 내용은 json 형식으로 아래와 같이 작성해주세요.
+        ```json
+        {{
+           "analyzeReport" : "BMI 지수 21.1는 정상 상태입니다. 현재 건강한 상태를 유지하고 있습니다." ,
+           "plan": "적정량의 음식을 선택해 잔반을 줄이세요." ,
+           "opinion": "식습관 개선과 영양 균형에 주의가 필요합니다. 정기적인 운동과 균형 잡힌 식단 관리를 통해 건강 상태를 개선하시기 바랍니다."
+        }}
+        ```
+    
+        """

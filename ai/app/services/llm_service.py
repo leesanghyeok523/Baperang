@@ -7,6 +7,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from openai import OpenAI
 
+from ..core.prompts import PromptTemplates
 from ..config import settings
 openai_client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
@@ -77,6 +78,30 @@ integration_plan_fn: Dict[str, Any] = {
             }
         },
         "required": ["plan"]
+    }
+}
+
+
+health_report_fn: Dict[str, Any] = {
+    "name": "health_report",
+    "description": "학생 식사 정보 기반 건강 리포트 생성",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "analyzeReport": {
+                "type": "string",
+                "description": "현재 BMI와 식습관을 분석하여 건강 상태를 평가한 리포트"
+            },
+            "plan": {
+                "type": "string",
+                "description": "식습관 개선을 위한 구체적인 계획과 방법"
+            },
+            "opinion": {
+                "type": "string",
+                "description": "전반적인 건강 상태와 개선 방향에 대한 종합 의견"
+            }
+        },
+        "required": ["analyzeReport", "plan", "opinion"]
     }
 }
 
@@ -173,11 +198,55 @@ class LLMService:
                     print(f"[ERROR] 빈 응답이 반환되었습니다. 프롬프트 내용을 확인하세요.")
                     # 대체 로직 구현 또는 오류 발생
                     return {}
-
-                if "plan" in payload:
+                
+                # 함수 이름에 따라 처리
+                function_name = message.function_call.name
+                if function_name == "health_report":
+                    # 건강 리포트는 그대로 반환
+                    return payload
+                
+                elif "plan" in payload and function_name in ["waste_plan", "nutrition_plan", "integration_plan"]:
+                    # 식단 계획 함수의 경우에만 plan 추출
                     return payload["plan"]
                 else:
                     return payload
             except Exception as e:
                 print(f"[ERROR] 응답 처리 중 오류: {str(e)}")
                 raise
+    
+    async def generate_health_report(self,
+                                    bmi: float,
+                                    leftover: Dict[str, float],
+                                    leftover_most: Dict[str, Any],
+                                    leftover_least: Dict[str, Any],
+                                    nutrient: Dict[str, Dict[str, Any]]) -> Dict[str, str]:
+        """ 학생 식사 정보를 기반으로 건강 리포트를 생성합니다. """
+
+        # 프롬프트 포맷팅
+        formatted_prompt = PromptTemplates.report_template(
+            bmi=bmi,
+            leftover=json.dumps(leftover, ensure_ascii=False),
+            leftover_most=json.dumps(leftover_most, ensure_ascii=False),
+            leftover_least=json.dumps(leftover_least, ensure_ascii=False),
+            nutrient=json.dumps(nutrient, ensure_ascii=False)
+        )
+
+        if settings.DEBUG:
+            print(f"[LLM][generate_health_report] 건강 리포트 생성 요청")
+            start_time = time.time()
+
+        try:
+            # Function Calling 사용하여 생성
+            report = await self.generate_structured_response(
+                prompt=formatted_prompt,
+                function_def=health_report_fn,
+                system_prompt="당신은 학생 건강 분석 전문가입니다. 제공된 데이터를 분석하여 맞춤형 건강 리포트를 생성하세요."
+            )
+
+            if settings.DEBUG:
+                elapsed = time.time() - start_time
+                print(f"[LLM] 건강 리포트 생성 완료 (소요시간: {elapsed:.2f}초)")
+            
+            return report
+        except Exception as e:
+            print(f"[ERROR] 건강 리포트 생성 중 오류 발생: {str(e)}")

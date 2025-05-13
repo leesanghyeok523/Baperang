@@ -2,7 +2,6 @@ from typing import Dict, List, Any, Optional
 import json, time
 import re
 from datetime import datetime, date
-
 from ..config import settings
 
 def parse_date(date_str: str) -> date:

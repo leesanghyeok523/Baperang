@@ -5,10 +5,10 @@
 # gitignore template for Jupyter Notebooks
 # website: http://jupyter.org/
 
-/ai/test/*.xlsx
-/ai/test/*.xls
-/ai/test/*.txt
-/ai/test/*.csv
+/ai/tests/*.xlsx
+/ai/tests/*.xls
+/ai/tests/*.txt
+/ai/tests/*.csv
 # /ai/test/food_data.xlsx
 # /ai/test/food_data.csv
 # /ai/test/school_food_data.xlsx
