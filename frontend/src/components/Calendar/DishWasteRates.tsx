@@ -23,8 +23,8 @@ const DishWasteRates = ({ selectedDayWaste, selectedDate }: DishWasteRatesProps)
   if (!selectedDate || !selectedDayWaste) {
     return (
       <div className="w-1/5 bg-[#FCF8F3]/90 rounded-3xl p-4 flex flex-col h-full">
-        <div className="h-full flex items-center justify-center text-gray-500">
-          날짜를 선택하면 잔반률 정보가 표시됩니다.
+        <div className="h-full flex items-center text-center justify-center text-gray-500">
+          날짜를 선택하면 <br /> 잔반률의 상세정보가 표시됩니다.
         </div>
       </div>
     );
@@ -54,7 +54,9 @@ const DishWasteRates = ({ selectedDayWaste, selectedDate }: DishWasteRatesProps)
               </div>
             ))
           ) : (
-            <div className="text-center text-gray-500 mt-4">잔반률 정보가 없습니다.</div>
+            <div className="flex flex-col items-center justify-center h-full">
+              <div className="text-center text-gray-400 mb-4">잔반률 정보가 없습니다.</div>
+            </div>
           )}
         </div>
       </div>
