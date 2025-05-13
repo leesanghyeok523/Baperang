@@ -31,6 +31,8 @@ const API_CONFIG = {
       AI_SUGGESTION: '/api/v1/menu/suggestion',
       UPDATE_SUGGESTION: '/api/v1/menu/suggestion', // /{date} 파라미터 필요
       MENU_FAVORITE: '/api/v1/menu/favorite',
+      MONTHLY_WASTE: '/api/v1/menu/leftover/month', // /{year}/{month} 파라미터 필요
+      DAILY_DISH_WASTE: '/api/v1/menu/leftover/date', // /{date} 파라미터 필요
     },
 
     // 학생 관리

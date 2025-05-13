@@ -31,7 +31,7 @@
 
   /* 스크롤바 스타일 */
   ::-webkit-scrollbar {
-    width: 4px;
+    width: 3px;
     height: 4px;
   }
 
@@ -40,11 +40,11 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background-color: rgba(85, 85, 75, 0.5);
-    border-radius: 20px;
+    background-color: rgba(112, 112, 107, 0.5);
+    border-radius: 40px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(55, 56, 54, 0.8);
+    background-color: rgba(59, 61, 57, 0.8);
   }
 }
