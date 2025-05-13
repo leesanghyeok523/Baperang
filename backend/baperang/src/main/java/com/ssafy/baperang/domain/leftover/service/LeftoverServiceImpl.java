@@ -16,12 +16,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.text.DecimalFormatSymbols;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.text.DecimalFormat;
 
 import static com.ssafy.baperang.domain.school.entity.QSchool.school;
 
@@ -33,6 +35,8 @@ public class LeftoverServiceImpl implements LeftoverService {
     private final LeftoverRepository leftoverRepository;
     private final MenuRepository menuRepository;
     private final StudentRepository studentRepository;
+    private final DecimalFormat df = new DecimalFormat("#.##", new DecimalFormatSymbols(Locale.US));
+
 
     @Override
     @Transactional(readOnly = true)
@@ -90,6 +94,8 @@ public class LeftoverServiceImpl implements LeftoverService {
                         .mapToDouble(l -> l.getLeftoverRate())
                         .average()
                         .orElse(0.0);
+
+                float formattedAvgRate = Float.parseFloat(df.format(avgRate));
 
                 dailyRates.add(new LeftoverMonthResponseDto.DailyLeftoverRate(
                         date.format(DateTimeFormatter.ISO_DATE),
@@ -149,6 +155,10 @@ public class LeftoverServiceImpl implements LeftoverService {
 
             // 데이터가 있으면 사용, 없으면 0.0으로 설정
             Float rate = rateByDate.getOrDefault(dateStr, 0.0f);
+
+            if (rate > 0.0f) {
+                rate = Float.parseFloat(df.format(rate));
+            }
 
             result.add(new LeftoverMonthResponseDto.DailyLeftoverRate(dateStr, rate));
         }
