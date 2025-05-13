@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import MenuCard from '../../components/MainMenuCard';
 import RateToggleCard from '../../components/RateToggle';
-import { defaultMenu, defaultWasteData, WasteData } from '../../data/menuData';
+import { defaultMenu, WasteData } from '../../data/menuData';
 import API_CONFIG from '../../config/api';
 import axios from 'axios';
 import { useAuthStore } from '../../store/authStore';
@@ -19,21 +19,17 @@ const MainPage = () => {
   // 현재 날짜 기준으로 초기화
   const today = new Date();
   const initialDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(
-    2,
-    '0'
-  )}-${String(today.getDate()).padStart(2, '0')}`;
 
   const [currentDate, setCurrentDate] = useState(initialDate);
   const [currentMenuItems, setCurrentMenuItems] = useState<string[]>(defaultMenu);
   const [loading, setLoading] = useState(false);
 
-  // 잔반률 데이터는 항상 오늘 날짜의 데이터 사용
-  const [todayWasteData, setTodayWasteData] = useState<WasteData[]>(defaultWasteData);
+  // 선호도 데이터는 SSE에서 받은 데이터만 저장
+  const [todayWasteData, setTodayWasteData] = useState<WasteData[]>([]);
   const { isAuthenticated, accessToken } = useAuthStore();
 
-  // SSE 구독 설정
-  useEffect(() => {
+  // SSE 구독 설정을 위한 함수
+  const setupSSEConnection = () => {
     if (!isAuthenticated || !accessToken) return;
 
     // SSE 구독 엔드포인트
@@ -45,8 +41,6 @@ const MainPage = () => {
 
     // schoolName을 쿼리 파라미터로 추가
     const subscribeUrlWithSchool = `${subscribeUrl}?schoolName=${encodeURIComponent(schoolName)}`;
-
-    console.log('SSE 구독 시작:', subscribeUrlWithSchool);
 
     // 토큰 형식 확인 및 처리
     const authHeaderValue = accessToken.startsWith('Bearer ')
@@ -69,7 +63,6 @@ const MainPage = () => {
     eventSource.addEventListener('initial-satisfaction', (event: SSEMessageEvent) => {
       try {
         const menuSatisfactions = JSON.parse(event.data);
-        console.log('초기 선호도 데이터 수신:', menuSatisfactions);
 
         if (Array.isArray(menuSatisfactions)) {
           // 수신된 데이터를 WasteData 배열로 변환
@@ -86,7 +79,6 @@ const MainPage = () => {
 
           // 유효한 선호도 데이터가 있는 경우에만 상태 업데이트
           if (initialData.length > 0) {
-            console.log('초기 선호도 데이터 적용:', initialData);
             setTodayWasteData(initialData);
           }
         }
@@ -101,14 +93,11 @@ const MainPage = () => {
     eventSource.addEventListener('satisfaction-update', (event: SSEMessageEvent) => {
       try {
         const data = JSON.parse(event.data) as SatisfactionUpdate;
-        console.log('SSE로 수신된 데이터:', data);
 
         // 만족도 데이터만 업데이트 (잔반률과 연관짓지 않음)
         if (data.menuName && data.averageSatisfaction) {
           // 만족도 점수(1-5 범위)
           const avgSatisfaction = parseFloat(data.averageSatisfaction);
-
-          console.log(`메뉴 "${data.menuName}"의 만족도 ${avgSatisfaction}점 수신됨`);
 
           setTodayWasteData((prevData) => {
             // 해당 메뉴가 이미 있는지 확인
@@ -140,8 +129,6 @@ const MainPage = () => {
           });
         } else if (Array.isArray(data)) {
           // 여러 메뉴 데이터를 한 번에 수신하는 경우
-          console.log('메뉴 목록 데이터 수신:', data);
-
           setTodayWasteData((prevData) => {
             const updatedData = [...prevData];
 
@@ -176,34 +163,44 @@ const MainPage = () => {
     });
 
     // 연결 이벤트 처리
-    // @ts-expect-error EventSourcePolyfill 타입 정의 불일치
-    eventSource.addEventListener('connect', (event: SSEMessageEvent) => {
-      console.log('SSE 연결 성공:', event.data);
+    eventSource.addEventListener('connect', () => {
+      // 연결 성공 로그 제거
     });
 
     // 하트비트 이벤트 처리
-    // @ts-expect-error EventSourcePolyfill 타입 정의 불일치
-    eventSource.addEventListener('heartbeat', (event: SSEMessageEvent) => {
-      console.log('하트비트 수신:', event.data);
+    eventSource.addEventListener('heartbeat', () => {
+      // 하트비트 로그 제거
     });
 
     // 기본 메시지 처리
-    // @ts-expect-error EventSourcePolyfill 타입 정의 불일치
-    eventSource.onmessage = (event: SSEMessageEvent) => {
-      console.log('SSE 메시지 수신:', event.data);
-    };
+    eventSource.onmessage = () => {};
 
     // 에러 처리
     // @ts-expect-error EventSourcePolyfill 타입 정의 불일치
     eventSource.onerror = (error: Event) => {
       console.error('SSE 연결 오류:', error);
       eventSource.close();
+
+      // 연결 오류 발생 시 5초 후 재연결 시도
+      setTimeout(() => {
+        setupSSEConnection();
+      }, 5000);
     };
+
+    // 이벤트 소스 객체 반환 (정리 함수에서 사용)
+    return eventSource;
+  };
+
+  // SSE 구독 설정
+  useEffect(() => {
+    // SSE 연결 설정
+    const eventSource = setupSSEConnection();
 
     // 컴포넌트 언마운트 시 SSE 연결 종료
     return () => {
-      console.log('SSE 연결 종료');
-      eventSource.close();
+      if (eventSource) {
+        eventSource.close();
+      }
     };
   }, [isAuthenticated, accessToken]);
 
@@ -228,17 +225,10 @@ const MainPage = () => {
         month: month,
       });
 
-      console.log('API 요청 URL:', url);
-
       // 토큰 형식 확인 및 처리
       const authHeaderValue = accessToken.startsWith('Bearer ')
         ? accessToken
         : `Bearer ${accessToken}`;
-
-      console.log('요청 헤더:', {
-        Authorization: authHeaderValue.substring(0, 20) + '...',
-        'Content-Type': 'application/json',
-      });
 
       const response = await axios.get<ApiResponse>(url, {
         headers: {
@@ -246,8 +236,6 @@ const MainPage = () => {
           'Content-Type': 'application/json',
         },
       });
-
-      console.log('API 응답:', response.data);
 
       // 날짜 포맷을 항상 2자리로 맞추기
       const paddedDateStr = `${year.padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(
@@ -258,19 +246,11 @@ const MainPage = () => {
 
       // 응답에 해당 날짜의 데이터가 없는 경우
       if (!dayData || !dayData.menu || dayData.menu.length === 0) {
-        console.log('해당 날짜의 메뉴 데이터가 없음');
         setCurrentMenuItems(defaultMenu);
         return;
       }
 
-      console.log('사용할 dayData:', dayData);
-
       if (dayData && dayData.menu && dayData.menu.length > 0) {
-        console.log(
-          '원본 메뉴:',
-          dayData.menu.map((m) => m.menuName)
-        );
-
         // <br/> 태그로 분리하여 메뉴 항목으로 처리
         const allMenuItems: string[] = [];
 
@@ -285,17 +265,6 @@ const MainPage = () => {
         // 메뉴가 있는 경우에만 설정
         if (allMenuItems.length > 0) {
           setCurrentMenuItems(allMenuItems);
-
-          // 오늘 날짜인 경우 잔반률 데이터 초기화 (SSE로 실시간 업데이트 받을 예정)
-          if (paddedDateStr === todayKey) {
-            // 초기 데이터는 비어있음 (SSE로 실시간 업데이트 받음)
-            const initialWasteData = allMenuItems.map((name) => ({
-              name,
-              잔반률: 0, // 초기 잔반률 값은 0으로 설정
-              선호도: 0, // 초기 선호도 값은 0으로 설정
-            }));
-            setTodayWasteData(initialWasteData);
-          }
         } else {
           setCurrentMenuItems(defaultMenu);
         }
@@ -367,7 +336,7 @@ const MainPage = () => {
               />
             </div>
 
-            {/* 실시간 잔반률/선호도 전환 카드 - 항상 오늘 날짜 데이터 사용 */}
+            {/* 실시간 잔반률/선호도 전환 카드 - SSE에서 받은 데이터만 사용 */}
             <div className="col-span-12 md:col-span-8">
               <RateToggleCard data={todayWasteData} />
             </div>
