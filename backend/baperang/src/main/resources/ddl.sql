@@ -58,7 +58,7 @@ CREATE TABLE student (
                          weight       FLOAT        NOT NULL,
                          content      TEXT,
                          content_date DATE,
-                         image        VARCHAR(255),
+                         image        TEXT,
                          image_date DATE,
                          FOREIGN KEY (school_pk)
                              REFERENCES school(school_pk)
