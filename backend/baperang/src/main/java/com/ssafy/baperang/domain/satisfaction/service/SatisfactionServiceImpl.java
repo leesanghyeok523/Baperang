@@ -5,12 +5,14 @@ import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -46,8 +48,11 @@ public class SatisfactionServiceImpl implements SatisfactionService {
     // 각 Emitter 유효 시간 (1시간)
     private static final long SSE_TIMEOUT = 60 * 60 * 1000L;
     
-    // 하트비트 주기 (21초)
-    private static final long HEARTBEAT_INTERVAL = 5;
+    // 하트비트 주기 (20초)
+    private static final long HEARTBEAT_INTERVAL = 20;
+    
+    // 메뉴 최대 표시 개수
+    private static final int MAX_MENU_COUNT = 5;
     
     // 하트비트를 위한 스케줄러
     private ScheduledExecutorService heartbeatScheduler;
@@ -86,7 +91,7 @@ public class SatisfactionServiceImpl implements SatisfactionService {
     }
 
     /**
-     * 오늘의 메뉴 만족도 정보를 조회하여 반환
+     * 오늘의 메뉴 만족도 정보를 조회하여 반환 (우선순위와 최대 개수에 따라 필터링)
      */
     private List<MenuSatisfactionDto> getTodayMenuSatisfactions(String schoolName) {
         LocalDate today = LocalDate.now();
@@ -96,27 +101,61 @@ public class SatisfactionServiceImpl implements SatisfactionService {
         School school = schoolRepository.findBySchoolName(schoolName)
             .orElseThrow(() -> new EntityNotFoundException("학교를 찾을 수 없습니다: " + schoolName));
 
-        List<String> menuNames = menuRepository.findDistinctMenuNamesBySchoolAndMenuDate(school, today);
+        // 해당 날짜의 모든 메뉴 정보 조회
+        List<Menu> allMenus = menuRepository.findBySchoolAndMenuDate(school, today);
         
-        List<MenuSatisfactionDto> menuSatisfactions = new ArrayList<>();
-        
+        return filterMenusByPriority(allMenus);
+    }
+
+    /**
+     * 메뉴 항목을 카테고리 우선순위에 따라 필터링하고 최대 개수를 제한하는 메서드
+     */
+    private List<MenuSatisfactionDto> filterMenusByPriority(List<Menu> menus) {
         DecimalFormat df = new DecimalFormat("#.##");
-        for (String menuName : menuNames) {
-            Menu menuItem = menuRepository.findBySchoolAndMenuDateAndMenuName(school, today, menuName);
-            int votes = menuItem.getVoteCount();
-            double avgSatisfaction = (votes > 0) ? (double) menuItem.getTotalFavorite() / votes : 0;
-            String formattedAvg = df.format(avgSatisfaction);
+        
+        // 우선순위가 높은 메뉴들 (rice, soup, main)
+        List<MenuSatisfactionDto> priorityMenus = menus.stream()
+            .filter(menu -> "rice".equals(menu.getCategory()) || 
+                            "soup".equals(menu.getCategory()) || 
+                            "main".equals(menu.getCategory()))
+            .map(menuItem -> {
+                int votes = menuItem.getVoteCount();
+                double avgSatisfaction = (votes > 0) ? (double) menuItem.getTotalFavorite() / votes : 0;
+                String formattedAvg = df.format(avgSatisfaction);
+                
+                return MenuSatisfactionDto.builder()
+                    .menuName(menuItem.getMenuName())
+                    .voteCount(votes)
+                    .averageSatisfaction(formattedAvg)
+                    .build();
+            })
+            .collect(Collectors.toList());
             
-            MenuSatisfactionDto menuDto = MenuSatisfactionDto.builder()
-                .menuName(menuItem.getMenuName())
-                .voteCount(votes)
-                .averageSatisfaction(formattedAvg)
-                .build();
-            menuSatisfactions.add(menuDto);
+        // 남은 자리가 있으면 side 메뉴 추가
+        if (priorityMenus.size() < MAX_MENU_COUNT) {
+            int remainingSlots = MAX_MENU_COUNT - priorityMenus.size();
+            
+            List<MenuSatisfactionDto> sideMenus = menus.stream()
+                .filter(menu -> "side".equals(menu.getCategory()))
+                .limit(remainingSlots)
+                .map(menuItem -> {
+                    int votes = menuItem.getVoteCount();
+                    double avgSatisfaction = (votes > 0) ? (double) menuItem.getTotalFavorite() / votes : 0;
+                    String formattedAvg = df.format(avgSatisfaction);
+                    
+                    return MenuSatisfactionDto.builder()
+                        .menuName(menuItem.getMenuName())
+                        .voteCount(votes)
+                        .averageSatisfaction(formattedAvg)
+                        .build();
+                })
+                .collect(Collectors.toList());
+                
+            priorityMenus.addAll(sideMenus);
         }
         
-        log.info("조회된 메뉴 수: {}", menuSatisfactions.size());
-        return menuSatisfactions;
+        log.info("필터링된 메뉴 수: {}", priorityMenus.size());
+        return priorityMenus;
     }
 
     // SSE 구독 처리
@@ -181,7 +220,7 @@ public class SatisfactionServiceImpl implements SatisfactionService {
         
         // 2. 오늘 날짜의 메뉴 목록 조회
         LocalDate today = LocalDate.now();
-        // LocalDate today = LocalDate.of(2025, 4, 29);
+//        LocalDate today = LocalDate.of(2025, 4, 29);
         List<String> menuNames = menuRepository.findDistinctMenuNamesBySchoolAndMenuDate(school, today);
         
         // 3. 메뉴 이름이 목록에 있는지 확인
@@ -204,25 +243,11 @@ public class SatisfactionServiceImpl implements SatisfactionService {
         log.info("메뉴 만족도 업데이트 완료: id={}, votes={}, favorite={}", 
                  menu.getId(), menu.getVoteCount(), menu.getFavorite());
         
-        // 소수점 두 자리까지 포맷팅
-        DecimalFormat df = new DecimalFormat("#.##");
-        
         // 7. 해당 날짜의 모든 메뉴 정보 조회
         List<Menu> allMenus = menuRepository.findBySchoolAndMenuDate(school, today);
-        List<MenuSatisfactionDto> menuSatisfactions = new ArrayList<>();
         
-        for (Menu menuItem : allMenus) {
-            int votes = menuItem.getVoteCount();
-            double avgSatisfaction = (votes > 0) ? (double) menuItem.getTotalFavorite() / votes : 0;
-            String formattedAvg = df.format(avgSatisfaction);
-            
-            MenuSatisfactionDto menuDto = MenuSatisfactionDto.builder()
-                .menuName(menuItem.getMenuName())
-                .voteCount(votes)
-                .averageSatisfaction(formattedAvg)
-                .build();
-            menuSatisfactions.add(menuDto);
-        }
+        // 카테고리 우선순위에 따라 메뉴 필터링
+        List<MenuSatisfactionDto> menuSatisfactions = filterMenusByPriority(allMenus);
         
         // SSE로 전체 메뉴 만족도 정보 전송
         emitters.forEach((id, emitter) -> {
