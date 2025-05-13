@@ -249,16 +249,12 @@ const Calendar = () => {
         (selectedMonth + 1).toString(),
       ]);
 
-      console.log('월간 잔반률 API 요청 URL:', url);
-
       const response = await axios.get<MonthlyLeftoverResponse>(url, {
         headers: {
           Authorization: authHeaderValue,
           'Content-Type': 'application/json',
         },
       });
-
-      console.log('월간 잔반률 API 응답:', response.data);
 
       if (response.data && response.data.data && Array.isArray(response.data.data)) {
         // API 응답 데이터를 DailyWasteRate 형식으로 변환
@@ -276,7 +272,6 @@ const Calendar = () => {
           })
           .filter((item): item is DailyWasteRate => item !== null && isWorkday(item.date));
 
-        console.log('변환된 월간 잔반률 데이터:', wasteRateData);
         return wasteRateData;
       }
 
@@ -351,16 +346,12 @@ const Calendar = () => {
       const endpoint = API_CONFIG.ENDPOINTS.MEAL.DAILY_DISH_WASTE;
       const url = API_CONFIG.getUrlWithPathParams(endpoint, [dateString]);
 
-      console.log('일별 잔반률 API 요청 URL:', url);
-
       const response = await axios.get<DailyDishWasteResponse>(url, {
         headers: {
           Authorization: authHeaderValue,
           'Content-Type': 'application/json',
         },
       });
-
-      console.log('일별 잔반률 API 응답:', response.data);
 
       if (response.data && response.data.leftovers && Array.isArray(response.data.leftovers)) {
         // API 응답 데이터를 DishWasteRate 형식으로 변환
@@ -369,7 +360,6 @@ const Calendar = () => {
           잔반률: dish.leftoverRate,
         }));
 
-        console.log('변환된 일별 잔반률 데이터:', dishWasteData);
         return dishWasteData;
       }
 
