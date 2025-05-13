@@ -16,12 +16,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.text.DecimalFormatSymbols;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.text.DecimalFormat;
 
 import static com.ssafy.baperang.domain.school.entity.QSchool.school;
 
@@ -33,6 +35,8 @@ public class LeftoverServiceImpl implements LeftoverService {
     private final LeftoverRepository leftoverRepository;
     private final MenuRepository menuRepository;
     private final StudentRepository studentRepository;
+    private final DecimalFormat df = new DecimalFormat("#.##", new DecimalFormatSymbols(Locale.US));
+
 
     @Override
     @Transactional(readOnly = true)
@@ -90,6 +94,8 @@ public class LeftoverServiceImpl implements LeftoverService {
                         .mapToDouble(l -> l.getLeftoverRate())
                         .average()
                         .orElse(0.0);
+
+                float formattedAvgRate = Float.parseFloat(df.format(avgRate));
 
                 dailyRates.add(new LeftoverMonthResponseDto.DailyLeftoverRate(
                         date.format(DateTimeFormatter.ISO_DATE),
@@ -150,6 +156,10 @@ public class LeftoverServiceImpl implements LeftoverService {
             // 데이터가 있으면 사용, 없으면 0.0으로 설정
             Float rate = rateByDate.getOrDefault(dateStr, 0.0f);
 
+            if (rate > 0.0f) {
+                rate = Float.parseFloat(df.format(rate));
+            }
+
             result.add(new LeftoverMonthResponseDto.DailyLeftoverRate(dateStr, rate));
         }
 
@@ -171,42 +181,165 @@ public class LeftoverServiceImpl implements LeftoverService {
             LocalDate today = LocalDate.now();
             School schoolEntity = student.getSchool();
 
-            // 지정된 키가 존재하는지 확인
-            if (aiResponse.containsKey("leftover_rate")) {
-                Map<String, Object> leftoverData = (Map<String, Object>) aiResponse.get("leftover_rate");
-                List<Leftover> savedLeftovers = new ArrayList<>();
+            // AI 서버 응답 검증
+            if (!aiResponse.containsKey("leftoverRate")) {
+                log.error("AI 응답 형식 오류: leftoverRate 키가 없음");
+                return ErrorResponseDto.of(BaperangErrorCode.INVALID_INPUT_VALUE);
+            }
 
-                for (Map.Entry<String, Object> entry : leftoverData.entrySet()) {
-                    String menuName = entry.getKey();
+            Map<String, Object> leftoverData = (Map<String, Object>) aiResponse.get("leftoverRate");
 
-                    float leftoverRate = ((Number) entry.getValue()).floatValue();
+            List<Menu> todayMenus = menuRepository.findBySchoolAndMenuDate(schoolEntity, today);
 
-                    Menu menu = menuRepository.findBySchoolAndMenuDateAndMenuName(schoolEntity, today, menuName);
+            // ID 순으로 정렬
+            todayMenus.sort(Comparator.comparing(Menu::getId));
+
+            if (todayMenus.isEmpty()) {
+                log.warn("해당 날짜({})의 메뉴 정보가 없습니다.", today);
+                return ErrorResponseDto.of(BaperangErrorCode.MENU_NOT_FOUND);
+            }
+
+            // 카테고리별로 메뉴 분류 (PK 순서 유지)
+            List<Menu> mainMenus = new ArrayList<>();
+            List<Menu> sideMenus = new ArrayList<>();
+            Menu riceMenu = null;
+            Menu soupMenu = null;
+
+            for (Menu menu : todayMenus) {
+                String category = menu.getCategory();
+                switch (category) {
+                    case "main":
+                        mainMenus.add(menu);
+                        break;
+                    case "side":
+                        sideMenus.add(menu);
+                        break;
+                    case "rice":
+                        riceMenu = menu;
+                        break;
+                    case "soup":
+                        soupMenu = menu;
+                        break;
+                }
+            }
+
+            // 매핑 규칙에 따라 위치별 메뉴 매핑 (side1, side2 형식으로 변경)
+            Map<String, Menu> positionMenuMap = new HashMap<>();
+
+            // 예외 처리
+            // 1. main 처리
+            for (int i = 0; i < mainMenus.size() && i < 2; i++) {
+                // i=0이면 side1, i=1이면 side2에 할당
+                positionMenuMap.put("side" + (i + 1), mainMenus.get(i));
+            }
+
+            // 2. side 처리
+            int sideIndex = 0;
+            for (int position = 1; position <= 3; position++) {
+                String key = "side" + position;
+                // 이미 할당된 위치가 아니고, 아직 처리할 side 메뉴가 있다면
+                if (!positionMenuMap.containsKey(key) && sideIndex < sideMenus.size()) {
+                    positionMenuMap.put(key, sideMenus.get(sideIndex++));
+                }
+            }
+
+            // 3. rice 카테고리 처리
+            if (riceMenu != null) {
+                positionMenuMap.put("rice", riceMenu);
+            } else if (sideIndex < sideMenus.size()) {
+                // rice가 없으면 남은 side 메뉴를 rice 위치에 할당
+                positionMenuMap.put("rice", sideMenus.get(sideIndex++));
+                log.info("Rice 메뉴 없음 - rice 위치에 side 메뉴 할당: {}",
+                        positionMenuMap.get("rice").getMenuName());
+            } else if (mainMenus.size() > 2) {
+                // 남은 side 메뉴가 없고 main이 2개 초과라면 초과분 할당
+                positionMenuMap.put("rice", mainMenus.get(2));
+                log.info("Rice 메뉴 없음 - rice 위치에 main 메뉴 할당: {}",
+                        positionMenuMap.get("rice").getMenuName());
+            }
+
+            // 4. soup 카테고리 처리
+            if (soupMenu != null) {
+                positionMenuMap.put("soup", soupMenu);
+            }
+
+            // 매핑 결과 로그
+            for (Map.Entry<String, Menu> entry : positionMenuMap.entrySet()) {
+                log.info("위치 {} 매핑: {} (PK: {}, 카테고리: {})",
+                        entry.getKey(), entry.getValue().getMenuName(),
+                        entry.getValue().getId(), entry.getValue().getCategory());
+            }
+
+            // AI 응답과 매핑하여 잔반 데이터 저장
+            List<Leftover> savedLeftovers = new ArrayList<>();
+
+            // side1, side2, side3 처리
+            for (int i = 1; i <= 3; i++) {
+                String key = "side" + i;
+                if (leftoverData.containsKey(key) && positionMenuMap.containsKey(key)) {
+                    Menu menu = positionMenuMap.get(key);
+                    float leftoverRate = ((Number) leftoverData.get(key)).floatValue();
 
                     Leftover leftover = Leftover.builder()
                             .menu(menu)
                             .student(student)
                             .leftoverDate(today)
-                            .leftMenuName(menuName)
+                            .leftMenuName(menu.getMenuName())
                             .leftoverRate(leftoverRate)
                             .build();
 
                     savedLeftovers.add(leftoverRepository.save(leftover));
+                    log.info("잔반 데이터 저장: 위치={}, 메뉴={}, 카테고리={}, 잔반율={}%",
+                            key, menu.getMenuName(), menu.getCategory(), leftoverRate);
                 }
-
-                log.info("학생 ID: {}의 메뉴 {}개 잔반율 저장 완료", studentId, savedLeftovers.size());
-
-                Map<String, Object> result = new HashMap<>();
-                result.put("success", true);
-                result.put("message", "학생 잔반율 저장 완료");
-                result.put("leftoverCount", savedLeftovers.size());
-
-                return result;
             }
-            else {
-                return ErrorResponseDto.of(BaperangErrorCode.INVALID_INPUT_VALUE);
+
+            // rice 처리
+            if (leftoverData.containsKey("rice") && positionMenuMap.containsKey("rice")) {
+                Menu menu = positionMenuMap.get("rice");
+                float leftoverRate = ((Number) leftoverData.get("rice")).floatValue();
+
+                Leftover leftover = Leftover.builder()
+                        .menu(menu)
+                        .student(student)
+                        .leftoverDate(today)
+                        .leftMenuName(menu.getMenuName())
+                        .leftoverRate(leftoverRate)
+                        .build();
+
+                savedLeftovers.add(leftoverRepository.save(leftover));
+                log.info("잔반 데이터 저장: 위치=rice, 메뉴={}, 카테고리={}, 잔반율={}%",
+                        menu.getMenuName(), menu.getCategory(), leftoverRate);
             }
+
+            // soup 처리
+            if (leftoverData.containsKey("soup") && positionMenuMap.containsKey("soup")) {
+                Menu menu = positionMenuMap.get("soup");
+                float leftoverRate = ((Number) leftoverData.get("soup")).floatValue();
+
+                Leftover leftover = Leftover.builder()
+                        .menu(menu)
+                        .student(student)
+                        .leftoverDate(today)
+                        .leftMenuName(menu.getMenuName())
+                        .leftoverRate(leftoverRate)
+                        .build();
+
+                savedLeftovers.add(leftoverRepository.save(leftover));
+                log.info("잔반 데이터 저장: 위치=soup, 메뉴={}, 카테고리={}, 잔반율={}%",
+                        menu.getMenuName(), menu.getCategory(), leftoverRate);
+            }
+
+            log.info("학생 ID: {}의 메뉴 {}개 잔반율 저장 완료", studentId, savedLeftovers.size());
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("message", "학생 잔반율 저장 완료");
+            result.put("leftoverCount", savedLeftovers.size());
+
+            return result;
         } catch (Exception e) {
+            log.error("잔반 데이터 저장 중 오류 발생: {}", e.getMessage(), e);
             return ErrorResponseDto.of(BaperangErrorCode.INTERNAL_SERVER_ERROR);
         }
     }

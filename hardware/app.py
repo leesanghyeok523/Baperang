@@ -148,7 +148,7 @@ with app.app_context():
 
 def gen_frames():
     # 카메라와 식판 사이거리 32CM
-    cap = cv2.VideoCapture(detector.camera_id, cv2.CAP_DSHOW)
+    cap = cv2.VideoCapture(detector.camera_id, cv2.CAP_V4L2)
     fourcc = cv2.VideoWriter_fourcc(*'MJPG')
     cap.set(cv2.CAP_PROP_FOURCC, fourcc)
     cap.set(cv2.CAP_PROP_AUTOFOCUS, 1)
@@ -190,7 +190,7 @@ def gen_frames():
 
             sum_top = sum(detector.top_col_ratios)
             acc = 0
-            for name, ratio in zip(("side_1","side_2","side_3"),
+            for name, ratio in zip(("side_1","main","side_2"),
                                    detector.top_col_ratios):
                 x1 = margin_x + int(inner_w * acc / sum_top)
                 acc += ratio
