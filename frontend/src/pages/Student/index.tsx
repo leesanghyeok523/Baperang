@@ -91,7 +91,7 @@ const StudentManagement = () => {
         grade: student.grade,
         classNum: student.classNum,
         studentNum: student.number,
-        gender: student.gender || 'male', // 기본값 설정
+        gender: student.gender || 'blank', // 기본값 설정
         wasteRate: Math.floor(Math.random() * 40), // 임시 데이터
       }));
 
@@ -144,7 +144,7 @@ const StudentManagement = () => {
         grade: data.grade,
         classNum: data.classNum,
         studentNum: data.number,
-        gender: students.find((s) => s.id === data.studentId)?.gender || 'male',
+        gender: students.find((s) => s.id === data.studentId)?.gender || '남',
         height: data.height,
         weight: data.weight,
         bmi: parseFloat(bmi.toFixed(1)),
@@ -536,7 +536,7 @@ const StudentManagement = () => {
                 {/* 학생 목록 - 스크롤 가능한 창 */}
                 <div className="flex-grow overflow-hidden bg-white/50 rounded-2xl px-4 py-2 h-full">
                   <h3 className="text-base font-semibold mb-2 right-2 text-gray-700">학생 목록</h3>
-                  <div className="overflow-y-auto pr-2 h-[120px]">
+                  <div className="overflow-y-auto pr-2 h-[113px]">
                     {loading ? (
                       <div className="flex items-center justify-center h-full">
                         <p className="text-gray-500">데이터를 불러오는 중...</p>
@@ -560,13 +560,17 @@ const StudentManagement = () => {
                             <div className="flex items-center">
                               <div className="w-10 h-10 flex-shrink-0 mr-3">
                                 <img
-                                  src={`/images/items/${
-                                    student.gender === 'woman' ? 'girl.png' : 'boy.png'
+                                  src={`/images/student/${
+                                    student.gender === '여'
+                                      ? 'girl.png'
+                                      : student.gender === '남'
+                                      ? 'boy.png'
+                                      : 'blank.png'
                                   }`}
                                   alt=""
                                   className="w-full h-full object-cover rounded-full"
                                   onError={(e) => {
-                                    e.currentTarget.src = '/images/items/blank.png';
+                                    e.currentTarget.src = '/images/student/blank.png';
                                   }}
                                 />
                               </div>
@@ -605,14 +609,18 @@ const StudentManagement = () => {
                     <div className="bg-white/50 rounded-2xl shadow-md p-6 text-center w-full h-[500px]">
                       <div className="w-[180px] h-[180px] overflow-hidden mb-6 mt-2 mx-auto flex items-center justify-center">
                         <img
-                          src={`/images/items/${
-                            selectedStudent.gender === 'woman' ? 'girl.png' : 'boy.png'
+                          src={`/images/student/${
+                            selectedStudent.gender === '여'
+                              ? 'girl.png'
+                              : selectedStudent.gender === '남'
+                              ? 'boy.png'
+                              : 'blank.png'
                           }`}
                           alt={selectedStudent.name}
                           className="w-full h-full object-cover rounded-full"
                           onError={(e) => {
                             // 이미지 로드 실패시 기본 이미지로 대체
-                            e.currentTarget.src = '/images/items/blank.png';
+                            e.currentTarget.src = '/images/student/blank.png';
                           }}
                         />
                       </div>
