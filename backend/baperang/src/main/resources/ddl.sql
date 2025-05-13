@@ -56,9 +56,10 @@ CREATE TABLE student (
                          number       INT          NOT NULL,
                          height       FLOAT        NOT NULL,
                          weight       FLOAT        NOT NULL,
-                         date         DATE,
                          content      TEXT,
+                         content_date DATE,
                          image        VARCHAR(255),
+                         image_date DATE,
                          FOREIGN KEY (school_pk)
                              REFERENCES school(school_pk)
                              ON DELETE CASCADE
