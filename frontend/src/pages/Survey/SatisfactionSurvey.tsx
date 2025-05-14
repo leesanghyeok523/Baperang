@@ -33,6 +33,50 @@ interface MenuSatisfactionDto {
 // 메뉴 이름 정규화 함수 (공백 제거, 소문자 변환)
 const normalizeMenuName = (name: string): string => name.trim().toLowerCase();
 
+// 애니메이션 아이템 인터페이스
+interface AnimationItem {
+  id: string; // 고유 ID
+  menuId: number;
+  value: number;
+  timestamp: number;
+}
+
+// 타이머 객체 제거
+
+// +1 애니메이션 요소 컴포넌트
+interface VoteAnimationProps {
+  selectedValue: number; // 1-5 사이의 값 (어떤 만족도 레벨이 선택되었는지)
+  onComplete: () => void;
+}
+
+const VoteAnimation: React.FC<VoteAnimationProps> = ({ selectedValue, onComplete }) => {
+  // 애니메이션 지속 시간 줄이기
+  const animationDurationMs = 450; // ms 단위, 빠른 애니메이션을 위해 값 줄임 (400-500ms 사이로 조정)
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onComplete();
+    }, animationDurationMs);
+
+    return () => clearTimeout(timer);
+  }, [onComplete, animationDurationMs]);
+
+  return (
+    <div className="absolute top-0 left-0 w-full h-full z-20 pointer-events-none">
+      <div
+        className="font-bold text-lg text-red-500 bg-white rounded-full w-9 h-9 flex items-center justify-center absolute top-1/2"
+        style={{
+          left: `calc(${(selectedValue - 1) * 20}% + 10%)`,
+          transform: 'translate(-50%, -80%)', // 위치 조정
+          animation: `vote-animation ${animationDurationMs / 1000}s forwards`,
+        }}
+      >
+        +1
+      </div>
+    </div>
+  );
+};
+
 const SatisfactionSurvey = () => {
   const [todayMenus, setTodayMenus] = useState<MenuItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -41,7 +85,16 @@ const SatisfactionSurvey = () => {
   const [totalVotes, setTotalVotes] = useState<number>(0);
   const [isClosed, setIsClosed] = useState<boolean>(false);
   const [showConfirmation, setShowConfirmation] = useState<boolean>(false);
+
+  // 여러 애니메이션을 동시에 표시하기 위해 배열로 변경
+  const [animatingVotes, setAnimatingVotes] = useState<AnimationItem[]>([]);
+
   const { isAuthenticated, accessToken, user } = useAuthStore();
+
+  // 애니메이션 완료 핸들러
+  const handleAnimationComplete = (id: string) => {
+    setAnimatingVotes((prev) => prev.filter((item) => item.id !== id));
+  };
 
   // SSE 구독 설정 - 실시간 만족도 데이터 수신
   useEffect(() => {
@@ -61,8 +114,6 @@ const SatisfactionSurvey = () => {
 
     // schoolName을 쿼리 파라미터로 추가
     const subscribeUrlWithSchool = `${subscribeUrl}?schoolName=${encodeURIComponent(schoolName)}`;
-
-    console.log('SSE 구독 시작:', subscribeUrlWithSchool);
 
     // 토큰 형식 확인 및 처리
     const authHeaderValue = accessToken.startsWith('Bearer ')
@@ -98,11 +149,6 @@ const SatisfactionSurvey = () => {
     eventSource.addEventListener('initial-satisfaction', (event: any) => {
       try {
         const data = JSON.parse(event.data) as MenuSatisfactionDto[];
-        console.log('SSE로 수신된 초기 만족도 데이터:', data);
-        console.log(
-          'SSE 메뉴 이름들:',
-          data.map((item) => item.menuName)
-        );
 
         if (Array.isArray(data) && data.length > 0) {
           // SSE로 받은 메뉴 데이터로 todayMenus 초기화
@@ -110,7 +156,6 @@ const SatisfactionSurvey = () => {
             const avgSatisfaction = parseFloat(item.averageSatisfaction);
             // 투표자 수 - totalVotes 값이 있으면 사용하고 없으면 기본값으로 0 사용
             const voteCount = item.voteCount !== undefined ? item.voteCount : 0;
-            console.log(`메뉴: ${item.menuName}, 만족도: ${avgSatisfaction}, 투표수: ${voteCount}`);
 
             // 평균 만족도를 기반으로 레벨별 투표 배열 생성
             const newSatisfactionVotes = [0, 0, 0, 0, 0];
@@ -132,8 +177,6 @@ const SatisfactionSurvey = () => {
           const totalVoteCount = initialMenus.reduce((total, menu) => total + menu.votes, 0);
           setTotalVotes(totalVoteCount);
 
-          console.log('SSE로 초기화된 메뉴:', initialMenus);
-          console.log('총 투표 수:', totalVoteCount);
           setTodayMenus(initialMenus);
 
           // 선호도 데이터도 함께 업데이트
@@ -142,7 +185,6 @@ const SatisfactionSurvey = () => {
           // 로딩 완료
           setIsLoading(false);
         } else {
-          console.log('SSE에서 받은 메뉴 데이터가 없거나 유효하지 않습니다');
           setError('메뉴 데이터를 불러오는데 실패했습니다');
           setIsLoading(false);
         }
@@ -157,7 +199,6 @@ const SatisfactionSurvey = () => {
     eventSource.addEventListener('satisfaction-update', (event: any) => {
       try {
         const data = JSON.parse(event.data);
-        console.log('SSE로 수신된 데이터:', data);
 
         // 백엔드에서 배열 형태로 데이터를 보내므로 배열인지 확인
         if (Array.isArray(data)) {
@@ -175,13 +216,9 @@ const SatisfactionSurvey = () => {
               );
 
               if (menuData) {
-                console.log(`메뉴 업데이트 매칭: ${menu.name} <-> ${menuData.menuName}`);
                 const avgSatisfaction = parseFloat(menuData.averageSatisfaction);
                 // totalVotes 값이 있으면 사용하고 없으면 기본값으로 0 사용
                 const voteCount = menuData.voteCount !== undefined ? menuData.voteCount : 0;
-                console.log(
-                  `${menuData.menuName} 업데이트 - 만족도: ${avgSatisfaction}, 투표수: ${voteCount}`
-                );
 
                 // 평균 만족도를 기반으로 레벨별 투표 배열 생성
                 const newSatisfactionVotes = [0, 0, 0, 0, 0];
@@ -216,7 +253,6 @@ const SatisfactionSurvey = () => {
 
           const newTotalVotes = updatedMenus.reduce((total, menu) => total + menu.votes, 0);
           setTotalVotes(newTotalVotes);
-          console.log('업데이트된 총 투표 수:', newTotalVotes);
 
           // 선호도 데이터 업데이트
           updatePreferenceDataFromSatisfactionData(data);
@@ -225,10 +261,6 @@ const SatisfactionSurvey = () => {
           const avgSatisfaction = parseFloat(data.averageSatisfaction);
           // totalVotes 값이 없으면 기본값으로 0 사용
           const voteCount = data.voteCount !== undefined ? data.voteCount : 0;
-
-          console.log(
-            `단일 메뉴 업데이트 시도: ${data.menuName}, 값: ${avgSatisfaction}, 투표수: ${voteCount}`
-          );
 
           setTodayMenus((prevMenus) => {
             const normalizedUpdateMenuName = normalizeMenuName(data.menuName);
@@ -243,7 +275,6 @@ const SatisfactionSurvey = () => {
                 normalizedUpdateMenuName.includes(normalizedMenuName);
 
               if (isMatch) {
-                console.log(`단일 메뉴 업데이트 매칭: ${menu.name} <-> ${data.menuName}`);
                 // SSE로 받은 평균 만족도를 각 레벨별 투표수로 역산하기
                 const newSatisfactionVotes = [0, 0, 0, 0, 0];
                 const satisfactionLevel = Math.round(avgSatisfaction);
@@ -272,7 +303,6 @@ const SatisfactionSurvey = () => {
           }, 0);
 
           setTotalVotes(updatedTotalVotes);
-          console.log('단일 메뉴 업데이트 후 총 투표 수:', updatedTotalVotes);
 
           // 선호도 데이터도 함께 업데이트
           setPreferenceData((prevData) => {
@@ -304,13 +334,13 @@ const SatisfactionSurvey = () => {
     });
 
     // 연결 이벤트 처리
-    eventSource.addEventListener('connect', (event: any) => {
-      console.log('SSE 연결 성공:', event.data);
+    eventSource.addEventListener('connect', () => {
+      // 연결 성공
     });
 
     // 하트비트 이벤트 처리
-    eventSource.addEventListener('heartbeat', (event: any) => {
-      console.log('하트비트 수신:', event.data);
+    eventSource.addEventListener('heartbeat', () => {
+      // 하트비트 수신
     });
 
     // 에러 처리
@@ -321,7 +351,6 @@ const SatisfactionSurvey = () => {
 
     // 컴포넌트 언마운트 시 SSE 연결 종료
     return () => {
-      console.log('SSE 연결 종료');
       eventSource.close();
     };
   }, [isAuthenticated, accessToken, user?.schoolName]);
@@ -334,14 +363,24 @@ const SatisfactionSurvey = () => {
       const selectedMenu = todayMenus.find((menu) => menu.id === menuId);
       if (!selectedMenu) return;
 
+      // 새 애니메이션 추가 (고유 ID 생성)
+      const newAnimationId = `anim_${menuId}_${satisfactionValue}_${Date.now()}`;
+      const newAnimation = {
+        id: newAnimationId,
+        menuId,
+        value: satisfactionValue,
+        timestamp: Date.now(),
+      };
+
+      // 새 애니메이션을 기존 애니메이션 목록에 추가
+      setAnimatingVotes((prev) => [...prev, newAnimation]);
+
       // 만족도 투표 API 요청 데이터
       const voteData = {
         schoolName: user?.schoolName || '명호고등학교',
         menuname: selectedMenu.name,
         satisfactionScore: satisfactionValue, // satisfactionValue 값을 그대로 전송
       };
-
-      console.log('만족도 투표 요청 데이터:', voteData);
 
       // API 엔드포인트
       const voteUrl = API_CONFIG.getUrl(API_CONFIG.ENDPOINTS.SATISFACTION.VOTE);
@@ -358,7 +397,7 @@ const SatisfactionSurvey = () => {
         },
       });
 
-      // 로컬 UI 업데이트 (실제로는 SSE로 업데이트됨)
+      // 로컬 UI 업데이트 - 투표 수만 증가, satisfaction 값은 설정하지 않음
       const updatedMenus = todayMenus.map((menu) => {
         if (menu.id === menuId) {
           // 만족도 레벨별 투표 수 배열 업데이트 (배열 인덱스는 0부터 시작하므로 -1 해줌)
@@ -367,7 +406,6 @@ const SatisfactionSurvey = () => {
 
           return {
             ...menu,
-            satisfaction: satisfactionValue,
             votes: menu.votes + 1,
             satisfactionVotes: updatedSatisfactionVotes,
           };
@@ -381,15 +419,6 @@ const SatisfactionSurvey = () => {
       // 선호도 데이터 업데이트
       const updatedPreferenceData = updatePreferenceData(updatedMenus);
       setPreferenceData(updatedPreferenceData);
-
-      // 투표 후 화면 초기화 (메뉴별 만족도 선택 상태 초기화)
-      setTimeout(() => {
-        const resetMenus = updatedMenus.map((menu) => ({
-          ...menu,
-          satisfaction: null,
-        }));
-        setTodayMenus(resetMenus);
-      }, 1000);
     } catch (error) {
       console.error('만족도 처리 중 오류 발생:', error);
       alert('만족도 투표에 실패했습니다. 다시 시도해주세요.');
@@ -468,6 +497,17 @@ const SatisfactionSurvey = () => {
         backgroundImage: 'url("/images/background/background_dashboard.png")',
       }}
     >
+      {/* CSS 애니메이션 정의 */}
+      <style>
+        {`
+          @keyframes vote-animation {
+            0% { transform: translate(-50%, 0); opacity: 0; }
+            30% { transform: translate(-50%, -25px); opacity: 1; }
+            100% { transform: translate(-50%, -45px); opacity: 0; }
+          }
+        `}
+      </style>
+
       {/* 마감 버튼을 전체 페이지 좌측 상단 모서리에 배치 */}
       <div className="fixed top-4 left-4 z-50">
         <Button
@@ -497,31 +537,59 @@ const SatisfactionSurvey = () => {
                 {todayMenus.map((menu) => (
                   <div
                     key={menu.id}
-                    className={`bg-white/50 rounded-2xl p-3 ${isClosed ? 'opacity-70' : ''}`}
+                    className={`bg-white/50 rounded-2xl p-3 ${
+                      isClosed ? 'opacity-70' : ''
+                    } relative`}
                   >
                     <div className="flex justify-between items-center mb-2 my-1 mx-4">
                       <h2 className="text-lg font-semibold">{menu.name}</h2>
                       <div className="text-sm text-gray-500">투표: {menu.votes}명</div>
                     </div>
                     <div className="relative">
-                      <div className="flex justify-between">
+                      <div className="flex justify-between px-2">
                         {satisfactionLevels.map((level) => (
-                          <div key={level.id} className="flex flex-col items-center w-16">
-                            <button
-                              className={`w-6 h-6 rounded-full z-10 border-2 ${
+                          <div
+                            key={level.id}
+                            className={`flex flex-col items-center w-16 cursor-pointer`}
+                            onClick={() => {
+                              if (!isClosed) handleSatisfactionChange(menu.id, level.value);
+                            }}
+                          >
+                            <div
+                              className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
                                 menu.satisfaction === level.value
-                                  ? 'bg-red-500 border-red-600'
-                                  : 'bg-white border-gray-400'
+                                  ? 'bg-red-500 border-red-600 shadow-md'
+                                  : 'bg-white border-2 border-gray-400'
                               }`}
-                              onClick={() => handleSatisfactionChange(menu.id, level.value)}
-                              disabled={isClosed}
-                              aria-label={level.label}
-                            />
-                            <span className="mt-2 text-xs text-center">{level.label}</span>
+                            >
+                              {menu.satisfaction === level.value && (
+                                <span className="absolute inline-flex h-2 w-2 rounded-full bg-red-400 opacity-75"></span>
+                              )}
+                            </div>
+                            <span
+                              className={`mt-2 text-sm text-center ${
+                                menu.satisfaction === level.value
+                                  ? 'font-bold text-red-500'
+                                  : 'text-gray-700'
+                              }`}
+                            >
+                              {level.label}
+                            </span>
                           </div>
                         ))}
                       </div>
                     </div>
+
+                    {/* 여러 애니메이션을 동시에 표시 */}
+                    {animatingVotes
+                      .filter((anim) => anim.menuId === menu.id)
+                      .map((anim) => (
+                        <VoteAnimation
+                          key={anim.id}
+                          selectedValue={anim.value}
+                          onComplete={() => handleAnimationComplete(anim.id)}
+                        />
+                      ))}
                   </div>
                 ))}
 
