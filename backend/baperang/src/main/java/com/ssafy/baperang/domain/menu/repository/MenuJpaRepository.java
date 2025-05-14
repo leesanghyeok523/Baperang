@@ -1,6 +1,7 @@
 package com.ssafy.baperang.domain.menu.repository;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 
 import com.ssafy.baperang.domain.menu.entity.Menu;
@@ -50,4 +51,7 @@ public interface MenuJpaRepository extends JpaRepository<Menu, Long> {
             School school,
             LocalDate menuDate
     );
+
+    // 여러 ID로 메뉴 한번에 조회
+    List<Menu> findAllByIdIn(Collection<Long> menuIds);
 }

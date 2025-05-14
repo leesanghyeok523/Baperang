@@ -112,4 +112,9 @@ public class Student {
         this.image = imageUrl;
         this.imageDate = LocalDate.now();
     }
+
+    public void updateContent(String content, LocalDate contentDate) {
+        this.content = content;
+        this.contentDate = contentDate;
+    }
 }

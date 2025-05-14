@@ -3,6 +3,7 @@ package com.ssafy.baperang.domain.leftover.repository;
 import com.ssafy.baperang.domain.leftover.dto.response.LeftoverDateResponseDto;
 import com.ssafy.baperang.domain.leftover.dto.response.LeftoverMonthResponseDto;
 import com.ssafy.baperang.domain.leftover.entity.Leftover;
+import com.ssafy.baperang.domain.menu.entity.Menu;
 import com.ssafy.baperang.domain.student.entity.Student;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -10,7 +11,9 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface LeftoverJpaRepository extends JpaRepository<Leftover, Long> {
@@ -28,4 +31,10 @@ public interface LeftoverJpaRepository extends JpaRepository<Leftover, Long> {
     List<Leftover> findByYearAndMonth(@Param("year") int year, @Param("month") int month);
 
     List<Leftover> findByStudentAndLeftoverDate(Student student, LocalDate leftoverDate);
+
+    Optional<Leftover> findByStudentAndMenuAndLeftoverDate(Student student, Menu menu, LocalDate localDate);
+
+    List<Leftover> findByStudentAndLeftoverDateBetween(Student student, LocalDate startDate, LocalDate endDate);
+
+    List<Leftover> findByStudentAndLeftoverDateIn(Student student, Collection<LocalDate> dates);
 }

@@ -2,12 +2,15 @@ package com.ssafy.baperang.domain.leftover.repository;
 
 import com.ssafy.baperang.domain.leftover.dto.response.LeftoverDateResponseDto;
 import com.ssafy.baperang.domain.leftover.entity.Leftover;
+import com.ssafy.baperang.domain.menu.entity.Menu;
 import com.ssafy.baperang.domain.student.entity.Student;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 @RequiredArgsConstructor
@@ -33,5 +36,20 @@ public class LeftoverRepositoryImpl implements LeftoverRepository {
     @Override
     public List<Leftover> findByStudentAndLeftoverDate(Student student, LocalDate leftoverDate) {
         return leftoverJpaRepository.findByStudentAndLeftoverDate(student, leftoverDate);
+    }
+
+    @Override
+    public Optional<Leftover> findByStudentAndMenuAndLeftoverDate(Student student, Menu menu, LocalDate leftoverDate) {
+        return leftoverJpaRepository.findByStudentAndMenuAndLeftoverDate(student, menu, leftoverDate);
+    }
+
+    @Override
+    public List<Leftover> findByStudentAndLeftoverDateBetween(Student student, LocalDate startDate, LocalDate endDate) {
+        return leftoverJpaRepository.findByStudentAndLeftoverDateBetween(student, startDate, endDate);
+    }
+
+    @Override
+    public List<Leftover> findByStudentAndLeftoverDateIn(Student student, Collection<LocalDate> dates) {
+        return leftoverJpaRepository.findByStudentAndLeftoverDateIn(student, dates);
     }
 }
