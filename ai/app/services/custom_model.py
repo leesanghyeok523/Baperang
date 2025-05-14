@@ -491,7 +491,7 @@ def analyze_food_image_custom(target_image_path, reference_image_path,
     세 모델을 사용하여 음식 이미지 분석 (사용자 정의 방식)
     """
     # 결과 디렉토리 생성
-    os.makedirs(output_dir, exist_ok=True)
+    # os.makedirs(output_dir, exist_ok=True)
     
     # 이미지 로드
     if isinstance(target_image_path, str):
@@ -539,12 +539,14 @@ def analyze_food_image_custom(target_image_path, reference_image_path,
             img_base = "uploaded_image"
     except Exception:
         img_base = "uploaded_image"
-    viz_path = os.path.join(output_dir, f"{img_base}_analysis.png")
-    visualize_results_custom(
-        target_img, backproj_img, depth_map, depth_mask,
-        backproj_result, midas_result, resnet_result,
-        final_result, weights, viz_path
-    )
+    
+    # 시각화 결과 저장 주석 처리
+    # viz_path = os.path.join(output_dir, f"{img_base}_analysis.png")
+    # visualize_results_custom(
+    #     target_img, backproj_img, depth_map, depth_mask,
+    #     backproj_result, midas_result, resnet_result,
+    #     final_result, weights, viz_path
+    # )
     
     # 결과 정리
     final_percentage, confidence, details = final_result
@@ -559,7 +561,7 @@ def analyze_food_image_custom(target_image_path, reference_image_path,
         'final_percentage': final_percentage,
         'confidence': confidence,
         'details': details,
-        'visualization_path': viz_path
+        # 'visualization_path': viz_path  # 시각화 경로도 주석 처리
     }
     
     return result_dict
@@ -618,7 +620,7 @@ def main():
         print(f"ResNet 예측: {resnet_class} (확률: {resnet_prob*100:.1f}%, 음식량: {resnet_percentage:.1f}%, 가중치: {w_resnet:.1f})")
         print("-" * 50)
         print(f"최종 음식량: {result['final_percentage']:.1f}% (신뢰도: {result['confidence']*100:.1f}%)")
-        print(f"시각화 파일: {result['visualization_path']}")
+        # print(f"시각화 파일: {result['visualization_path']}")
     
     # 종료 시간
     end_time = time.time()

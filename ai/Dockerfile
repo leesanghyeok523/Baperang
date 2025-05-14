@@ -6,6 +6,15 @@ FROM python:3.10.11-slim
 # 2) 작업 디렉토리
 WORKDIR /app
 
+# OpenCV가 필요로 하는 시스템 라이브러리
+RUN apt-get update && apt-get install -y \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender1 \
+    libgl1 \
+  && rm -rf /var/lib/apt/lists/*
+
 # 3) 의존성 복사 및 설치 (context: ai/)
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
