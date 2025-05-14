@@ -7,6 +7,7 @@ import com.ssafy.baperang.domain.student.entity.Student;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,5 +29,7 @@ public interface LeftoverRepository {
     Optional<Leftover> findByStudentAndMenuAndLeftoverDate(Student student, Menu menu, LocalDate leftoverDate);
 
     List<Leftover> findByStudentAndLeftoverDateBetween(Student student, LocalDate startDate, LocalDate endDate);
+
+    List<Leftover> findByStudentAndLeftoverDateIn(Student student, Collection<LocalDate> dates);
 
 }

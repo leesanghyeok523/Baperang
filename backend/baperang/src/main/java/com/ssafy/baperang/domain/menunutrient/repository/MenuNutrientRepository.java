@@ -26,4 +26,5 @@ public interface MenuNutrientRepository extends JpaRepository<MenuNutrient, Menu
     List<MenuNutrient> findByMenu(Menu menu);
 
     MenuNutrient findByMenuIdAndNutrientId(Long menuId, Long nutrientId);
+    List<MenuNutrient> findByMenuIdInAndNutrientIdIn(List<Long> menuIds, List<Long> nutrientIds);
 }
