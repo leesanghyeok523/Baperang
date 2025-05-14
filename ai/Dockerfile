@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y \
     libsm6 \
     libxext6 \
     libxrender1 \
+    libgl1 \
   && rm -rf /var/lib/apt/lists/*
 
 # 3) 의존성 복사 및 설치 (context: ai/)
