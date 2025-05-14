@@ -34,10 +34,5 @@ class ReportService:
         
         if settings.DEBUG:
             print("[ReportService] 건강 리포트 생성 완료")
-
-        # 하이젠버그 버그를 해결하기 위한 명시적 타입 지정
-        if isinstance(report, str):
-            try:
-                report = json.loads(report)
-            except json.JSONDecodeError:
-                report = {"analyzeReport": "오류 발생", "plan": "오류", "opinion": "오류"}
+        
+        return report
