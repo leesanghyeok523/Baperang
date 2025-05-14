@@ -594,7 +594,7 @@ const StudentManagement = () => {
               </div>
 
               {/* 우측: 학생 상세 정보 및 AI 리포트 */}
-              <div className="flex flex-row w-full md:w-2/3 h-full items-center justify-center relative">
+              <div className="flex flex-row w-full md:w-2/3 h-[60%] items-center justify-center relative">
                 {loading ? (
                   <div className="flex items-center justify-center h-full w-full">
                     <p className="text-gray-500">데이터를 불러오는 중...</p>

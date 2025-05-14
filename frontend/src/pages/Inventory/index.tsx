@@ -6,13 +6,23 @@ import { exportInventoryToExcel } from './excelExporter';
 // 공통 스타일 상수 정의
 const STYLES = {
   headerCell:
-    'py-[9px] px-4 text-center border-t border-b border-r border-gray-300 text-lg font-semibold',
+    'py-2 px-1 text-center border-t border-b border-r border-gray-300 font-semibold truncate text-base md:text-lg',
   headerCellLast:
-    'py-[9px] px-4 text-center border-t border-b border-gray-300 text-lg font-semibold',
-  dataCell: 'py-[9px] px-4 text-center border-b border-r border-gray-300 text-lg',
-  dataCellLast: 'py-[9px] px-4 text-center border-b border-gray-300 text-lg',
-  dataCellFixed: 'py-[9px] px-4 text-center border-b border-r border-gray-300 h-[60px] text-lg',
-  dataCellLastFixed: 'py-[9px] px-4 text-center border-b border-gray-300 h-[60px] text-lg',
+    'py-2 px-1 text-center border-t border-b border-gray-300 font-semibold truncate text-base md:text-lg',
+  dataCell: 'py-2 px-1 text-center border-b border-r border-gray-300 truncate text-base md:text-lg',
+  dataCellLast: 'py-2 px-1 text-center border-b border-gray-300 truncate text-base md:text-lg',
+  dataCellFixed:
+    'py-2 px-1 text-center border-b border-r border-gray-300 truncate text-base md:text-lg',
+  dataCellLastFixed: 'py-2 px-1 text-center border-b border-gray-300 truncate text-base md:text-lg',
+  colWidths: {
+    date: '12%',
+    productName: '20%',
+    supplier: '15%',
+    price: '12%',
+    orderedQuantity: '13%',
+    usedQuantity: '15%',
+    diff: '13%',
+  },
 };
 
 const InventoryPage: React.FC = () => {
@@ -99,25 +109,25 @@ const InventoryPage: React.FC = () => {
   // 데이터 셀 렌더링 함수
   const renderEditableCell = (item: InventoryItem) => {
     return (
-      <div className="flex items-center justify-center h-[40px] w-full">
+      <div className="flex items-center justify-center h-full w-full">
         {editingId === item.id ? (
-          <div className="flex items-center justify-center w-full">
+          <div className="flex items-center justify-center w-full h-[38px]">
             <input
               type="number"
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
               onBlur={saveEdit}
               onKeyDown={(e) => e.key === 'Enter' && saveEdit()}
-              className="w-20 p-1 border rounded text-center"
+              className="w-16 h-8 p-1 border rounded text-center text-base"
               autoFocus
             />
-            <span className="ml-1">{item.unit}</span>
+            <span className="ml-1 text-base">{item.unit}</span>
           </div>
         ) : (
-          <div className="flex items-center justify-center w-full">
+          <div className="flex items-center justify-center w-full h-[38px]">
             <span
               onClick={() => startEdit(item)}
-              className="cursor-pointer hover:bg-gray-100 p-1 rounded"
+              className="cursor-pointer hover:bg-gray-100 p-1 rounded text-base w-16 h-8 flex items-center justify-center"
             >
               {item.usedQuantity}
               {item.unit}
@@ -133,16 +143,29 @@ const InventoryPage: React.FC = () => {
     const diff = calculateDiff(item.orderedQuantity, item.usedQuantity);
     return (
       <tr key={item.id} className="hover:bg-[#E7E3DE]">
-        <td className={STYLES.dataCell}>{item.date}</td>
-        <td className={STYLES.dataCell}>{item.productName}</td>
-        <td className={STYLES.dataCell}>{item.supplier}</td>
-        <td className={STYLES.dataCell}>{item.price.toLocaleString()}원</td>
-        <td className={STYLES.dataCell}>
+        <td className={STYLES.dataCell} style={{ width: '12%' }}>
+          {item.date}
+        </td>
+        <td className={STYLES.dataCell} style={{ width: '20%' }}>
+          {item.productName}
+        </td>
+        <td className={STYLES.dataCell} style={{ width: '15%' }}>
+          {item.supplier}
+        </td>
+        <td className={STYLES.dataCell} style={{ width: '12%' }}>
+          {item.price.toLocaleString()}원
+        </td>
+        <td className={STYLES.dataCell} style={{ width: '13%' }}>
           {item.orderedQuantity}
           {item.unit}
         </td>
-        <td className={STYLES.dataCellFixed}>{renderEditableCell(item)}</td>
-        <td className={`${STYLES.dataCellLastFixed} font-medium ${diff.color}`}>
+        <td className={STYLES.dataCellFixed} style={{ width: '15%' }}>
+          {renderEditableCell(item)}
+        </td>
+        <td
+          className={`${STYLES.dataCellLastFixed} font-medium ${diff.color}`}
+          style={{ width: '13%' }}
+        >
           {diff.value}
           {item.unit}
         </td>
@@ -157,14 +180,11 @@ const InventoryPage: React.FC = () => {
 
       {/* 메인 컨텐츠 */}
       <div
-        className="relative z-10 flex items-end justify-end"
+        className="relative z-10 flex items-center justify-center"
         style={{ height: 'calc(100vh - 80px)', marginTop: '75px' }}
       >
-        <div className="w-[85%] mx-auto">
-          <div
-            className="bg-[#F8F1E7] rounded-t-3xl shadow-lg p-0 flex flex-col overflow-hidden"
-            style={{ height: '81vh' }}
-          >
+        <div className="w-[85%] h-[73vh] mx-auto flex flex-col">
+          <div className="bg-[#F8F1E7] rounded-3xl shadow-lg p-0 flex flex-col flex-grow overflow-hidden">
             {/* 헤더 */}
             <div className="grid grid-cols-3 items-center p-4">
               {/* 왼쪽 - 빈 영역 */}
@@ -204,39 +224,43 @@ const InventoryPage: React.FC = () => {
             </div>
 
             {/* 테이블 */}
-            <div className="overflow-x-auto flex-grow p-0">
-              <table className="min-w-full w-full bg-[#FCF8F3] border-t border-b border-gray-300 border-collapse table-fixed">
-                <thead>
-                  <tr className="bg-[#FCF8F3]">
-                    <th className={STYLES.headerCell}>날짜</th>
-                    <th className={STYLES.headerCell}>상품명</th>
-                    <th className={STYLES.headerCell}>거래처</th>
-                    <th className={STYLES.headerCell}>가격</th>
-                    <th className={STYLES.headerCell}>주문수량</th>
-                    <th className={STYLES.headerCell}>실제사용수량</th>
-                    <th className={STYLES.headerCellLast}>diff</th>
-                  </tr>
-                </thead>
-                <tbody>{currentData.map(renderTableRow)}</tbody>
-              </table>
-            </div>
-
-            {/* 페이지네이션 */}
-            {totalPages > 1 && (
-              <div className="flex justify-center mt-2 mb-3 space-x-4">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <button
-                    key={page}
-                    onClick={() => goToPage(page)}
-                    className={`mx-2 px-4 py-2 font-semibold ${
-                      currentPage === page ? 'text-orange-500' : 'text-gray-700'
-                    }`}
-                  >
-                    {page}
-                  </button>
-                ))}
+            <div className="flex-grow flex flex-col overflow-hidden w-full">
+              <div className="flex-grow overflow-hidden">
+                <table className="w-full h-full bg-[#FCF8F3] border-t border-b border-gray-300 border-collapse table-fixed">
+                  <thead>
+                    <tr className="bg-[#FCF8F3]">
+                      <th className={STYLES.headerCell}>날짜</th>
+                      <th className={STYLES.headerCell}>상품명</th>
+                      <th className={STYLES.headerCell}>거래처</th>
+                      <th className={STYLES.headerCell}>가격</th>
+                      <th className={STYLES.headerCell}>주문수량</th>
+                      <th className={STYLES.headerCell}>실제사용수량</th>
+                      <th className={STYLES.headerCellLast}>diff</th>
+                    </tr>
+                  </thead>
+                  <tbody>{currentData.map(renderTableRow)}</tbody>
+                </table>
               </div>
-            )}
+
+              {/* 페이지네이션 */}
+              <div className="flex justify-center items-center h-[8vh] min-h-[50px]">
+                {totalPages > 1 && (
+                  <div className="flex justify-center space-x-2 md:space-x-4">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <button
+                        key={page}
+                        onClick={() => goToPage(page)}
+                        className={`mx-1 md:mx-2 px-3 md:px-4 py-1 md:py-2 font-semibold ${
+                          currentPage === page ? 'text-orange-500' : 'text-gray-700'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
