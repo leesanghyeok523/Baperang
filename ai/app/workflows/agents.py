@@ -119,12 +119,12 @@ class IntegrationAgent:
         integrated_plan = await self.llm_service.generate_structured_response(prompt, function_def=integration_plan_fn)
 
         # 통합 식단 평가 (메트릭 계산)
-        metrics = self._calculate_metrics(integrated_plan, state)
-
+        # metrics = self._calculate_metrics(integrated_plan, state)
+        # print("[AGENT][metrics] : ", metrics)
         # 결과 반환
         return {
             "integrated_plan": integrated_plan,
-            "metrics": metrics
+            # "metrics": metrics
         }
     
     def _calculate_metrics(self, plan: Dict[str, List[str]], state: Dict[str, Any]) -> Dict[str, Any]:
@@ -154,15 +154,19 @@ class IntegrationAgent:
         # 각 메뉴에 대해 계산
         for date, menus in plan.items():
             for menu in menus:
-                # 선호도 집계
-                if menu in preference_data:
-                    total_pref += preference_data[menu]
-                    count_pref += 1
-                
-                # 잔반율 집계
-                if menu in leftover_data:
-                    total_leftover += preference_data[menu]
-                    count_leftover += 1
+                # 선호도 탐색
+                for category, category_dict in preference_data.items():
+                    if menu in category_dict:
+                        total_pref += category_dict[menu]
+                        count_pref += 1
+                        break
+
+                # 잔반율 탐색
+                for category, category_dict in leftover_data.items():
+                    if menu in category_dict:
+                        total_leftover += category_dict[menu]
+                        count_leftover += 1
+                        break
         
         # 평균 계산
         avg_preference = total_pref / count_pref if count_pref > 0 else 0

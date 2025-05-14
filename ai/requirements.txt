@@ -66,6 +66,7 @@ pandas>=2.0
 langchain>=0.0.268
 langchain-community>=0.0.20
 langgraph>=0.1.0
+langchain-openai>=0.0.8
 
 # LLM API Clients
 openai>=0.27.6
