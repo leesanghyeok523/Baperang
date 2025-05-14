@@ -97,8 +97,31 @@ public class StudentServiceImpl implements StudentService {
                 return ErrorResponseDto.of(BaperangErrorCode.STUDENT_NOT_FOUND);
             }
 
+            Student student = studentOpt.get();
+
+            // Bmi 계산
+            float height = student.getHeight() / 100.0f;
+            float bmi = student.getWeight() / (height * height);
+
+            bmi = Math.round(bmi * 10) / 10.0f;
+
             // Entity를 DTO로 변환하여 반환
             StudentDetailResponseDto responseDto = StudentDetailResponseDto.fromEntity(studentOpt.get());
+
+            // bmi 필드 설정 (새 DTO 생성)
+            responseDto = StudentDetailResponseDto.builder()
+                    .studentId(responseDto.getStudentId())
+                    .studentName(responseDto.getStudentName())
+                    .grade(responseDto.getGrade())
+                    .classNum(responseDto.getClassNum())
+                    .number(responseDto.getNumber())
+                    .height(responseDto.getHeight())
+                    .weight(responseDto.getWeight())
+                    .date(responseDto.getDate())
+                    .content(responseDto.getContent())
+                    .schoolName(responseDto.getSchoolName())
+                    .bmi(bmi)
+                    .build();
 
             log.info("getStudentDetail 함수 성공 종료 - 학생 ID: {}, 이름: {}",
                     responseDto.getStudentId(), responseDto.getStudentName());

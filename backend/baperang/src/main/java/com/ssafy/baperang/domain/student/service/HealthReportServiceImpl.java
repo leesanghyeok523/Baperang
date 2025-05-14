@@ -1,0 +1,321 @@
+package com.ssafy.baperang.domain.student.service;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ssafy.baperang.domain.leftover.dto.response.ErrorResponseDto;
+import com.ssafy.baperang.domain.leftover.entity.Leftover;
+import com.ssafy.baperang.domain.menunutrient.entity.MenuNutrient;
+import com.ssafy.baperang.domain.menunutrient.repository.MenuNutrientRepository;
+import com.ssafy.baperang.domain.student.dto.request.HealthReportRequestDto;
+import com.ssafy.baperang.domain.student.dto.response.HealthReportResponseDto;
+import com.ssafy.baperang.domain.student.entity.Student;
+import com.ssafy.baperang.domain.leftover.repository.LeftoverRepository;
+import com.ssafy.baperang.domain.student.repository.StudentRepository;
+import com.ssafy.baperang.global.exception.BaperangErrorCode;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
+import com.ssafy.baperang.global.jwt.JwtService;
+
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.time.LocalDate;
+import java.util.*;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class HealthReportServiceImpl implements HealthReportService{
+
+    private final StudentRepository studentRepository;
+    private final LeftoverRepository leftoverRepository;
+    private final MenuNutrientRepository menuNutrientRepository;
+    private final JwtService jwtService;
+    private final ObjectMapper objectMapper;
+
+    private final DecimalFormat df = new DecimalFormat("#.##", new DecimalFormatSymbols(Locale.US));
+
+    private static final String AI_SERVER_URL = "http://127.0.0.1:8001/api/v1/ai/health-report";
+
+    // nutrient 테이블의 PK 매핑
+    private static final Long CARBO_NUTRIENT_ID = 2L;     // 탄수화물 (g)
+    private static final Long PROTEIN_NUTRIENT_ID = 5L;   // 단백질 (g)
+    private static final Long FAT_NUTRIENT_ID = 4L;       // 지방 (g)
+
+    @Override
+    @Transactional(readOnly = true)
+    public Object generateReport(String token, Long studentId) {
+        log.info("건강 리포트 생성 시작, 학생 ID - {}", studentId);
+
+        try {
+            // 토큰 유효성 검사
+            if (!jwtService.validateToken(token)) {
+                return ErrorResponseDto.of(BaperangErrorCode.INVALID_TOKEN);
+            }
+
+            Long userPk = jwtService.getUserId(token);
+            if (userPk == null) {
+                return ErrorResponseDto.of(BaperangErrorCode.INVALID_TOKEN);
+            }
+
+            Optional<Student> studentOpt = studentRepository.findById(studentId);
+            if (studentOpt.isEmpty()) {
+                return ErrorResponseDto.of(BaperangErrorCode.STUDENT_NOT_FOUND);
+            }
+
+            // bmi 지수
+            Student student = studentOpt.get();
+
+            Float height = student.getHeight() / 100f;
+            Float weight = student.getWeight();
+            Float bmi = weight / (height * height);
+
+            log.info("학생 BMI 계산: {}", df.format(bmi));
+
+            LocalDate endDate = LocalDate.now();
+            LocalDate startDate = endDate.minusDays(7);
+            List<Leftover> leftovers = leftoverRepository.findByStudentAndLeftoverDateBetween(student, startDate, endDate);
+
+            // 카테고리별 평균 잔반율
+            Map<String, Float> categoryLeftoverMap = calcLeftoverByCategory(leftovers);
+
+            // 잔반율 top3 bottom3 계산
+            Map<String, Map<String, String>> leftoverRankingMap = getRankings(leftovers);
+
+            // 일주일간 섭취한 영양소 계산
+            Map<String, Map<String, Integer>> nutrientMap = calcNutrients(student, startDate, endDate);
+
+            // ai로 보낼 요청 데이터
+            HealthReportRequestDto requestDto = HealthReportRequestDto.builder()
+                    .bmi(Float.parseFloat(df.format(bmi)))
+                    .leftover(categoryLeftoverMap)
+                    .leftoverMost(leftoverRankingMap.get("most"))
+                    .leftoverLeast(leftoverRankingMap.get("least"))
+                    .nutrient(nutrientMap)
+                    .build();
+
+            // AI 서버에 요청 보내기
+            HealthReportResponseDto responseDto = getAiAnalysis(requestDto);
+
+            // JSON 형태로 변환하여 저장
+            String reportContent = objectMapper.writeValueAsString(responseDto);
+
+            // 학생 엔티티에 리포트 내용 저장
+            return saveReport(studentId, reportContent);
+
+        } catch (Exception e) {
+            log.error("건강 리포트 생성 중 오류 발생: {}", e.getMessage(), e);
+            return ErrorResponseDto.of(BaperangErrorCode.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @Override
+    @Transactional
+    public Object saveReport(Long studentId, String reportContent) {
+        log.info("건강 리포트 저장 시작 - 학생 ID: {}", studentId);
+
+        try {
+            Optional<Student> studentOpt = studentRepository.findById(studentId);
+            if (studentOpt.isEmpty()) {
+                log.error("학생을 찾을 수 없음 - 학생 ID: {}", studentId);
+                return ErrorResponseDto.of(BaperangErrorCode.STUDENT_NOT_FOUND);
+            }
+
+            Student student = studentOpt.get();
+
+            // content와 contentDate 업데이트
+            student.updateContent(reportContent, LocalDate.now());
+            studentRepository.saveAndFlush(student);
+
+            log.info("건강 리포트 저장 완료 - 학생 ID: {}", studentId);
+
+            // 저장된 리포트 내용을 응답으로 반환
+            HealthReportResponseDto responseDto = objectMapper.readValue(reportContent, HealthReportResponseDto.class);
+            return responseDto;
+
+        } catch (Exception e) {
+            log.error("건강 리포트 저장 중 오류 발생: {}", e.getMessage(), e);
+            return ErrorResponseDto.of(BaperangErrorCode.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    // 카테고리별 평균 잔반율 계산
+    private Map<String, Float> calcLeftoverByCategory(List<Leftover> leftovers) {
+        Map<String, List<Float>> categoryRates = new HashMap<>();
+
+        for (Leftover leftover : leftovers) {
+            String category = leftover.getMenu().getCategory();
+            Float rate = leftover.getLeftoverRate();
+
+            categoryRates.computeIfAbsent(category, k -> new ArrayList<>()).add(rate);
+        }
+
+        Map<String, Float> result = new HashMap<>();
+        for (Map.Entry<String, List<Float>> entry : categoryRates.entrySet()) {
+            List<Float> rates = entry.getValue();
+            double average = rates.stream().mapToDouble(Float::doubleValue).average().orElse(0.0);
+            result.put(entry.getKey(), Float.parseFloat(df.format(average)));
+        }
+
+        // 카테고리가 없는 경우 기본값 0.0 설정
+        result.putIfAbsent("rice", 0.0f);
+        result.putIfAbsent("soup", 0.0f);
+        result.putIfAbsent("main", 0.0f);
+        result.putIfAbsent("side", 0.0f);
+
+        return result;
+    }
+
+    // 잔반율 TOP3, BOTTOM3 계산
+    private Map<String, Map<String, String>> getRankings(List<Leftover> leftovers) {
+        // 메뉴별 평균 잔반율 계산
+        Map<String, List<Float>> menuRates = new HashMap<>();
+
+        for (Leftover leftover : leftovers) {
+            String menuName = leftover.getLeftMenuName();
+            Float rate = leftover.getLeftoverRate();
+            menuRates.computeIfAbsent(menuName, k -> new ArrayList<>()).add(rate);
+        }
+
+        // 메뉴별 평균 계산
+        Map<String, Float> menuAverages = new HashMap<>();
+        for (Map.Entry<String, List<Float>> entry : menuRates.entrySet()) {
+            double average = entry.getValue() // 현재 메뉴의 모든 잔반율 가져오기
+                    .stream() // 스트림으로 변환
+                    .mapToDouble(Float::doubleValue) // float을 double로 변환
+                    .average()
+                    .orElse(0.0); // 목록이 비어있으면 0.0
+
+            menuAverages.put(
+                    entry.getKey(),
+                    Float.parseFloat(
+                            df.format(average)));
+        }
+
+        // 잔반율 기준 정렬
+        List<Map.Entry<String, Float>> sortedEntries = new ArrayList<>(menuAverages.entrySet());
+
+        // 내림차순 정렬 (가장 많이 남긴 순)
+        sortedEntries.sort(Map.Entry.<String, Float>comparingByValue().reversed());
+
+        // TOP3 (가장 많이 남긴 음식)
+        Map<String, String> most = new HashMap<>();
+        for (int i = 0; i < Math.min(3, sortedEntries.size()); i++) {
+            most.put(String.valueOf(i + 1), sortedEntries.get(i).getKey());
+        }
+
+        // 오름차순 정렬 (가장 적게 남긴 순)
+        sortedEntries.sort(Map.Entry.comparingByValue());
+
+        // BOTTOM3 (가장 적게 남긴 음식)
+        Map<String, String> least = new HashMap<>();
+        for (int i = 0; i < Math.min(3, sortedEntries.size()); i++) {
+            least.put(String.valueOf(i + 1), sortedEntries.get(i).getKey());
+        }
+
+        Map<String, Map<String, String>> result = new HashMap<>();
+        result.put("most", most);
+        result.put("least", least);
+
+        return result;
+    }
+
+    // 날짜별 영양소 섭취량 계산 (탄수화물, 단백질, 지방만)
+    private Map<String, Map<String, Integer>> calcNutrients(Student student, LocalDate startDate, LocalDate endDate) {
+        Map<String, Map<String, Integer>> result = new HashMap<>();
+
+        // startDate부터 endDate까지 순회
+        LocalDate currentDate = startDate;
+        while (!currentDate.isAfter(endDate)) {
+            // 현재 날짜의 영양소 섭취량 계산
+            Map<String, Integer> dailyNutrients = calcDailyNutrients(student, currentDate);
+
+            // 결과에 추가
+            result.put(currentDate.toString(), dailyNutrients);
+
+            // 다음 날짜로 이동
+            currentDate = currentDate.plusDays(1);
+        }
+
+        return result;
+    }
+
+    // 특정 날짜의 영양소 섭취량 계산 (탄수화물, 단백질, 지방만)
+    private Map<String, Integer> calcDailyNutrients(Student student, LocalDate date) {
+        // 해당 날짜에 학생이 섭취한 메뉴 조회
+        List<Leftover> leftovers = leftoverRepository.findByStudentAndLeftoverDate(student, date);
+
+        // 영양소별 합계 초기화
+        int totalCarbo = 0;
+        int totalProtein = 0;
+        int totalFat = 0;
+
+        // 각 메뉴의 영양소 정보 조회 및 합산
+        for (Leftover leftover : leftovers) {
+            Long menuId = leftover.getMenu().getId();
+            float leftoverRate = leftover.getLeftoverRate() / 100f; // 백분율을 소수로 변환 (30% -> 0.3)
+            float consumptionRate = 1 - leftoverRate; // 실제 섭취율 (1 - 0.3 = 0.7 즉 70%)
+
+            // 탄수화물 계산
+            MenuNutrient carbo = menuNutrientRepository.findByMenuIdAndNutrientId(menuId, CARBO_NUTRIENT_ID);
+            if (carbo != null) {
+                totalCarbo += Math.round(carbo.getAmount() * consumptionRate);
+            }
+
+            // 단백질 계산
+            MenuNutrient protein = menuNutrientRepository.findByMenuIdAndNutrientId(menuId, PROTEIN_NUTRIENT_ID);
+            if (protein != null) {
+                totalProtein += Math.round(protein.getAmount() * consumptionRate);
+            }
+
+            // 지방 계산
+            MenuNutrient fat = menuNutrientRepository.findByMenuIdAndNutrientId(menuId, FAT_NUTRIENT_ID);
+            if (fat != null) {
+                totalFat += Math.round(fat.getAmount() * consumptionRate);
+            }
+        }
+
+        // 계산된 영양소 섭취량을 g 단위로 저장
+        Map<String, Integer> result = new HashMap<>();
+        result.put("carbo", totalCarbo);
+        result.put("protein", totalProtein);
+        result.put("fat", totalFat);
+
+        return result;
+    }
+
+    // AI 서버에 분석 요청 - 수정된 메서드
+    private HealthReportResponseDto getAiAnalysis(HealthReportRequestDto requestDto) throws JsonProcessingException {
+        log.info("AI 서버에 분석 요청 전송");
+
+        // 요청 헤더 설정
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        // 요청 바디 생성
+        String requestBody = objectMapper.writeValueAsString(requestDto);
+        HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
+
+        // RestTemplate 인스턴스를 필요할 때 생성
+        RestTemplate restTemplate = new RestTemplate();
+
+        // AI 서버에 요청 전송
+        ResponseEntity<String> response = restTemplate.postForEntity(
+                AI_SERVER_URL, entity, String.class
+        );
+
+        // 응답 처리
+        if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+            return objectMapper.readValue(response.getBody(), HealthReportResponseDto.class);
+        } else {
+            log.error("AI 서버 응답 실패: {}", response.getStatusCode());
+            throw new RuntimeException("AI 서버 응답 실패");
+        }
+    }
+}
