@@ -25,8 +25,5 @@ COPY --from=builder /app/build/libs/*.jar app.jar
 # 컨테이너 내부 포트
 EXPOSE 8000
 
-# Actuator (Prometheus)
-EXPOSE 9000
-
 # 앱 실행
 ENTRYPOINT ["java","-jar","app.jar"]
