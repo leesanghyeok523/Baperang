@@ -1,69 +1,120 @@
+import { useState, useEffect, useRef } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { WasteData } from '../data/menuData';
 
 interface PreferenceChartProps {
-  data: WasteData[];
+  data: WasteData[]; // 초기 데이터로 사용됨
 }
 
+// 선호도 데이터 형식
 interface PreferenceData {
   name: string;
   선호도: number;
 }
 
 const PreferenceChart: React.FC<PreferenceChartProps> = ({ data }) => {
-  // 선호도 데이터 생성 (잔반률에서 역산)
-  const preferenceData = data.map((item) => ({
-    name: item.name,
-    선호도: 100 - item.잔반률,
-  }));
+  const [preferenceData, setPreferenceData] = useState<PreferenceData[]>([]);
+  const chartRef = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState<boolean>(true);
 
-  // 최대 선호도 값 찾기
-  const maxPreferenceValue = Math.max(...preferenceData.map((item) => item.선호도));
+  // 데이터를 선호도 형식으로 변환 - SSE에서 받은 데이터만 사용
+  const convertToPreferenceData = (wasteData: WasteData[]): PreferenceData[] => {
+    // SSE에서 받은 데이터만 필터링 (선호도 값이 0보다 큰 항목만)
+    const filteredData = wasteData.filter((item) => (item.선호도 ?? 0) > 0);
+
+    // 데이터가 비어있으면 빈 배열 반환
+    if (!filteredData || filteredData.length === 0) {
+      return [];
+    }
+
+    // 데이터 변환
+    const converted = filteredData.map((item) => ({
+      name: item.name,
+      선호도: item.선호도 ?? 0,
+    }));
+
+    return converted;
+  };
+
+  // 선호도 데이터 초기화 (props로 받은 데이터 사용)
+  useEffect(() => {
+    const newData = convertToPreferenceData(data);
+    setPreferenceData(newData);
+
+    // 차트 가시성 리셋 (새로운 데이터가 들어올 때 다시 보이게)
+    setIsVisible(false);
+    setTimeout(() => setIsVisible(true), 50);
+  }, [data]);
+
+  // 데이터가 없는 경우 표시할 내용
+  if (preferenceData.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full w-full">
+        <p className="text-gray-500 text-xl">선호도 데이터가 아직 없습니다</p>
+      </div>
+    );
+  }
+
+  // 최대 선호도 값 찾기 (최대값이 5를 넘지 않도록 제한)
+  const maxPreferenceValue = Math.min(
+    5,
+    Math.max(...preferenceData.map((item) => item.선호도), 0.1)
+  );
 
   // 선호도 색상 결정 함수
   const getPreferenceFillColor = (entry: PreferenceData) => {
+    // 선호도가 0인 경우에도 색상 지정
+    if (entry.선호도 <= 0) return '#FFCACA';
     return entry.선호도 === maxPreferenceValue ? '#FF5252' : '#FF8A8A';
   };
 
   return (
-    <ResponsiveContainer width="100%" height="100%">
-      <BarChart
-        data={preferenceData}
-        margin={{
-          top: 20,
-          right: 20,
-          left: 20,
-          bottom: 20,
-        }}
-      >
-        <XAxis dataKey="name" type="category" tick={{ fontSize: 20 }} tickMargin={10} />
-        <YAxis
-          type="number"
-          domain={[0, 100]}
-          tickFormatter={(value) => `${value}%`}
-          tickMargin={10}
-        />
-        <Tooltip
-          formatter={(value) => [`${value}%`, '선호도']}
-          contentStyle={{ backgroundColor: 'white', borderRadius: '4px' }}
-        />
-        <Bar
-          dataKey="선호도"
-          radius={[15, 15, 0, 0]}
-          barSize={90}
-          label={{
-            position: 'top',
-            fill: '#333',
-            formatter: (value: number) => `${value}%`,
-            dy: -10,
-          }}
-        >
-          {preferenceData.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={getPreferenceFillColor(entry)} />
-          ))}
-        </Bar>
-      </BarChart>
-    </ResponsiveContainer>
+    <div className="relative h-full w-full flex flex-col" ref={chartRef}>
+      {isVisible && (
+        <div className="flex-1">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={preferenceData}
+              margin={{
+                top: 30,
+                right: 20,
+                left: 20,
+                bottom: 0,
+              }}
+            >
+              <XAxis dataKey="name" type="category" tick={{ fontSize: 14 }} tickMargin={10} />
+              <YAxis
+                type="number"
+                domain={[0, 5]}
+                ticks={[0, 1, 2, 3, 4, 5]}
+                tickFormatter={(value) => `${value}점`}
+                tickMargin={10}
+              />
+              <Tooltip
+                formatter={(value) => [`${Number(value).toFixed(1)}점`, '선호도']}
+                contentStyle={{ backgroundColor: 'white', borderRadius: '4px' }}
+              />
+              <Bar
+                dataKey="선호도"
+                radius={[15, 15, 0, 0]}
+                barSize={80}
+                label={{
+                  position: 'top',
+                  fill: '#333',
+                  fontSize: 12,
+                  formatter: (value: number) => `${value > 0 ? value.toFixed(1) : '0'}점`,
+                  dy: -1,
+                }}
+              >
+                {preferenceData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={getPreferenceFillColor(entry)} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </div>
   );
 };
 

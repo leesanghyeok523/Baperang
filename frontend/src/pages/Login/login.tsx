@@ -22,7 +22,10 @@ const LoginPage: React.FC = () => {
     setError('');
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e?: React.FormEvent) => {
+    // 폼 제출 시 페이지 새로고침 방지
+    if (e) e.preventDefault();
+
     // 간단한 유효성 검사
     if (!formData.loginId || !formData.password) {
       setError('아이디와 비밀번호를 모두 입력해주세요.');
@@ -51,7 +54,7 @@ const LoginPage: React.FC = () => {
         bg-center
       "
     >
-      <div className="w-full max-w-sm space-y-6">
+      <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-6">
         <div className="h-28 bg-logo bg-contain bg-no-repeat bg-center"></div>
 
         <InputCard
@@ -81,17 +84,18 @@ const LoginPage: React.FC = () => {
 
         <div className="flex justify-center gap-4">
           <Button
+            type="button"
             className="w-full max-w-[200px] py-3 bg-white/50 hover:bg-green-500 hover:text-white"
             onClick={() => navigate('/join')}
             disabled={isLoading}
           >
             회원가입
           </Button>
-          <Button className="w-full max-w-[200px] py-3" onClick={handleSubmit} disabled={isLoading}>
+          <Button type="submit" className="w-full max-w-[200px] py-3" disabled={isLoading}>
             {isLoading ? '로그인 중...' : '로그인'}
           </Button>
         </div>
-      </div>
+      </form>
     </div>
   );
 };

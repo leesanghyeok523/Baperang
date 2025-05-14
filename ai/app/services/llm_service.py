@@ -3,8 +3,6 @@ import os
 import asyncio
 
 from typing import Dict, Any, List, Optional
-from langchain_openai import ChatOpenAI
-from langchain_core.messages import HumanMessage, SystemMessage
 from openai import OpenAI
 
 from ..config import settings

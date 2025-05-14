@@ -16,6 +16,7 @@ const API_CONFIG = {
       FIND_ID: '/api/v1/user/find-id',
       NEW_PASSWORD: '/api/v1/user/new-password',
       USER_INFO: '/api/v1/user/users', // /{user-id} 파라미터 필요
+      MYPAGE: '/api/v1/user/profile',
       REFRESH_TOKEN: '/api/v1/user/refresh-token',
       DELETE_USER: '/api/v1/user/users',
     },
@@ -25,15 +26,25 @@ const API_CONFIG = {
       DAILY_LEFTOVER: '/api/v1/leftover/date', // /{date} 파라미터 필요
       WEEKLY_LEFTOVER: '/api/v1/leftover/week', // /{startDate}/{endDate} 파라미터 필요
       MONTHLY_LEFTOVER: '/api/v1/leftover/month', // /{year}/{month} 파라미터 필요
-      MENU_CALENDAR: '/api/v1/menus/calender', // ?year={year}&month={month} 쿼리 필요
+      MENU_CALENDAR: '/api/v1/menu/calendar', // ?year={year}&month={month} 쿼리 필요
+      TODAY_MENU: '/api/v1/menu/today',
       AI_SUGGESTION: '/api/v1/menu/suggestion',
       UPDATE_SUGGESTION: '/api/v1/menu/suggestion', // /{date} 파라미터 필요
       MENU_FAVORITE: '/api/v1/menu/favorite',
+      MONTHLY_WASTE: '/api/v1/menu/leftover/month', // /{year}/{month} 파라미터 필요
+      DAILY_DISH_WASTE: '/api/v1/menu/leftover/date', // /{date} 파라미터 필요
     },
 
     // 학생 관리
     STUDENT: {
-      GET_ALL: '/api/v1/studentname/all',
+      GET_ALL: '/api/v1/student/studentname/all',
+      GET_STUDENT_DETAIL: '/api/v1/student/studentname', // /{studentId} 파라미터 필요
+    },
+
+    // 학교 관련
+    SCHOOL: {
+      CITIES: '/api/v1/school/cities',
+      SCHOOLS: '/api/v1/school/schools',
     },
 
     // AI 관련
@@ -42,6 +53,12 @@ const API_CONFIG = {
       TRAY_START: '/api/v1/ai/tray/start',
       TRAY_END: '/api/v1/ai/tray/end',
       LEFTOVER_MEASURE: '/api/v1/ai/leftover/measure',
+    },
+
+    // 만족도 조사 관련 (SSE)
+    SATISFACTION: {
+      VOTE: '/api/v1/sse/vote',
+      SUBSCRIBE: '/api/v1/sse/subscribe',
     },
   },
 
