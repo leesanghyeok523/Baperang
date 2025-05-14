@@ -69,7 +69,7 @@ public class HealthReportServiceImpl implements HealthReportService{
                 return ErrorResponseDto.of(BaperangErrorCode.STUDENT_NOT_FOUND);
             }
 
-            // bmi 지수
+            // bmi 지수 구하기
             Student student = studentOpt.get();
 
             Float height = student.getHeight() / 100f;
