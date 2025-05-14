@@ -5,17 +5,12 @@
 # gitignore template for Jupyter Notebooks
 # website: http://jupyter.org/
 
-/ai/test/*.xlsx
-/ai/test/*.xls
-/ai/test/*.txt
-/ai/test/*.csv
-# /ai/test/food_data.xlsx
-# /ai/test/food_data.csv
-# /ai/test/school_food_data.xlsx
-# /ai/test/school_food_data.csv
-# /ai/test/school_food_data - 복사본.xls
-# /ai/test/preprocess_food.csv
-# /ai/test/preprocess_school_food.csv
+/ai/test/food_data.xlsx
+/ai/test/food_data.csv
+/ai/test/school_food_data.xlsx
+/ai/test/school_food_data.csv
+/ai/test/school_food_data - 복사본.xls
+/ai/test/preprocess_food_data.csv
 
 .ipynb_checkpoints
 */.ipynb_checkpoints/*
