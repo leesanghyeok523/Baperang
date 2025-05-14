@@ -14,6 +14,7 @@ DROP TABLE IF EXISTS nutrient;
 DROP TABLE IF EXISTS student;
 DROP TABLE IF EXISTS `user`;        -- USER 예약어 주의
 DROP TABLE IF EXISTS school;
+DROP TABLE IF EXISTS controller_performance;
 
 CREATE TABLE school (
                         school_pk    BIGINT       PRIMARY KEY AUTO_INCREMENT,
@@ -110,4 +111,17 @@ CREATE TABLE leftover (
                               REFERENCES student(student_pk)
                               ON DELETE CASCADE
                               ON UPDATE CASCADE
+);
+
+CREATE TABLE controller_performance (
+                          id              BIGINT       PRIMARY KEY AUTO_INCREMENT,
+                          controller_name VARCHAR(255),
+                          method_name     VARCHAR(255),
+                          execution_time_ms BIGINT,
+                          timestamp       TIMESTAMP,
+                          request_path    VARCHAR(255),
+                          http_method     VARCHAR(20),
+                          is_success      BOOLEAN,
+                          status_code     INT,
+                          error_message   TEXT
 );
