@@ -4,6 +4,7 @@ import com.ssafy.baperang.domain.leftover.dto.response.ErrorResponseDto;
 import com.ssafy.baperang.domain.student.dto.request.GetStudentLeftoverRequestDto;
 import com.ssafy.baperang.domain.student.dto.request.NfcStudentRequestDto;
 import com.ssafy.baperang.domain.student.dto.request.SaveStudentLeftoverRequestDto;
+import com.ssafy.baperang.domain.student.service.HealthReportService;
 import com.ssafy.baperang.domain.student.service.NfcService;
 import com.ssafy.baperang.domain.student.service.StudentService;
 import com.ssafy.baperang.global.exception.BaperangErrorCode;
@@ -25,6 +26,7 @@ public class StudentController {
     private final StudentService studentService;
     private final JwtService jwtService;
     private final NfcService nfcService;
+    private final HealthReportService healthReportService;
 
     @GetMapping("/studentname/all")
     public ResponseEntity<?> getAllStudentNames(@RequestHeader("Authorization") String authorizationHeader) {
@@ -164,5 +166,33 @@ public class StudentController {
 
         return ResponseEntity.ok(result);
     }
+
+    // ai 리포트 생성
+    @GetMapping("/{studentId}/health-report")
+    public ResponseEntity<?> getHealthReport(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @PathVariable("studentId") Long studentId) {
+
+        log.info("건강 리포트 요청 - 학생 ID: {}", studentId);
+
+        String token = authorizationHeader.substring(7);
+
+        if (!jwtService.validateToken(token)) {
+            return ResponseEntity.status(401).body(ErrorResponseDto.of(
+                    BaperangErrorCode.INVALID_TOKEN));
+        }
+
+        Object result = healthReportService.generateReport(token, studentId);
+        if (result instanceof ErrorResponseDto) {
+            ErrorResponseDto errorResponseDto = (ErrorResponseDto) result;
+            log.info("건강 리포트 함수 에러 - 상태: {}, 코드: {}, 메시지: {}",
+                    errorResponseDto.getStatus(), errorResponseDto.getCode(), errorResponseDto.getMessage());
+            return ResponseEntity.status(errorResponseDto.getStatus()).body(result);
+        }
+
+        log.info("건강 리포트 정상 응답");
+        return ResponseEntity.ok(result);
+    }
+
 
 }
