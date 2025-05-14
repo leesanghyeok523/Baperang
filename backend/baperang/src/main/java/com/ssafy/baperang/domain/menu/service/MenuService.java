@@ -8,4 +8,6 @@ public interface MenuService {
     Object getOneDayMenu(String token, String date);  
 
     Object getTodayMenu(String token);
+
+    Object getMenuNutrient(String token, String menu, String date);
 }

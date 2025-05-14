@@ -12,23 +12,23 @@ interface PreferenceData {
   선호도: number;
 }
 
-// 차트에 표시할 기본 데이터
-const DEFAULT_DATA: PreferenceData[] = [{ name: '데이터 로딩중', 선호도: 0 }];
-
 const PreferenceChart: React.FC<PreferenceChartProps> = ({ data }) => {
-  const [preferenceData, setPreferenceData] = useState<PreferenceData[]>(DEFAULT_DATA);
+  const [preferenceData, setPreferenceData] = useState<PreferenceData[]>([]);
   const chartRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState<boolean>(true);
 
-  // 데이터를 선호도 형식으로 변환
+  // 데이터를 선호도 형식으로 변환 - SSE에서 받은 데이터만 사용
   const convertToPreferenceData = (wasteData: WasteData[]): PreferenceData[] => {
-    // 데이터가 비어있으면 기본 데이터 생성
-    if (!wasteData || wasteData.length === 0) {
-      return DEFAULT_DATA;
+    // SSE에서 받은 데이터만 필터링 (선호도 값이 0보다 큰 항목만)
+    const filteredData = wasteData.filter((item) => (item.선호도 ?? 0) > 0);
+
+    // 데이터가 비어있으면 빈 배열 반환
+    if (!filteredData || filteredData.length === 0) {
+      return [];
     }
 
-    // 데이터 변환 및 선호도 값 확인
-    const converted = wasteData.map((item) => ({
+    // 데이터 변환
+    const converted = filteredData.map((item) => ({
       name: item.name,
       선호도: item.선호도 ?? 0,
     }));
@@ -45,6 +45,15 @@ const PreferenceChart: React.FC<PreferenceChartProps> = ({ data }) => {
     setIsVisible(false);
     setTimeout(() => setIsVisible(true), 50);
   }, [data]);
+
+  // 데이터가 없는 경우 표시할 내용
+  if (preferenceData.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full w-full">
+        <p className="text-gray-500 text-xl">선호도 데이터가 아직 없습니다</p>
+      </div>
+    );
+  }
 
   // 최대 선호도 값 찾기 (최대값이 5를 넘지 않도록 제한)
   const maxPreferenceValue = Math.min(

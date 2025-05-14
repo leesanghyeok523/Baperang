@@ -1,18 +1,29 @@
 package com.ssafy.baperang.domain.menunutrient.repository;
 
-import com.ssafy.baperang.domain.menunutrient.entity.MenuNutrient;
-import org.springframework.stereotype.Repository;
-
 import java.util.List;
 
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import com.ssafy.baperang.domain.menu.entity.Menu;
+import com.ssafy.baperang.domain.menunutrient.entity.MenuNutrient;
+
 @Repository
-public interface MenuNutrientRepository {
-    // 기본 CRUD 메서드
-    MenuNutrient save(MenuNutrient menuNutrient);
-    List<MenuNutrient> findAll();
+public interface MenuNutrientRepository extends JpaRepository<MenuNutrient, MenuNutrient.MenuNutrientId> {
 
-    // 커스텀 쿼리 메서드
+    /**
+     * 메뉴 ID로 영양소 정보 조회
+     * @param menuId 메뉴 ID
+     * @return 해당 메뉴의 영양소 정보 목록
+     */
+    List<MenuNutrient> findByMenuId(Long menuId);
+
+    /**
+     * Menu 엔티티로 영양소 정보 조회
+     * @param menu 메뉴 엔티티
+     * @return 해당 메뉴의 영양소 정보 목록
+     */
+    List<MenuNutrient> findByMenu(Menu menu);
+
     MenuNutrient findByMenuIdAndNutrientId(Long menuId, Long nutrientId);
-
-    // 추가로 필요한 비즈니스 메서드가 있으면 여기에 선언
 }

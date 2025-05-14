@@ -1,9 +1,13 @@
 package com.ssafy.baperang.domain.menu.entity;
 
 import java.time.LocalDate;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import com.ssafy.baperang.domain.menunutrient.entity.MenuNutrient;
 import com.ssafy.baperang.domain.school.entity.School;
 
 import jakarta.persistence.Column;
@@ -102,5 +106,31 @@ public class Menu {
      */
     public int getTotalFavorite() {
         return (this.favorite != null) ? Math.round(this.favorite) : 0;
+    }
+    
+    /**
+     * 메뉴의 영양소 정보를 Map으로 반환
+     * 이 메서드는 서비스 레이어에서 MenuNutrientRepository를 주입받아 사용해야 함
+     * @param menuNutrients 해당 메뉴의 영양소 정보 목록
+     * @return 영양소 정보가 담긴 Map
+     */
+    public Map<String, Object> getNutrientInfo(List<MenuNutrient> menuNutrients) {
+        Map<String, Object> result = new HashMap<>();
+        result.put("메뉴", this.menuName);
+        result.put("양", this.amount);
+
+        // 영양소 정보를 별도의 Map으로 그룹화
+        Map<String, Object> nutrients = new HashMap<>();
+        for (MenuNutrient menuNutrient : menuNutrients) {
+            String nutrientName = menuNutrient.getNutrient().getNutrientName();
+            String nutrientUnit = menuNutrient.getNutrient().getUnit();
+            Float amount = menuNutrient.getAmount();
+            nutrients.put(nutrientName, amount + nutrientUnit);
+        }
+        
+        // 영양소 정보를 별도 키로 추가
+        result.put("영양소", nutrients);
+
+        return result;
     }
 }
