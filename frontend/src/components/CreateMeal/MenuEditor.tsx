@@ -78,18 +78,20 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
   // 선택된 날짜에 메뉴 데이터가 없는 경우
   if (!menuData[selectedDate]) {
     return (
-      <div className="w-1/5 bg-[#FCF8F3]/90 rounded-3xl p-4 flex flex-col">
+      <div className="w-1/5 bg-[#FCF8F3]/90 rounded-3xl p-4 flex flex-col h-full">
         {editMode ? (
           <div className="flex flex-col h-full">
-            <div className="flex-grow flex flex-col gap-3 overflow-y-auto">
+            <div className="text-base font-semibold text-center mb-3">
+              {selectedDate.split('-')[1]}월 {selectedDate.split('-')[2]}일 수정
+            </div>
+            <div className="flex-grow flex flex-col gap-3 overflow-y-auto max-h-[336px] pr-1">
               {editableMenu.map((item, index) => (
                 <div key={index} className="relative">
                   <input
                     type="text"
                     value={item}
                     onChange={(e) => handleMenuItemChange(index, e.target.value)}
-                    className="w-full rounded-3xl px-4 py-3 bg-white text-center focus:outline-none focus:bg-white/90 pr-8 pl-8 shadow-sm"
-                    placeholder={`메뉴 항목 ${index + 1}`}
+                    className="w-full rounded-3xl px-4 py-3 bg-white text-center text-xs focus:outline-none focus:bg-[#E7E3DE] pr-8 pl-8 shadow-sm"
                   />
                   <button
                     onClick={() => handleRemoveMenuItem(index)}
@@ -102,22 +104,22 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
               <div className="flex justify-center mt-2">
                 <button
                   onClick={handleAddMenuItem}
-                  className="flex items-center justify-center text-green-600 hover:text-green-800"
+                  className="flex items-center justify-center text-orange-600 hover:text-orange-800"
                 >
                   <span>+ 메뉴 추가</span>
                 </button>
               </div>
             </div>
-            <div className="flex justify-center space-x-16 mb-4">
+            <div className="flex justify-center space-x-16 mt-4">
               <button
                 onClick={onCancel}
-                className="flex items-center text-green-600 hover:text-green-800"
+                className="flex items-center text-gray-600 hover:text-gray-800"
               >
                 <span>취소</span>
               </button>
               <button
                 onClick={handleSave}
-                className="flex items-center text-green-600 hover:text-green-800"
+                className="flex items-center text-orange-600 hover:text-orange-800"
               >
                 <span>저장</span>
               </button>
@@ -125,16 +127,16 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
           </div>
         ) : (
           <div className="flex flex-col h-full">
-            <div className="text-[14px] font-semibold text-center mb-3">
+            <div className="text-base font-semibold text-center mb-3">
               {selectedDate.split('-')[1]}월 {selectedDate.split('-')[2]}일 식단
             </div>
             <div className="flex-grow flex items-center justify-center text-gray-500 mb-4">
               이 날짜에는 식단이 없습니다.
             </div>
-            <div className="flex justify-center">
+            <div className="flex justify-center mt-4">
               <button
                 onClick={onEditStart}
-                className="flex items-center text-green-600 hover:text-green-800"
+                className="flex items-center text-orange-600 hover:text-orange-800"
               >
                 <span>식단 추가하기</span>
               </button>
@@ -148,16 +150,16 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
   // 선택된 날짜에 메뉴가 있고, 보기 모드인 경우
   if (!editMode) {
     return (
-      <div className="w-1/5 bg-[#FCF8F3]/90 rounded-3xl p-4 flex flex-col">
+      <div className="w-1/5 bg-[#FCF8F3]/90 rounded-3xl p-4 flex flex-col h-full">
         <div className="flex flex-col h-full">
-          <div className="text-lg font-semibold text-center mb-3">
+          <div className="text-base font-semibold text-center mb-3">
             {selectedDate.split('-')[1]}월 {selectedDate.split('-')[2]}일 식단
           </div>
-          <div className="flex-grow flex flex-col gap-3 items-center">
+          <div className="flex-grow flex flex-col gap-3 items-center overflow-y-auto max-h-[336px] pr-1">
             {menuData[selectedDate].menu.map((item, index) => (
               <div
                 key={index}
-                className="bg-white w-full px-4 py-3 rounded-3xl text-base font-medium shadow-sm text-center"
+                className="bg-white w-full px-4 py-3 rounded-3xl text-base text-xs shadow-sm text-center"
               >
                 {item}
               </div>
@@ -166,7 +168,7 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
           <div className="flex justify-center mt-4">
             <button
               onClick={onEditStart}
-              className="flex items-center text-orange-600 hover:text-orange-800 mb-4"
+              className="flex items-center text-orange-600 hover:text-orange-800"
             >
               <span>식단 수정하기</span>
             </button>
@@ -178,19 +180,19 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
 
   // 편집 모드인 경우
   return (
-    <div className="w-1/5 bg-[#FCF8F3]/90 rounded-3xl p-4 flex flex-col">
+    <div className="w-1/5 bg-[#FCF8F3]/90 rounded-3xl p-4 flex flex-col h-full">
       <div className="flex flex-col h-full">
-        <div className="text-lg font-semibold text-center mb-3">
+        <div className="text-base font-semibold text-center mb-3">
           {selectedDate.split('-')[1]}월 {selectedDate.split('-')[2]}일 수정
         </div>
-        <div className="flex-grow flex flex-col gap-3 overflow-y-auto">
+        <div className="flex-grow flex flex-col gap-3 overflow-y-auto max-h-[336px] pr-1">
           {editableMenu.map((item, index) => (
             <div key={index} className="relative">
               <input
                 type="text"
                 value={item}
                 onChange={(e) => handleMenuItemChange(index, e.target.value)}
-                className="w-full rounded-3xl px-4 py-3 bg-white text-center focus:outline-none focus:bg-[#E7E3DE] pr-8 pl-8 shadow-sm"
+                className="w-full rounded-3xl px-4 py-3 bg-white text-center text-xs focus:outline-none focus:bg-[#E7E3DE] pr-8 pl-8 shadow-sm"
               />
               <button
                 onClick={() => handleRemoveMenuItem(index)}
@@ -203,13 +205,13 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
           <div className="flex justify-center mt-2">
             <button
               onClick={handleAddMenuItem}
-              className="flex items-center justify-center text-gray-700 hover:text-gray-900"
+              className="flex items-center justify-center text-orange-600 hover:text-orange-800"
             >
               <span>+ 메뉴 추가</span>
             </button>
           </div>
         </div>
-        <div className="flex justify-center space-x-16 mb-4">
+        <div className="flex justify-center space-x-16 mt-4">
           <button
             onClick={onCancel}
             className="flex items-center text-gray-600 hover:text-gray-800"

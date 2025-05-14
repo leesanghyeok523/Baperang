@@ -9,13 +9,12 @@ const Header = ({ isLoggedIn }: HeaderProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <header className="bg-transparent py-10 fixed top-1 left-0 right-0 z-50 w-full">
+    <header className="bg-transparent py-8 fixed left-0 right-0 z-50 w-full">
       <div className="flex justify-between items-center w-[89%] mx-auto">
         <div className="flex items-center">
           {/* 로고 이미지와 텍스트 */}
           <Link to="/" className="flex items-center">
             <img src="/images/logo/logo.png" alt="밥이랑 로고" className="h-16 w-auto mr-2" />
-            <span className="text-xl font-bold"></span>
           </Link>
         </div>
 
@@ -49,8 +48,14 @@ const Header = ({ isLoggedIn }: HeaderProps) => {
               <Link to="/diet" className="text-gray-700 hover:text-gray-900 font-bold ">
                 식단생성
               </Link>
+              <Link to="/student" className="text-gray-700 hover:text-gray-900 font-bold">
+                학생관리
+              </Link>
               <Link to="/inventory" className="text-gray-700 hover:text-gray-900 font-bold">
                 재고관리
+              </Link>
+              <Link to="/dashboard" className="text-gray-700 hover:text-gray-900 font-bold">
+                대시보드
               </Link>
               <Link to="/mypage" className="text-gray-700 hover:text-gray-900 font-bold">
                 마이페이지
@@ -73,11 +78,25 @@ const Header = ({ isLoggedIn }: HeaderProps) => {
                 식단생성
               </Link>
               <Link
+                to="/student"
+                className="text-gray-700 hover:text-gray-900 font-bold px-4 py-2"
+                onClick={() => setIsOpen(false)}
+              >
+                학생관리
+              </Link>
+              <Link
                 to="/inventory"
                 className="text-gray-700 hover:text-gray-900 font-bold px-4 py-2"
                 onClick={() => setIsOpen(false)}
               >
                 재고관리
+              </Link>
+              <Link
+                to="/dashboard"
+                className="text-gray-700 hover:text-gray-900 font-bold px-4 py-2"
+                onClick={() => setIsOpen(false)}
+              >
+                대시보드
               </Link>
               <Link
                 to="/mypage"

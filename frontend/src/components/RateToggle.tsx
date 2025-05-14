@@ -12,7 +12,8 @@ interface RateToggleCardProps {
 
 const RateToggleCard: React.FC<RateToggleCardProps> = ({ data }) => {
   // 0: 실시간 잔반률, 1: 실시간 선호도, 2: 실시간 식사 완료율
-  const [viewMode, setViewMode] = useState(0);
+  // 기본으로 선호도 차트를 먼저 보여줌
+  const [viewMode, setViewMode] = useState(1);
 
   // 임시 식사 완료율 데이터 (실제로는 API나 props로 받아야 함)
   const completionRate = 80;
@@ -64,7 +65,7 @@ const RateToggleCard: React.FC<RateToggleCardProps> = ({ data }) => {
         >
           <FiChevronLeft size={30} />
         </button>
-        <div className="font-semibold text-gray-800 text-2xl">{getTitle()}</div>
+        <div className="font-semibold text-gray-800 text-xl">{getTitle()}</div>
         <button
           className="text-gray-600 hover:text-gray-900 focus:outline-none"
           onClick={handleRightClick}

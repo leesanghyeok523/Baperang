@@ -18,7 +18,7 @@ const CalendarHeader = ({
   handleExcelDownload,
 }: CalendarHeaderProps) => {
   return (
-    <div className="grid grid-cols-3 items-center p-7 bg-white/50">
+    <div className="grid grid-cols-3 items-center p-4 bg-white/50">
       {/* 왼쪽 - 뷰 전환 버튼 */}
       <div className="flex items-center">
         <button
@@ -47,7 +47,7 @@ const CalendarHeader = ({
         >
           <FiChevronLeft size={30} />
         </button>
-        <h1 className="text-2xl font-bold text-center">
+        <h1 className="text-xl font-bold text-center">
           {displayYearMonth} {showWasteChart ? '잔반률' : '식단표'}
         </h1>
         <button

@@ -67,20 +67,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(403).body(response);
     }
 
-    // SSE 응답을 위한 예외 처리
-    @ExceptionHandler(AsyncRequestTimeoutException.class)
-    public ResponseEntity<String> handleAsyncRequestTimeoutException(AsyncRequestTimeoutException ex) {
-        ErrorResponse errorResponse = ErrorResponse.of(BaperangErrorCode.QUEUE_TIMEOUT);
-        String sseResponse = String.format("data: {\"status\":%d,\"code\":\"%s\",\"message\":\"%s\"}\n\n",
-                errorResponse.getStatus(),
-                errorResponse.getCode(),
-                errorResponse.getMessage());
-        
-        return ResponseEntity.ok()
-                .contentType(MediaType.TEXT_EVENT_STREAM)
-                .body(sseResponse);
-    }
-
     // 기타 예외 처리
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleException(Exception ex) {
