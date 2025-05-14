@@ -4,13 +4,10 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import datetime
 from .config import settings
+from .api.routes import router
 
 if settings.DEBUG:
     print(f"[MAIN] Initailizing {settings.API_TITLE} v{settings.API_VERSION}")
-
-
-from .api.routes import router
-from .config import settings
 
 app = FastAPI(
     title=settings.API_TITLE,
