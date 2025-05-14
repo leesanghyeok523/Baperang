@@ -62,7 +62,7 @@ class AnalyzeService:
 
         # 모델 가중치 파일 경로 설정 + 로딩 시간 측정
         load_start = time.time()
-        weights_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'weights', 'new_opencv_ckpt_b84_e200.pth')
+        weights_path = os.path.join('app', 'weigths', 'new_opencv_ckpt_b84_e200.pth')
         resnet_model = load_resnet_model(weights_path, device='cuda')
         midas_model, midas_transform = load_midas_model(device='cuda')
         load_elapsed = time.time() - load_start
