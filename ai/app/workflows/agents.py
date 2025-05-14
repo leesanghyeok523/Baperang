@@ -120,7 +120,7 @@ class IntegrationAgent:
 
         # 통합 식단 평가 (메트릭 계산)
         # metrics = self._calculate_metrics(integrated_plan, state)
-
+        # print("[AGENT][metrics] : ", metrics)
         # 결과 반환
         return {
             "integrated_plan": integrated_plan,
