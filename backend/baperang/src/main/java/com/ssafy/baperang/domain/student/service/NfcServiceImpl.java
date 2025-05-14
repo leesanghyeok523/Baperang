@@ -251,18 +251,17 @@ public class NfcServiceImpl implements NfcService {
 
             // AI 서버로 url 전송
             try {
-                // 나중에 배포 서버에서 할 경우 .env 파일로 baseurl 수정
+
                 String aiServerUrl = "http://127.0.0.1:8001/ai/analyze-leftover";
 
                 Map<String, Object> requestBody = new HashMap<>();
 
+                // 키 포맷팅 적용 (side_1 -> side1)
                 Map<String, String> formattedBeforeImageMap = formatImageKeyNames(beforeImageUrlMap);
                 Map<String, String> formattedAfterImageMap = formatImageKeyNames(afterImageUrlMap);
 
-
-
-                requestBody.put("before_images", beforeImageUrlMap);
-                requestBody.put("after_images", afterImageUrlMap);
+                requestBody.put("beforeImages", formattedBeforeImageMap);
+                requestBody.put("afterImages", formattedAfterImageMap);
 
                 Map<String, Object> studentInfo = new HashMap<>();
                 studentInfo.put("id", student.getId());
@@ -270,7 +269,7 @@ public class NfcServiceImpl implements NfcService {
                 studentInfo.put("grade", student.getGrade());
                 studentInfo.put("class", student.getClassNum());
                 studentInfo.put("number", student.getNumber());
-                requestBody.put("student_info", studentInfo);
+                requestBody.put("studentInfo", studentInfo);
 
                 HttpHeaders headers = new HttpHeaders();
                 headers.setContentType(MediaType.APPLICATION_JSON);

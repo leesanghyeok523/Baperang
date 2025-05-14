@@ -191,94 +191,68 @@ public class LeftoverServiceImpl implements LeftoverService {
 
             List<Menu> todayMenus = menuRepository.findBySchoolAndMenuDate(schoolEntity, today);
 
-            // ID 순으로 정렬
-            todayMenus.sort(Comparator.comparing(Menu::getId));
-
             if (todayMenus.isEmpty()) {
                 log.warn("해당 날짜({})의 메뉴 정보가 없습니다.", today);
                 return ErrorResponseDto.of(BaperangErrorCode.MENU_NOT_FOUND);
             }
 
-            // 카테고리별로 메뉴 분류 (PK 순서 유지)
-            List<Menu> mainMenus = new ArrayList<>();
-            List<Menu> sideMenus = new ArrayList<>();
-            Menu riceMenu = null;
-            Menu soupMenu = null;
+            // 메뉴 카테고리별 매핑 (간소화된 버전)
+            Map<String, Menu> positionMenuMap = new HashMap<>();
 
+            // 메뉴 순회하면서 카테고리에 따라 바로 매핑
             for (Menu menu : todayMenus) {
                 String category = menu.getCategory();
                 switch (category) {
                     case "main":
-                        mainMenus.add(menu);
+                        positionMenuMap.put("main", menu);
                         break;
                     case "side":
-                        sideMenus.add(menu);
+                        // side 카테고리는 side1, side2로 구분해야 함
+                        if (!positionMenuMap.containsKey("side1")) {
+                            positionMenuMap.put("side1", menu);
+                        } else if (!positionMenuMap.containsKey("side2")) {
+                            positionMenuMap.put("side2", menu);
+                        }
                         break;
                     case "rice":
-                        riceMenu = menu;
+                        positionMenuMap.put("rice", menu);
                         break;
                     case "soup":
-                        soupMenu = menu;
+                        positionMenuMap.put("soup", menu);
                         break;
                 }
-            }
-
-            // 매핑 규칙에 따라 위치별 메뉴 매핑 (side1, side2 형식으로 변경)
-            Map<String, Menu> positionMenuMap = new HashMap<>();
-
-            // 예외 처리
-            // 1. main 처리
-            for (int i = 0; i < mainMenus.size() && i < 2; i++) {
-                // i=0이면 side1, i=1이면 side2에 할당
-                positionMenuMap.put("side" + (i + 1), mainMenus.get(i));
-            }
-
-            // 2. side 처리
-            int sideIndex = 0;
-            for (int position = 1; position <= 3; position++) {
-                String key = "side" + position;
-                // 이미 할당된 위치가 아니고, 아직 처리할 side 메뉴가 있다면
-                if (!positionMenuMap.containsKey(key) && sideIndex < sideMenus.size()) {
-                    positionMenuMap.put(key, sideMenus.get(sideIndex++));
-                }
-            }
-
-            // 3. rice 카테고리 처리
-            if (riceMenu != null) {
-                positionMenuMap.put("rice", riceMenu);
-            } else if (sideIndex < sideMenus.size()) {
-                // rice가 없으면 남은 side 메뉴를 rice 위치에 할당
-                positionMenuMap.put("rice", sideMenus.get(sideIndex++));
-                log.info("Rice 메뉴 없음 - rice 위치에 side 메뉴 할당: {}",
-                        positionMenuMap.get("rice").getMenuName());
-            } else if (mainMenus.size() > 2) {
-                // 남은 side 메뉴가 없고 main이 2개 초과라면 초과분 할당
-                positionMenuMap.put("rice", mainMenus.get(2));
-                log.info("Rice 메뉴 없음 - rice 위치에 main 메뉴 할당: {}",
-                        positionMenuMap.get("rice").getMenuName());
-            }
-
-            // 4. soup 카테고리 처리
-            if (soupMenu != null) {
-                positionMenuMap.put("soup", soupMenu);
             }
 
             // 매핑 결과 로그
             for (Map.Entry<String, Menu> entry : positionMenuMap.entrySet()) {
-                log.info("위치 {} 매핑: {} (PK: {}, 카테고리: {})",
+                log.info("위치 {} 매핑: {} (카테고리: {})",
                         entry.getKey(), entry.getValue().getMenuName(),
-                        entry.getValue().getId(), entry.getValue().getCategory());
+                        entry.getValue().getCategory());
             }
 
             // AI 응답과 매핑하여 잔반 데이터 저장
             List<Leftover> savedLeftovers = new ArrayList<>();
+            int skip = 0;
 
-            // side1, side2, side3 처리
-            for (int i = 1; i <= 3; i++) {
-                String key = "side" + i;
-                if (leftoverData.containsKey(key) && positionMenuMap.containsKey(key)) {
-                    Menu menu = positionMenuMap.get(key);
-                    float leftoverRate = ((Number) leftoverData.get(key)).floatValue();
+            // 각 메뉴 위치별 잔반율 저장
+            for (String position : Arrays.asList("side1", "side2", "main", "rice", "soup")) {
+                if (leftoverData.containsKey(position) && positionMenuMap.containsKey(position)) {
+                    Menu menu = positionMenuMap.get(position);
+
+                    Optional<Leftover> existingLeftover = leftoverRepository.findByStudentAndMenuAndLeftoverDate(
+                            student, menu, today
+                    );
+
+                    if (existingLeftover.isPresent()) {
+                        log.info("이미 저장된 잔반 데이터가 있음. 학생={}, 메뉴={}, 날짜={}", student.getStudentName(), menu.getMenuName(), today);
+                        skip++;
+                        continue;
+                    }
+
+
+                    float rawLeftoverRate = ((Number) leftoverData.get(position)).floatValue();
+                    // 소수점 둘째 자리까지 포맷팅
+                    float leftoverRate = Float.parseFloat(df.format(rawLeftoverRate));
 
                     Leftover leftover = Leftover.builder()
                             .menu(menu)
@@ -289,45 +263,9 @@ public class LeftoverServiceImpl implements LeftoverService {
                             .build();
 
                     savedLeftovers.add(leftoverRepository.save(leftover));
-                    log.info("잔반 데이터 저장: 위치={}, 메뉴={}, 카테고리={}, 잔반율={}%",
-                            key, menu.getMenuName(), menu.getCategory(), leftoverRate);
+                    log.info("잔반 데이터 저장: 위치={}, 메뉴={}, 잔반율={}%",
+                            position, menu.getMenuName(), leftoverRate);
                 }
-            }
-
-            // rice 처리
-            if (leftoverData.containsKey("rice") && positionMenuMap.containsKey("rice")) {
-                Menu menu = positionMenuMap.get("rice");
-                float leftoverRate = ((Number) leftoverData.get("rice")).floatValue();
-
-                Leftover leftover = Leftover.builder()
-                        .menu(menu)
-                        .student(student)
-                        .leftoverDate(today)
-                        .leftMenuName(menu.getMenuName())
-                        .leftoverRate(leftoverRate)
-                        .build();
-
-                savedLeftovers.add(leftoverRepository.save(leftover));
-                log.info("잔반 데이터 저장: 위치=rice, 메뉴={}, 카테고리={}, 잔반율={}%",
-                        menu.getMenuName(), menu.getCategory(), leftoverRate);
-            }
-
-            // soup 처리
-            if (leftoverData.containsKey("soup") && positionMenuMap.containsKey("soup")) {
-                Menu menu = positionMenuMap.get("soup");
-                float leftoverRate = ((Number) leftoverData.get("soup")).floatValue();
-
-                Leftover leftover = Leftover.builder()
-                        .menu(menu)
-                        .student(student)
-                        .leftoverDate(today)
-                        .leftMenuName(menu.getMenuName())
-                        .leftoverRate(leftoverRate)
-                        .build();
-
-                savedLeftovers.add(leftoverRepository.save(leftover));
-                log.info("잔반 데이터 저장: 위치=soup, 메뉴={}, 카테고리={}, 잔반율={}%",
-                        menu.getMenuName(), menu.getCategory(), leftoverRate);
             }
 
             log.info("학생 ID: {}의 메뉴 {}개 잔반율 저장 완료", studentId, savedLeftovers.size());
@@ -336,6 +274,7 @@ public class LeftoverServiceImpl implements LeftoverService {
             result.put("success", true);
             result.put("message", "학생 잔반율 저장 완료");
             result.put("leftoverCount", savedLeftovers.size());
+            result.put("skip", skip);
 
             return result;
         } catch (Exception e) {

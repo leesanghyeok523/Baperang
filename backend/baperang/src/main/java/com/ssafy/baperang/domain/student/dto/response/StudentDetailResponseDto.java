@@ -23,6 +23,7 @@ public class StudentDetailResponseDto {
     private LocalDate date;
     private String content;
     private String schoolName;
+    private Float bmi;
 
     // Entity에서 DTO로 변환하는 정적 메소드
     public static StudentDetailResponseDto fromEntity(Student student) {
@@ -37,6 +38,7 @@ public class StudentDetailResponseDto {
                 .date(student.getImageDate())
                 .content(student.getContent())
                 .schoolName(student.getSchool().getSchoolName())
+                .bmi(null)
                 .build();
     }
 }
