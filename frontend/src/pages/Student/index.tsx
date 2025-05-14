@@ -417,7 +417,7 @@ const StudentManagement = () => {
         className="relative z-10 flex items-center justify-evenly"
         style={{ height: 'calc(100vh - 80px)', marginTop: '75px' }}
       >
-        <div className="w-[85%] mx-auto">
+        <div className="w-[90%] mx-auto">
           <div
             className="bg-[#F8F1E7] rounded-3xl shadow-lg p-0 flex flex-col overflow-hidden"
             style={{ height: '73vh' }}
@@ -425,7 +425,7 @@ const StudentManagement = () => {
             {/* 학생관리 컨텐츠 */}
             <div className="px-6 py-3 flex-grow flex flex-row gap-4 mb-1 h-full">
               {/* 좌측: 필터링 */}
-              <div className="w-full md:w-1/3 bg-transparent rounded-2xl p-6 flex flex-col">
+              <div className="w-full md:w-1/3 bg-transparent rounded-2xl p-6 flex flex-col h-full justify-between">
                 <div className="mb-2">
                   {/* 학년 선택 - 커스텀 드롭다운 */}
                   <div className="mb-4 relative" ref={gradeDropdownRef}>
@@ -534,9 +534,9 @@ const StudentManagement = () => {
                 </div>
 
                 {/* 학생 목록 - 스크롤 가능한 창 */}
-                <div className="flex-grow overflow-hidden bg-white/50 rounded-2xl px-4 py-2 h-full">
-                  <h3 className="text-base font-semibold mb-2 right-2 text-gray-700">학생 목록</h3>
-                  <div className="overflow-y-auto pr-2 h-[113px]">
+                <div className="flex-grow overflow-hidden bg-white/50 rounded-2xl px-4 py-2 flex flex-col">
+                  <h3 className="text-base font-semibold mb-3 pl-2 text-gray-700">학생 목록</h3>
+                  <div className="overflow-y-auto pr-2 flex-1">
                     {loading ? (
                       <div className="flex items-center justify-center h-full">
                         <p className="text-gray-500">데이터를 불러오는 중...</p>
@@ -594,7 +594,7 @@ const StudentManagement = () => {
               </div>
 
               {/* 우측: 학생 상세 정보 및 AI 리포트 */}
-              <div className="flex flex-row w-full md:w-2/3 h-[60%] items-center justify-center relative">
+              <div className="flex flex-row w-full md:w-2/3 h-full items-center justify-center">
                 {loading ? (
                   <div className="flex items-center justify-center h-full w-full">
                     <p className="text-gray-500">데이터를 불러오는 중...</p>
@@ -604,46 +604,48 @@ const StudentManagement = () => {
                     <p className="text-gray-500">학생을 선택해주세요</p>
                   </div>
                 ) : !aiReport ? (
-                  <div className="flex flex-col items-center justify-center w-full">
+                  <div className="flex flex-col items-center justify-center w-full h-full">
                     {/* 학생 정보 */}
-                    <div className="bg-white/50 rounded-2xl shadow-md p-6 text-center w-full h-[500px]">
-                      <div className="w-[180px] h-[180px] overflow-hidden mb-6 mt-2 mx-auto flex items-center justify-center">
-                        <img
-                          src={`/images/student/${
-                            selectedStudent.gender === '여'
-                              ? 'girl.png'
-                              : selectedStudent.gender === '남'
-                              ? 'boy.png'
-                              : 'blank.png'
-                          }`}
-                          alt={selectedStudent.name}
-                          className="w-full h-full object-cover rounded-full"
-                          onError={(e) => {
-                            // 이미지 로드 실패시 기본 이미지로 대체
-                            e.currentTarget.src = '/images/student/blank.png';
-                          }}
-                        />
-                      </div>
-                      <h2 className="text-2xl font-bold mb-4">이름 : {selectedStudent.name}</h2>
-                      <p className="text-xl mb-3">
-                        학번 : {selectedStudent.grade}
-                        {selectedStudent.classNum.toString().padStart(2, '0')}
-                        {selectedStudent.studentNum.toString().padStart(2, '0')}
-                      </p>
-                      <p className="text-xl mb-3">BMI : {selectedStudent.bmi || '정보 없음'}</p>
-                      <p className="text-xl mb-3">잔반율 : {selectedStudent.wasteRate || 0}%</p>
+                    <div className="bg-white/50 rounded-2xl shadow-md p-6 text-center w-full h-[95%] flex items-center justify-center">
+                      <div className="flex flex-col items-center">
+                        <div className="w-[180px] h-[180px] overflow-hidden mb-4 mx-auto flex items-center justify-center">
+                          <img
+                            src={`/images/student/${
+                              selectedStudent.gender === '여'
+                                ? 'girl.png'
+                                : selectedStudent.gender === '남'
+                                ? 'boy.png'
+                                : 'blank.png'
+                            }`}
+                            alt={selectedStudent.name}
+                            className="w-full h-full object-cover rounded-full"
+                            onError={(e) => {
+                              // 이미지 로드 실패시 기본 이미지로 대체
+                              e.currentTarget.src = '/images/student/blank.png';
+                            }}
+                          />
+                        </div>
+                        <h2 className="text-2xl font-bold mb-4">이름 : {selectedStudent.name}</h2>
+                        <p className="text-xl mb-3">
+                          학번 : {selectedStudent.grade}
+                          {selectedStudent.classNum.toString().padStart(2, '0')}
+                          {selectedStudent.studentNum.toString().padStart(2, '0')}
+                        </p>
+                        <p className="text-xl mb-3">BMI : {selectedStudent.bmi || '정보 없음'}</p>
+                        <p className="text-xl mb-3">잔반율 : {selectedStudent.wasteRate || 0}%</p>
 
-                      <button
-                        className="mt-4 px-8 py-3 bg-[#96c059] text-white rounded-2xl hover:bg-[#7ba348] transition-colors text-base"
-                        onClick={generateAIReport}
-                      >
-                        AI 건강 리포트 생성
-                      </button>
+                        <button
+                          className="mt-4 px-8 py-3 bg-[#96c059] text-white rounded-2xl hover:bg-[#7ba348] transition-colors text-base"
+                          onClick={generateAIReport}
+                        >
+                          AI 건강 리포트 생성
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ) : (
                   /* AI 리포트 */
-                  <div className="bg-white/50 rounded-2xl shadow-md p-8 w-full h-[495px]">
+                  <div className="bg-white/50 rounded-2xl shadow-md p-8 w-full h-[95%]">
                     <div className="flex justify-between items-center mb-6">
                       <h2 className="text-2xl font-bold">AI 건강 리포트</h2>
                       <button
