@@ -1,4 +1,11 @@
-import { FiChevronLeft, FiChevronRight, FiDownload, FiBarChart2, FiCalendar } from 'react-icons/fi';
+import {
+  FiChevronLeft,
+  FiChevronRight,
+  FiDownload,
+  FiBarChart2,
+  FiCalendar,
+  FiEdit,
+} from 'react-icons/fi';
 
 interface CalendarHeaderProps {
   displayYearMonth: string;
@@ -7,6 +14,7 @@ interface CalendarHeaderProps {
   goToNextMonth: () => void;
   toggleView: () => void;
   handleExcelDownload: () => void;
+  isFutureMonth: boolean;
 }
 
 const CalendarHeader = ({
@@ -16,6 +24,7 @@ const CalendarHeader = ({
   goToNextMonth,
   toggleView,
   handleExcelDownload,
+  isFutureMonth,
 }: CalendarHeaderProps) => {
   return (
     <div className="grid grid-cols-3 items-center p-4 bg-white/50">
@@ -32,8 +41,17 @@ const CalendarHeader = ({
             </>
           ) : (
             <>
-              <FiBarChart2 size={20} />
-              <span>월간 잔반률 보기</span>
+              {isFutureMonth ? (
+                <>
+                  <FiEdit size={20} />
+                  <span>식단생성하기</span>
+                </>
+              ) : (
+                <>
+                  <FiBarChart2 size={20} />
+                  <span>월간 잔반률 보기</span>
+                </>
+              )}
             </>
           )}
         </button>
