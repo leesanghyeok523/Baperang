@@ -124,7 +124,7 @@ def start_nfc_monitor():
 class TrayDetector:
     def __init__(self, camera_id=0):
         self.camera_id = camera_id
-        self.focus_threshold        = 320.0
+        self.focus_threshold        = 150.0
         self.region_presence_threshold = 2000.0
         self.detection_count     = 0
         self.required_detections = 5
@@ -148,7 +148,7 @@ with app.app_context():
 
 def gen_frames():
     # 카메라와 식판 사이거리 32CM
-    cap = cv2.VideoCapture(detector.camera_id, cv2.CAP_V4L2)
+    cap = cv2.VideoCapture(detector.camera_id, cv2.CAP_DSHOW)
     fourcc = cv2.VideoWriter_fourcc(*'MJPG')
     cap.set(cv2.CAP_PROP_FOURCC, fourcc)
     cap.set(cv2.CAP_PROP_AUTOFOCUS, 1)
