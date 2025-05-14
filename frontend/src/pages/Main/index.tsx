@@ -323,7 +323,7 @@ const MainPage = () => {
         className="relative z-10 flex items-center justify-evenly"
         style={{ height: 'calc(100vh - 80px)', marginTop: '75px' }}
       >
-        <div className="w-[85%] mx-auto">
+        <div className="w-[90%] mx-auto">
           <div className="grid grid-cols-12 gap-14 w-full">
             {/* 식단 카드 */}
             <div className="col-span-12 md:col-span-4">

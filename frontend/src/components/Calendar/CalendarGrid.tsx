@@ -72,7 +72,17 @@ const CalendarGrid = ({
               <div className="flex justify-between">
                 <span
                   className={`font-medium ${
-                    index % 7 === 0 ? 'text-red-500' : index % 7 === 6 ? 'text-blue-500' : ''
+                    day.type === 'prev' || day.type === 'next'
+                      ? index % 7 === 0
+                        ? 'text-red-500 opacity-40'
+                        : index % 7 === 6
+                        ? 'text-blue-500 opacity-40'
+                        : 'text-gray-400'
+                      : index % 7 === 0
+                      ? 'text-red-500'
+                      : index % 7 === 6
+                      ? 'text-blue-500'
+                      : ''
                   }`}
                 >
                   {day.date}

@@ -508,19 +508,6 @@ const SatisfactionSurvey = () => {
         `}
       </style>
 
-      {/* 마감 버튼을 전체 페이지 좌측 상단 모서리에 배치 */}
-      <div className="fixed top-4 left-4 z-50">
-        <Button
-          className={`px-6 py-2 text-sm ${
-            isClosed ? 'bg-gray-500 cursor-not-allowed' : 'bg-gray-400 hover:bg-red-600'
-          } text-white font-semibold rounded-2xl opacity-70 hover:opacity-100`}
-          onClick={() => !isClosed && setShowConfirmation(true)}
-          disabled={isClosed}
-        >
-          {isClosed ? '마감됨' : '관리자 마감'}
-        </Button>
-      </div>
-
       <div className="w-full max-w-3xl rounded-lg p-6 backdrop-blur-sm relative max-h-screen overflow-hidden">
         <div className="text-center mb-4">
           <h1 className="text-3xl font-bold">오늘 식사는 어떠셨나요?</h1>

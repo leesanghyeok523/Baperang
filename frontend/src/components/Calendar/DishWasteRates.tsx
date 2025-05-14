@@ -33,7 +33,7 @@ const DishWasteRates = ({ selectedDayWaste, selectedDate }: DishWasteRatesProps)
   return (
     <div
       className="w-1/5 bg-[#FCF8F3]/90 rounded-3xl p-4 flex flex-col h-full"
-      style={{ width: '250px', flexShrink: 0 }}
+      style={{ width: '350px', flexShrink: 0 }}
     >
       <div className="flex flex-col h-full">
         <div className="text-base font-semibold text-center mb-3">

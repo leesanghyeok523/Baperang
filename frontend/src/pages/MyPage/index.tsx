@@ -301,7 +301,7 @@ const MyPage: React.FC = () => {
         bg-center
       "
     >
-      <div className="w-full mt-10 max-w-sm space-y-5 h-[65vh]">
+      <div className="w-full mt-10 max-w-sm space-y-5 h-[80%] mt-20">
         {isDataLoading ? (
           <div className="text-center py-8">정보를 불러오는 중...</div>
         ) : (
