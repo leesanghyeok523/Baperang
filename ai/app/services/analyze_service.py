@@ -23,13 +23,16 @@ def download_image(url):
     return img
 
 
-def crop_center(img, crop_ratio=0.5):
+def crop_center(img, crop_ratio=0.5, save_path=None):
     start = time.time()
     h, w = img.shape[:2]
     ch, cw = int(h * crop_ratio), int(w * crop_ratio)
     startx = w//2 - cw//2
     starty = h//2 - ch//2
     cropped = img[starty:starty+ch, startx:startx+cw]
+    if save_path is not None:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        cv2.imwrite(save_path, cropped)
     elapsed = time.time() - start
     if settings.DEBUG:
         print(f"[TIMING] crop_center: {elapsed:.3f}s")
@@ -81,10 +84,11 @@ class AnalyzeService:
 
                 # 중앙 crop (reference)
                 ref_start = time.time()
-                reference = crop_center(before_img)
+                ref_save_path = f"./results/reference_{category}_{int(time.time()*1000)}.png"
+                reference = crop_center(before_img, save_path=ref_save_path)
                 ref_elapsed = time.time() - ref_start
                 if settings.DEBUG:
-                    print(f"[TIMING] crop_center for {category}: {ref_elapsed:.3f}s")
+                    print(f"[TIMING] crop_center for {category}: {ref_elapsed:.3f}s, saved to {ref_save_path}")
 
                 # 식전 이미지 분석
                 pre_start = time.time()
@@ -155,10 +159,11 @@ def analyze_leftover(before_images, after_images, resnet_model, midas_model, mid
 
         # 중앙 crop
         crop_start = time.time()
-        reference = crop_center(before_img)
+        ref_save_path = f"./results/reference_{key}_{int(time.time()*1000)}.png"
+        reference = crop_center(before_img, save_path=ref_save_path)
         crop_elapsed = time.time() - crop_start
         if settings.DEBUG:
-            print(f"[TIMING] analyze_leftover crop_center for {key}: {crop_elapsed:.3f}s")
+            print(f"[TIMING] analyze_leftover crop_center for {key}: {crop_elapsed:.3f}s, saved to {ref_save_path}")
 
         # 분석
         proc_start = time.time()
