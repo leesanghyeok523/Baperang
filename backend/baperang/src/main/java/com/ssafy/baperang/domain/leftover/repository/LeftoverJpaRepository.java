@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,4 +35,6 @@ public interface LeftoverJpaRepository extends JpaRepository<Leftover, Long> {
     Optional<Leftover> findByStudentAndMenuAndLeftoverDate(Student student, Menu menu, LocalDate localDate);
 
     List<Leftover> findByStudentAndLeftoverDateBetween(Student student, LocalDate startDate, LocalDate endDate);
+
+    List<Leftover> findByStudentAndLeftoverDateIn(Student student, Collection<LocalDate> dates);
 }

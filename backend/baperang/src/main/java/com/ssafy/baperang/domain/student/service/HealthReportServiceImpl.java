@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.baperang.domain.leftover.dto.response.ErrorResponseDto;
 import com.ssafy.baperang.domain.leftover.entity.Leftover;
+import com.ssafy.baperang.domain.menu.entity.Menu;
+import com.ssafy.baperang.domain.menu.repository.MenuRepository;
 import com.ssafy.baperang.domain.menunutrient.entity.MenuNutrient;
 import com.ssafy.baperang.domain.menunutrient.repository.MenuNutrientRepository;
 import com.ssafy.baperang.domain.student.dto.request.HealthReportRequestDto;
@@ -27,6 +29,7 @@ import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.time.LocalDate;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -36,12 +39,13 @@ public class HealthReportServiceImpl implements HealthReportService{
     private final StudentRepository studentRepository;
     private final LeftoverRepository leftoverRepository;
     private final MenuNutrientRepository menuNutrientRepository;
+    private final MenuRepository menuRepository; // 추가: Menu 레포지토리
     private final JwtService jwtService;
     private final ObjectMapper objectMapper;
 
     private final DecimalFormat df = new DecimalFormat("#.##", new DecimalFormatSymbols(Locale.US));
 
-    private static final String AI_SERVER_URL = "http://127.0.0.1:8001/api/v1/ai/health-report";
+    private static final String AI_SERVER_URL = "http://127.0.0.1:8001/ai/health-report";
 
     // nutrient 테이블의 PK 매핑
     private static final Long CARBO_NUTRIENT_ID = 2L;     // 탄수화물 (g)
@@ -49,7 +53,7 @@ public class HealthReportServiceImpl implements HealthReportService{
     private static final Long FAT_NUTRIENT_ID = 4L;       // 지방 (g)
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public Object generateReport(String token, Long studentId) {
         log.info("건강 리포트 생성 시작, 학생 ID - {}", studentId);
 
@@ -71,25 +75,68 @@ public class HealthReportServiceImpl implements HealthReportService{
 
             // bmi 지수 구하기
             Student student = studentOpt.get();
-
             Float height = student.getHeight() / 100f;
             Float weight = student.getWeight();
             Float bmi = weight / (height * height);
-
             log.info("학생 BMI 계산: {}", df.format(bmi));
 
+            // 보고서 분석 기간 설정
             LocalDate endDate = LocalDate.now();
             LocalDate startDate = endDate.minusDays(7);
-            List<Leftover> leftovers = leftoverRepository.findByStudentAndLeftoverDateBetween(student, startDate, endDate);
 
-            // 카테고리별 평균 잔반율
-            Map<String, Float> categoryLeftoverMap = calcLeftoverByCategory(leftovers);
+            // 기간 내 모든 날짜 생성
+            List<LocalDate> allDates = new ArrayList<>();
+            LocalDate currentDate = startDate;
+            while (!currentDate.isAfter(endDate)) {
+                allDates.add(currentDate);
+                currentDate = currentDate.plusDays(1);
+            }
+
+            // 모든 잔반 데이터 한 번에 조회
+            List<Leftover> allLeftovers = leftoverRepository.findByStudentAndLeftoverDateBetween(student, startDate, endDate);
+
+            // 메뉴 ID 추출
+            Set<Long> menuIds = allLeftovers.stream()
+                    .map(leftover -> leftover.getMenu().getId())
+                    .collect(Collectors.toSet());
+
+            // 모든 메뉴 정보 한 번에 조회하여 Map에 저장
+            List<Menu> menus = menuRepository.findAllByIdIn(new ArrayList<>(menuIds));
+            Map<Long, Menu> menuMap = menus.stream()
+                    .collect(Collectors.toMap(
+                            Menu::getId,
+                            menu -> menu,
+                            (existing, replacement) -> replacement
+                    ));
+
+            // 날짜별로 잔반 데이터 분류
+            Map<LocalDate, List<Leftover>> leftoversByDate = allLeftovers.stream()
+                    .collect(Collectors.groupingBy(Leftover::getLeftoverDate));
+
+            // 카테고리별 평균 잔반율 - 최적화된 메소드 사용
+            Map<String, Float> categoryLeftoverMap = calcLeftoverByCategory(allLeftovers, menuMap);
 
             // 잔반율 top3 bottom3 계산
-            Map<String, Map<String, String>> leftoverRankingMap = getRankings(leftovers);
+            Map<String, Map<String, String>> leftoverRankingMap = getRankings(allLeftovers);
 
-            // 일주일간 섭취한 영양소 계산
-            Map<String, Map<String, Integer>> nutrientMap = calcNutrients(student, startDate, endDate);
+            // 영양소 정보 한 번에 조회
+            List<MenuNutrient> allNutrients = menuNutrientRepository.findByMenuIdInAndNutrientIdIn(
+                    new ArrayList<>(menuIds),
+                    Arrays.asList(CARBO_NUTRIENT_ID, PROTEIN_NUTRIENT_ID, FAT_NUTRIENT_ID));
+
+            // 영양소 정보 맵 생성
+            Map<String, MenuNutrient> nutrientMap = allNutrients.stream()
+                    .collect(Collectors.toMap(
+                            menuNutrient -> menuNutrient.getMenu().getId() + "-" + menuNutrient.getNutrient().getId(),
+                            menuNutrient -> menuNutrient,
+                            (existing, replacement) -> replacement
+                    ));
+
+            // 일주일간 섭취한 영양소 계산 - 최적화된 메소드 사용
+            Map<String, Map<String, Integer>> nutrientData = calcOptimizedNutrients(
+                    leftoversByDate,
+                    nutrientMap,
+                    allDates);
 
             // ai로 보낼 요청 데이터
             HealthReportRequestDto requestDto = HealthReportRequestDto.builder()
@@ -97,7 +144,7 @@ public class HealthReportServiceImpl implements HealthReportService{
                     .leftover(categoryLeftoverMap)
                     .leftoverMost(leftoverRankingMap.get("most"))
                     .leftoverLeast(leftoverRankingMap.get("least"))
-                    .nutrient(nutrientMap)
+                    .nutrient(nutrientData)
                     .build();
 
             // AI 서버에 요청 보내기
@@ -145,7 +192,39 @@ public class HealthReportServiceImpl implements HealthReportService{
         }
     }
 
-    // 카테고리별 평균 잔반율 계산
+    // 최적화된 카테고리별 평균 잔반율 계산 메소드
+    private Map<String, Float> calcLeftoverByCategory(List<Leftover> leftovers, Map<Long, Menu> menuMap) {
+        Map<String, List<Float>> categoryRates = new HashMap<>();
+
+        for (Leftover leftover : leftovers) {
+            Long menuId = leftover.getMenu().getId();
+            // 미리 조회한 메뉴 정보에서 카테고리 가져오기
+            Menu menu = menuMap.get(menuId);
+            if (menu != null) {
+                String category = menu.getCategory();
+                Float rate = leftover.getLeftoverRate();
+                categoryRates.computeIfAbsent(category, k -> new ArrayList<>()).add(rate);
+            }
+        }
+
+        // 나머지 계산 코드는 기존과 동일
+        Map<String, Float> result = new HashMap<>();
+        for (Map.Entry<String, List<Float>> entry : categoryRates.entrySet()) {
+            List<Float> rates = entry.getValue();
+            double average = rates.stream().mapToDouble(Float::doubleValue).average().orElse(0.0);
+            result.put(entry.getKey(), Float.parseFloat(df.format(average)));
+        }
+
+        // 카테고리가 없는 경우 기본값 설정
+        result.putIfAbsent("rice", 0.0f);
+        result.putIfAbsent("soup", 0.0f);
+        result.putIfAbsent("main", 0.0f);
+        result.putIfAbsent("side", 0.0f);
+
+        return result;
+    }
+
+    // 기존 카테고리별 평균 잔반율 계산 메소드 (호환성 유지)
     private Map<String, Float> calcLeftoverByCategory(List<Leftover> leftovers) {
         Map<String, List<Float>> categoryRates = new HashMap<>();
 
@@ -226,7 +305,7 @@ public class HealthReportServiceImpl implements HealthReportService{
         return result;
     }
 
-    // 날짜별 영양소 섭취량 계산 (탄수화물, 단백질, 지방만)
+    // 기존 영양소 계산 메소드 (호환성 유지)
     private Map<String, Map<String, Integer>> calcNutrients(Student student, LocalDate startDate, LocalDate endDate) {
         Map<String, Map<String, Integer>> result = new HashMap<>();
 
@@ -246,7 +325,7 @@ public class HealthReportServiceImpl implements HealthReportService{
         return result;
     }
 
-    // 특정 날짜의 영양소 섭취량 계산 (탄수화물, 단백질, 지방만)
+    // 기존 특정 날짜의 영양소 섭취량 계산 메소드 (호환성 유지)
     private Map<String, Integer> calcDailyNutrients(Student student, LocalDate date) {
         // 해당 날짜에 학생이 섭취한 메뉴 조회
         List<Leftover> leftovers = leftoverRepository.findByStudentAndLeftoverDate(student, date);
@@ -256,28 +335,53 @@ public class HealthReportServiceImpl implements HealthReportService{
         int totalProtein = 0;
         int totalFat = 0;
 
-        // 각 메뉴의 영양소 정보 조회 및 합산
-        for (Leftover leftover : leftovers) {
-            Long menuId = leftover.getMenu().getId();
-            float leftoverRate = leftover.getLeftoverRate() / 100f; // 백분율을 소수로 변환 (30% -> 0.3)
-            float consumptionRate = 1 - leftoverRate; // 실제 섭취율 (1 - 0.3 = 0.7 즉 70%)
+        if (!leftovers.isEmpty()) {
+            // 모든 메뉴 ID 수집
+            List<Long> menuIds = leftovers.stream()
+                    .map(leftover -> leftover.getMenu().getId())
+                    .collect(Collectors.toList());
 
-            // 탄수화물 계산
-            MenuNutrient carbo = menuNutrientRepository.findByMenuIdAndNutrientId(menuId, CARBO_NUTRIENT_ID);
-            if (carbo != null) {
-                totalCarbo += Math.round(carbo.getAmount() * consumptionRate);
-            }
+            // 필요한 영양소 한번에 조회
+            List<MenuNutrient> allNutrients = menuNutrientRepository.findByMenuIdInAndNutrientIdIn(
+                    menuIds, Arrays.asList(CARBO_NUTRIENT_ID, PROTEIN_NUTRIENT_ID, FAT_NUTRIENT_ID));
 
-            // 단백질 계산
-            MenuNutrient protein = menuNutrientRepository.findByMenuIdAndNutrientId(menuId, PROTEIN_NUTRIENT_ID);
-            if (protein != null) {
-                totalProtein += Math.round(protein.getAmount() * consumptionRate);
-            }
+            // 조회한 영양소 정보를 맵으로 변환
+            // 키: "메뉴ID-영양소ID". 값: MenuNutrient
+            Map<String, MenuNutrient> nutrientMap = allNutrients.stream()
+                    .collect(Collectors.toMap(
+                            menuNutrient -> menuNutrient.getMenu().getId() + "-" + menuNutrient.getNutrient().getId(),
+                            menuNutrient -> menuNutrient,
+                            (existing, replacement) -> replacement
+                    ));
 
-            // 지방 계산
-            MenuNutrient fat = menuNutrientRepository.findByMenuIdAndNutrientId(menuId, FAT_NUTRIENT_ID);
-            if (fat != null) {
-                totalFat += Math.round(fat.getAmount() * consumptionRate);
+            // 각 메뉴의 영양소 정보 조회 및 합산
+            for (Leftover leftover : leftovers) {
+                Long menuId = leftover.getMenu().getId();
+                float leftoverRate = leftover.getLeftoverRate() / 100f; // 백분율을 소수로 변환 (30% -> 0.3)
+                float consumptionRate = 1 - leftoverRate; // 실제 섭취율 (1 - 0.3 = 0.7 즉 70%)
+
+                // 맵에서 각 영양소 정보 조회
+                String carboKey = menuId + "-" + CARBO_NUTRIENT_ID;
+                String proteinKey = menuId + "-" + PROTEIN_NUTRIENT_ID;
+                String fatKey = menuId + "-" + FAT_NUTRIENT_ID;
+
+                // 탄수화물 계산
+                MenuNutrient carbo = nutrientMap.get(carboKey);
+                if (carbo != null) {
+                    totalCarbo += Math.round(carbo.getAmount() * consumptionRate);
+                }
+
+                // 단백질 계산
+                MenuNutrient protein = nutrientMap.get(proteinKey);
+                if (protein != null) {
+                    totalProtein += Math.round(protein.getAmount() * consumptionRate);
+                }
+
+                // 지방 계산
+                MenuNutrient fat = nutrientMap.get(fatKey);
+                if (fat != null) {
+                    totalFat += Math.round(fat.getAmount() * consumptionRate);
+                }
             }
         }
 
@@ -286,6 +390,62 @@ public class HealthReportServiceImpl implements HealthReportService{
         result.put("carbo", totalCarbo);
         result.put("protein", totalProtein);
         result.put("fat", totalFat);
+
+        return result;
+    }
+
+    // 최적화된 영양소 계산 메소드
+    private Map<String, Map<String, Integer>> calcOptimizedNutrients(
+            Map<LocalDate, List<Leftover>> leftoversByDate,
+            Map<String, MenuNutrient> nutrientMap,
+            List<LocalDate> allDates) {
+
+        Map<String, Map<String, Integer>> result = new HashMap<>();
+
+        // 모든 날짜에 대해 처리
+        for (LocalDate date : allDates) {
+            List<Leftover> dayLeftovers = leftoversByDate.getOrDefault(date, Collections.emptyList());
+
+            // 영양소별 합계 초기화
+            int totalCarbo = 0;
+            int totalProtein = 0;
+            int totalFat = 0;
+
+            // 해당 날짜의 잔반 데이터 처리
+            for (Leftover leftover : dayLeftovers) {
+                Long menuId = leftover.getMenu().getId();
+                float leftoverRate = leftover.getLeftoverRate() / 100f;
+                float consumptionRate = 1 - leftoverRate;
+
+                // 맵에서 영양소 정보 조회
+                String carboKey = menuId + "-" + CARBO_NUTRIENT_ID;
+                String proteinKey = menuId + "-" + PROTEIN_NUTRIENT_ID;
+                String fatKey = menuId + "-" + FAT_NUTRIENT_ID;
+
+                MenuNutrient carbo = nutrientMap.get(carboKey);
+                if (carbo != null) {
+                    totalCarbo += Math.round(carbo.getAmount() * consumptionRate);
+                }
+
+                MenuNutrient protein = nutrientMap.get(proteinKey);
+                if (protein != null) {
+                    totalProtein += Math.round(protein.getAmount() * consumptionRate);
+                }
+
+                MenuNutrient fat = nutrientMap.get(fatKey);
+                if (fat != null) {
+                    totalFat += Math.round(fat.getAmount() * consumptionRate);
+                }
+            }
+
+            // 계산된 영양소 저장
+            Map<String, Integer> dailyNutrients = new HashMap<>();
+            dailyNutrients.put("carbo", totalCarbo);
+            dailyNutrients.put("protein", totalProtein);
+            dailyNutrients.put("fat", totalFat);
+
+            result.put(date.toString(), dailyNutrients);
+        }
 
         return result;
     }

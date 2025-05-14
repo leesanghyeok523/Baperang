@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -45,5 +46,10 @@ public class LeftoverRepositoryImpl implements LeftoverRepository {
     @Override
     public List<Leftover> findByStudentAndLeftoverDateBetween(Student student, LocalDate startDate, LocalDate endDate) {
         return leftoverJpaRepository.findByStudentAndLeftoverDateBetween(student, startDate, endDate);
+    }
+
+    @Override
+    public List<Leftover> findByStudentAndLeftoverDateIn(Student student, Collection<LocalDate> dates) {
+        return leftoverJpaRepository.findByStudentAndLeftoverDateIn(student, dates);
     }
 }
