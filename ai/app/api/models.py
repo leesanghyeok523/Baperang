@@ -33,16 +33,31 @@ class PlanResponse(BaseModel):
     plan: Dict[str, Dict[str, MenuInfo]] # {날짜: {메뉴명: 카테고리, 대체 메뉴}}
     # metrics: Optional[Dict[str, Any]] = None # 평균 선호도, 평균 잔반율, 영양 균형, 메뉴 다양성 등 참고 자료
 
+# 학생 정보 모델
+class StudentInfo(BaseModel):
+    """학생 정보"""
+    id: int
+    name: str
+    grade: int
+    
+    class_num: int = Field(..., alias="class")
+    number: int
+
 # 잔반 데이터 요청
 class AnalyzeRequest(BaseModel):
-    """S3에 저장된 이미지 키를 받아서 잔반 분석을 요청합니다."""
-    image_s3_key: Dict[str,Any]
+    """식전/식후 이미지를 받아 잔반 분석을 요청합니다."""
+    beforeImages: Dict[str, str]  # 식전 이미지 URL (key: side_1, side_2, side_3, rice, soup)
+    afterImages: Dict[str, str]   # 식후 이미지 URL (key: side_1, side_2, side_3, rice, soup)
+    studentInfo: StudentInfo      # 학생 정보
+
+    class Config:
+        populate_by_name = True
 
 # 잔반 데이터 응답
 class AnalyzeResponse(BaseModel):
     """메뉴별 잔반율을 반환합니다."""
-    leftover: Dict[str, float]
-    confidence: Optional[float] = None
+    leftoverRate: Dict[str, float]
+    studentInfo: StudentInfo
 
 # 리포트 데이터 요청
 class ReportRequest(BaseModel):

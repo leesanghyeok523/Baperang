@@ -40,20 +40,52 @@ def get_report_service():
 @router.post("/analyze-leftover", response_model=AnalyzeResponse)
 async def analyze_leftover_endpoint(
     request: AnalyzeRequest,
-    analyze_service:AnalyzeService = Depends(get_analyze_service)
+    analyze_service: AnalyzeService = Depends(get_analyze_service)
 ):
     """
     잔반 이미지 분석 엔드포인트
 
-    이미지를 분석하여 메뉴별 잔반율을 반환
+    식전/식후 이미지를 비교하여 메뉴별 잔반율을 반환
 
-    POST /analyze-leftover
-    { "image_s3_key": "2025/05/01/rice_plate.png" }
-    → { "leftover": { "밥":0.45, "국":0.30, ... } }
+    POST /ai/analyze-leftover
+    {
+      "before_images": {
+        "side_1": "https://e102.s3.ap-northeast-2.amazonaws.com/이상화_식전_side_1.jpg",
+        ...
+      },
+      "after_images": {
+        "side_1": "https://e102.s3.ap-northeast-2.amazonaws.com/이상화_식후_side_1.jpg",
+        ...
+      },
+      "student_info": {
+        "id": 1,
+        "name": "이상화",
+        "grade": 2,
+        "class": 6,
+        "number": 17
+      }
+    }
+    → {
+      "leftover_rate": {
+        "side_1": 2.3,
+        ...
+      },
+      "student_info": {
+        "id": 1,
+        "name": "이상화",
+        "grade": 2,
+        "class": 6,
+        "number": 17
+      }
+    }
     """
     try:
-        result = await analyze_service.analyze_image(request.image_s3_key)
-        return AnalyzeResponse(leftover=result["leftover"], confidence=result.get("confidence"))
+        result = await analyze_service.analyze_leftover_images(
+            before_images=request.beforeImages,
+            after_images=request.afterImages,
+            student_info=request.studentInfo.model_dump(by_alias=True)
+        )
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"이미지 분석 중 오류: {str(e)}")
 
