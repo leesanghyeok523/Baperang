@@ -94,7 +94,6 @@ class AnalyzeService:
                     resnet_model=resnet_model,
                     midas_model=midas_model,
                     midas_transform=midas_transform,
-                    output_dir='./results',
                     image_name=before_images[category]
                 )
                 pre_elapsed = time.time() - pre_start
@@ -109,7 +108,6 @@ class AnalyzeService:
                     resnet_model=resnet_model,
                     midas_model=midas_model,
                     midas_transform=midas_transform,
-                    output_dir='./results',
                     image_name=after_images[category]
                 )
                 post_elapsed = time.time() - post_start
