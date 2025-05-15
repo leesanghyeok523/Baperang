@@ -51,7 +51,6 @@ public class HealthReportServiceImpl implements HealthReportService{
 
     // private static final String HEALTH_REPORT_ENDPOINT = "/ai/health-report";
 
-//    private static final String AI_SERVER_URL = "http://127.0.0.1:8001/ai/health-report";
 
     // nutrient 테이블의 PK 매핑
     private static final Long CARBO_NUTRIENT_ID = 2L;     // 탄수화물 (g)
@@ -79,8 +78,28 @@ public class HealthReportServiceImpl implements HealthReportService{
                 return ErrorResponseDto.of(BaperangErrorCode.STUDENT_NOT_FOUND);
             }
 
-            // bmi 지수 구하기
             Student student = studentOpt.get();
+            LocalDate today = LocalDate.now();
+
+            if (student.getContentDate() != null && student.getContentDate().equals(today)) {
+                log.warn("학생 ID: {}의 건강리포트가 오늘({}) 이미 생성되었습니다.", studentId, today);
+
+                try {
+                    HealthReportResponseDto responseDto = objectMapper.readValue(student.getContent(), HealthReportResponseDto.class);
+
+                    Map<String, Object> response = new HashMap<>();
+                    response.put("message", "오늘 이미 생성된 리포트가 있음");
+                    response.put("isDuplicate", true);
+                    response.put("report", responseDto);
+
+                    return response;
+                } catch (Exception e) {
+                    return ErrorResponseDto.of(BaperangErrorCode.INTERNAL_SERVER_ERROR);
+                }
+            }
+
+            // bmi 지수 구하기
+
             Float height = student.getHeight() / 100f;
             Float weight = student.getWeight();
             Float bmi = weight / (height * height);
@@ -174,6 +193,7 @@ public class HealthReportServiceImpl implements HealthReportService{
         log.info("건강 리포트 저장 시작 - 학생 ID: {}", studentId);
 
         try {
+
             Optional<Student> studentOpt = studentRepository.findById(studentId);
             if (studentOpt.isEmpty()) {
                 log.error("학생을 찾을 수 없음 - 학생 ID: {}", studentId);
@@ -468,9 +488,10 @@ public class HealthReportServiceImpl implements HealthReportService{
         String requestBody = objectMapper.writeValueAsString(requestDto);
         HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
 
-        // String aiServerUrl = aiServerBaseUrl + HEALTH_REPORT_ENDPOINT;
         // 로컬 테스트를 위한 하드코딩 URL 사용 (주석 해제)
-        String aiServerUrl = "http://127.0.0.1:8001/ai/health-report";
+//        String aiServerUrl = "http://127.0.0.1:8001/ai/health-report";
+
+        String aiServerUrl = aiServerBaseUrl + HEALTH_REPORT_ENDPOINT;
         log.info("AI 서버 URL: {}", aiServerUrl);
 
         // RestTemplate 인스턴스를 필요할 때 생성
