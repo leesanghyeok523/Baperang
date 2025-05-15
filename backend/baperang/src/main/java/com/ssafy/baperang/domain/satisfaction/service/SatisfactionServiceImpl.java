@@ -48,8 +48,8 @@ public class SatisfactionServiceImpl implements SatisfactionService {
     // 각 Emitter 유효 시간 (1시간)
     private static final long SSE_TIMEOUT = 60 * 60 * 1000L;
     
-    // 하트비트 주기 (20초)
-    private static final long HEARTBEAT_INTERVAL = 20;
+    // 하트비트 주기 (10초)
+    private static final long HEARTBEAT_INTERVAL = 10;
     
     // 메뉴 최대 표시 개수
     private static final int MAX_MENU_COUNT = 5;
@@ -90,7 +90,7 @@ public class SatisfactionServiceImpl implements SatisfactionService {
         });
     }
 
-    
+
     /**
      * 오늘의 메뉴 만족도 정보를 조회하여 반환 (우선순위와 최대 개수에 따라 필터링)
      */
