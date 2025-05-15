@@ -97,9 +97,18 @@ public class SatisfactionServiceImpl implements SatisfactionService {
         LocalDate today = LocalDate.now();
         log.info("메뉴 만족도 조회: 오늘 날짜 = {}", today);
         
-        // 학교 조회 시도
-        School school = schoolRepository.findBySchoolName(schoolName)
-            .orElseThrow(() -> new EntityNotFoundException("학교를 찾을 수 없습니다: " + schoolName));
+        // 학교 조회 시도 - 동일한 이름의 학교가 여러 개 있을 수 있으므로 리스트로 조회
+        List<School> schools = schoolRepository.findAll().stream()
+            .filter(s -> s.getSchoolName().equals(schoolName))
+            .collect(Collectors.toList());
+            
+        if (schools.isEmpty()) {
+            throw new EntityNotFoundException("학교를 찾을 수 없습니다: " + schoolName);
+        }
+        
+        // 여러 학교가 있는 경우 첫 번째 항목 사용
+        School school = schools.get(0);
+        log.info("선택된 학교: ID={}, 이름={}, 도시={}", school.getId(), school.getSchoolName(), school.getCity());
 
         // 해당 날짜의 모든 메뉴 정보 조회
         List<Menu> allMenus = menuRepository.findBySchoolAndMenuDate(school, today);
@@ -214,9 +223,18 @@ public class SatisfactionServiceImpl implements SatisfactionService {
 
         log.info("만족도 투표 처리: 학교={}, 메뉴={}, 점수={}", schoolName, menuName, satisfactionScore);
         
-        // 1. 학교 조회
-        School school = schoolRepository.findBySchoolName(schoolName)
-            .orElseThrow(() -> new EntityNotFoundException("학교를 찾을 수 없습니다: " + schoolName));
+        // 1. 학교 조회 - 동일한 이름의 학교가 여러 개 있을 수 있으므로 리스트로 조회
+        List<School> schools = schoolRepository.findAll().stream()
+            .filter(s -> s.getSchoolName().equals(schoolName))
+            .collect(Collectors.toList());
+            
+        if (schools.isEmpty()) {
+            throw new EntityNotFoundException("학교를 찾을 수 없습니다: " + schoolName);
+        }
+        
+        // 여러 학교가 있는 경우 첫 번째 항목 사용
+        School school = schools.get(0);
+        log.info("선택된 학교: ID={}, 이름={}, 도시={}", school.getId(), school.getSchoolName(), school.getCity());
         
         // 2. 오늘 날짜의 메뉴 목록 조회
         LocalDate today = LocalDate.now();
