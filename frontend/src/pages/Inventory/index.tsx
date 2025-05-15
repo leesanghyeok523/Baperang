@@ -308,7 +308,7 @@ const InventoryPage: React.FC = () => {
                 >
                   <FiChevronLeft size={30} />
                 </button>
-                <h1 className="text-xl font-bold text-center w-full">{currentMonth}월 재고관리</h1>
+                <h1 className="text-xl font-bold text-center">{currentMonth}월 재고관리</h1>
                 <button
                   onClick={nextMonth}
                   className="text-gray-600 hover:text-gray-900 focus:outline-none absolute right-0"
