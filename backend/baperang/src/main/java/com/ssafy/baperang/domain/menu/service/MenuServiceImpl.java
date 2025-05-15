@@ -15,6 +15,8 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.ssafy.baperang.domain.holiday.entity.Holiday;
+import com.ssafy.baperang.domain.holiday.repository.HolidayRepository;
 import com.ssafy.baperang.domain.menu.dto.request.MenuRequestDto;
 import com.ssafy.baperang.domain.menu.dto.response.ErrorResponseDto;
 import com.ssafy.baperang.domain.menu.dto.response.MenuResponseDto;
@@ -38,6 +40,7 @@ public class MenuServiceImpl implements MenuService {
     private final MenuRepository menuRepository;
     private final UserRepository userRepository;
     private final MenuNutrientRepository menuNutrientRepository;
+    private final HolidayRepository holidayRepository;
     private final JwtService jwtService;
 
     @Override
@@ -73,7 +76,15 @@ public class MenuServiceImpl implements MenuService {
             YearMonth yearMonth = YearMonth.of(year, month);
             LocalDate startDate = yearMonth.atDay(1);
             LocalDate endDate = yearMonth.atEndOfMonth();
-
+            
+            // 한 번에 해당 기간의 공휴일 모두 조회
+            List<Holiday> holidays = holidayRepository.findByHolidayDateBetween(startDate, endDate);
+            log.info("공휴일 정보 조회 완료 - 개수: {}", holidays.size());
+            
+            // 날짜별로 공휴일 그룹화
+            Map<LocalDate, List<Holiday>> holidaysByDate = holidays.stream()
+                    .collect(Collectors.groupingBy(Holiday::getHolidayDate));
+            
             // 해당 기간의 메뉴 조회
             List<Menu> menus = menuRepository.findBySchoolAndMenuDateBetweenOrderByMenuDate(
                     school, startDate, endDate);
@@ -88,26 +99,46 @@ public class MenuServiceImpl implements MenuService {
             DateTimeFormatter formatter = DateTimeFormatter.ISO_DATE;
 
             while (!currentDate.isAfter(endDate)) {
-                List<Menu> dayMenus = menusByDate.getOrDefault(currentDate, Collections.emptyList());
-
-                List<MenuResponseDto.Menus> menusList = dayMenus.stream()
-                        .map(menu -> MenuResponseDto.Menus.builder()
-                                .menuId(menu.getId())
-                                .menuName(menu.getMenuName())
-                                .build())
-                        .collect(Collectors.toList());
-
                 // 요일 이름
                 DayOfWeek dayOfWeek = currentDate.getDayOfWeek();
                 String dayOfWeekName = dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.KOREAN);
+                
+                // 현재 날짜의 공휴일 정보 가져오기
+                List<Holiday> dayHolidays = holidaysByDate.getOrDefault(currentDate, Collections.emptyList());
+                
+                if (!dayHolidays.isEmpty()) {
+                    // 공휴일인 경우
+                    List<String> holidayNames = dayHolidays.stream()
+                        .map(Holiday::getHolidayName)
+                        .collect(Collectors.toList());
+                    
+                    MenuResponseDto.Days day = MenuResponseDto.Days.builder()
+                            .date(currentDate.format(formatter))
+                            .dayOfWeekName(dayOfWeekName)
+                            .holiday(holidayNames)
+                            .build();
+                    
+                    daysList.add(day);
+                } else {
+                    // 공휴일이 아닌 경우 기존 로직 적용
+                    List<Menu> dayMenus = menusByDate.getOrDefault(currentDate, Collections.emptyList());
 
-                MenuResponseDto.Days day = MenuResponseDto.Days.builder()
-                        .date(currentDate.format(formatter))
-                        .dayOfWeekName(dayOfWeekName)
-                        .menu(menusList)
-                        .build();
+                    List<MenuResponseDto.Menus> menusList = dayMenus.stream()
+                            .map(menu -> MenuResponseDto.Menus.builder()
+                                    .menuId(menu.getId())
+                                    .menuName(menu.getMenuName())
+                                    .build())
+                            .collect(Collectors.toList());
 
-                daysList.add(day);
+                    MenuResponseDto.Days day = MenuResponseDto.Days.builder()
+                            .date(currentDate.format(formatter))
+                            .dayOfWeekName(dayOfWeekName)
+                            .menu(menusList)
+                            .build();
+                    
+                    daysList.add(day);
+                }
+                
                 currentDate = currentDate.plusDays(1);
             }
 

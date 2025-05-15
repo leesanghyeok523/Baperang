@@ -22,6 +22,7 @@ public class MenuResponseDto {
         private String date;
         private String dayOfWeekName;
         private List<Menus> menu;
+        private List<String> holiday;
     }
 
     @Getter

@@ -4,12 +4,12 @@ import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 
-import com.ssafy.baperang.domain.menu.entity.Menu;
-import com.ssafy.baperang.domain.school.entity.School;
-
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import com.ssafy.baperang.domain.menu.entity.Menu;
+import com.ssafy.baperang.domain.school.entity.School;
 
 public interface MenuJpaRepository extends JpaRepository<Menu, Long> {
 
