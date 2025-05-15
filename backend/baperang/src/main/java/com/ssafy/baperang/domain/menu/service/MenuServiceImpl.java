@@ -439,8 +439,8 @@ public class MenuServiceImpl implements MenuService {
             String aiServerUrl = aiServerBaseUrl + MENU_PLAN_ENDPOINT;
 
             RestTemplate restTemplate = new RestTemplate();
-            ResponseEntity<String> response = restTemplate.postForEntity(aiServerUrl, requestMap, String.class);
-            
+            ResponseEntity<?> response = restTemplate.postForEntity(aiServerUrl, requestMap, String.class);
+            System.out.println(response.getBody());
             if (response.getStatusCode().is2xxSuccessful()) {
                 log.info("makeMonthMenu - AI 서버 응답 성공");
                 return response.getBody();
