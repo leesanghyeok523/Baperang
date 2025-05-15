@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import MenuCard from '../../components/MainMenuCard';
 import RateToggleCard from '../../components/RateToggle';
+import NutritionInfo from '../../components/NutritionInfo';
 import { defaultMenu, WasteData } from '../../data/menuData';
 import API_CONFIG from '../../config/api';
 import axios from 'axios';
@@ -23,10 +24,16 @@ const MainPage = () => {
   const [currentDate, setCurrentDate] = useState(initialDate);
   const [currentMenuItems, setCurrentMenuItems] = useState<string[]>(defaultMenu);
   const [loading, setLoading] = useState(false);
+  const [selectedMenu, setSelectedMenu] = useState<string | null>(null);
 
   // 선호도 데이터는 SSE에서 받은 데이터만 저장
   const [todayWasteData, setTodayWasteData] = useState<WasteData[]>([]);
   const { isAuthenticated, accessToken } = useAuthStore();
+
+  // 메뉴 아이템 클릭 핸들러
+  const handleMenuSelect = (menuItem: string) => {
+    setSelectedMenu(menuItem);
+  };
 
   // SSE 구독 설정을 위한 함수
   const setupSSEConnection = () => {
@@ -297,6 +304,8 @@ const MainPage = () => {
       '0'
     )}-${String(currentDate.getDate()).padStart(2, '0')}`;
     fetchDailyMenu(dateStr);
+    // 날짜가 변경되면 선택된 메뉴 초기화
+    setSelectedMenu(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentDate]);
 
@@ -325,20 +334,30 @@ const MainPage = () => {
       >
         <div className="w-[90%] mx-auto">
           <div className="grid grid-cols-12 gap-14 w-full">
-            {/* 식단 카드 */}
+            {/* 식단 카드 - 높이 줄임 */}
             <div className="col-span-12 md:col-span-4">
-              <MenuCard
-                menuItems={currentMenuItems}
-                currentDate={currentDate}
-                onPrevDay={goToPrevDay}
-                onNextDay={goToNextDay}
-                loading={loading}
-              />
+              <div className="h-[73vh] grid grid-rows-2 gap-4">
+                <div className="row-span-1">
+                  <MenuCard
+                    menuItems={currentMenuItems}
+                    currentDate={currentDate}
+                    onPrevDay={goToPrevDay}
+                    onNextDay={goToNextDay}
+                    loading={loading}
+                    onMenuSelect={handleMenuSelect}
+                  />
+                </div>
+                <div className="row-span-1">
+                  <NutritionInfo selectedMenu={selectedMenu} currentDate={currentDate} />
+                </div>
+              </div>
             </div>
 
             {/* 실시간 잔반률/선호도 전환 카드 - SSE에서 받은 데이터만 사용 */}
             <div className="col-span-12 md:col-span-8">
-              <RateToggleCard data={todayWasteData} />
+              <div className="h-[73vh]">
+                <RateToggleCard data={todayWasteData} />
+              </div>
             </div>
           </div>
         </div>
