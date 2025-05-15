@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 import com.ssafy.baperang.global.jwt.JwtService;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -45,7 +46,12 @@ public class HealthReportServiceImpl implements HealthReportService{
 
     private final DecimalFormat df = new DecimalFormat("#.##", new DecimalFormatSymbols(Locale.US));
 
-    private static final String AI_SERVER_URL = "http://127.0.0.1:8001/ai/health-report";
+    @Value("${AI_SERVER_BASE_URL}")
+    private String aiServerBaseUrl;
+
+    private static final String HEALTH_REPORT_ENDPOINT = "/ai/health-report";
+
+//    private static final String AI_SERVER_URL = "http://127.0.0.1:8001/ai/health-report";
 
     // nutrient 테이블의 PK 매핑
     private static final Long CARBO_NUTRIENT_ID = 2L;     // 탄수화물 (g)
@@ -462,12 +468,15 @@ public class HealthReportServiceImpl implements HealthReportService{
         String requestBody = objectMapper.writeValueAsString(requestDto);
         HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
 
+        String aiServerUrl = aiServerBaseUrl + HEALTH_REPORT_ENDPOINT;
+        log.info("AI 서버 URL: {}", aiServerUrl);
+
         // RestTemplate 인스턴스를 필요할 때 생성
         RestTemplate restTemplate = new RestTemplate();
 
         // AI 서버에 요청 전송
         ResponseEntity<String> response = restTemplate.postForEntity(
-                AI_SERVER_URL, entity, String.class
+                aiServerUrl, entity, String.class
         );
 
         // 응답 처리

@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.beans.factory.annotation.Value;
 
 
 import java.time.LocalDate;
@@ -32,6 +33,12 @@ public class NfcServiceImpl implements NfcService {
     private final StudentRepository studentRepository;
     private final ObjectMapper objectMapper;
     private final LeftoverService leftoverService;
+
+    @Value("${AI_SERVER_BASE_URL}")
+    private String aiServerBaseUrl;
+
+    // 엔드포인트 경로 상수 정의
+    private static final String ANALYZE_LEFTOVER_ENDPOINT = "/ai/analyze-leftover";
 
     @Override
     @Transactional(readOnly = true)
@@ -252,7 +259,9 @@ public class NfcServiceImpl implements NfcService {
             // AI 서버로 url 전송
             try {
 
-                String aiServerUrl = "http://127.0.0.1:8001/ai/analyze-leftover";
+//                String aiServerUrl = "http://127.0.0.1:8001/ai/analyze-leftover";
+
+                String aiServerUrl = aiServerBaseUrl + ANALYZE_LEFTOVER_ENDPOINT;
 
                 Map<String, Object> requestBody = new HashMap<>();
 
@@ -278,7 +287,7 @@ public class NfcServiceImpl implements NfcService {
                 HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestBody, headers);
 
                 // AI 서버에 POST 요청 보내기
-                log.info("AI 서버로 이미지 url 전송: {}", objectMapper.writeValueAsString(requestBody));
+                log.info("AI 서버로 이미지 url 전송: {}", objectMapper.writeValueAsString(requestBody), aiServerUrl);
 
                 RestTemplate restTemplate = new RestTemplate();
                 ResponseEntity<String> responseEntity = restTemplate.postForEntity(
