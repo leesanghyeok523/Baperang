@@ -76,7 +76,7 @@ const CreateMeal = () => {
       if (response.data && response.data.days) {
         response.data.days.forEach((day) => {
           // 메뉴 이름 추출 및 처리
-          let menuNames: string[] = [];
+          const menuNames: string[] = [];
 
           // 메뉴가 배열 형태인 경우 (일반적인 경우)
           if (Array.isArray(day.menus)) {
@@ -195,19 +195,27 @@ const CreateMeal = () => {
         className="relative z-10 flex items-center justify-evenly"
         style={{ height: 'calc(100vh - 80px)', marginTop: '75px' }}
       >
-        <div className="w-[85%] mx-auto">
+        <div className="w-[90%] mx-auto">
           <div
             className="bg-[#F8F1E7] rounded-3xl shadow-lg p-0 flex flex-col overflow-hidden"
             style={{ height: '73vh' }}
           >
             {/* 캘린더 헤더 */}
             <div className="flex justify-center items-center p-4 bg-white/50">
-              <div className="flex justify-center items-center space-x-4">
-                <button onClick={goToPrevMonth} className="text-gray-600 hover:text-gray-900">
+              <div className="flex justify-center items-center relative w-[400px]">
+                <button
+                  onClick={goToPrevMonth}
+                  className="text-gray-600 hover:text-gray-900 absolute left-0"
+                >
                   <FiChevronLeft size={30} />
                 </button>
-                <span className="text-xl font-bold">{displayYearMonth} 식단 생성</span>
-                <button onClick={goToNextMonth} className="text-gray-600 hover:text-gray-900">
+                <span className="text-xl font-bold text-center w-full">
+                  {displayYearMonth} 식단 생성
+                </span>
+                <button
+                  onClick={goToNextMonth}
+                  className="text-gray-600 hover:text-gray-900 absolute right-0"
+                >
                   <FiChevronRight size={30} />
                 </button>
               </div>

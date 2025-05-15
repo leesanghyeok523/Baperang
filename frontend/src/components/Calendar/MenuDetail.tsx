@@ -11,7 +11,7 @@ const MenuDetail = ({ selectedDate, menuData }: MenuDetailProps) => {
     return (
       <div
         className="w-1/5 bg-[#FCF8F3]/90 rounded-3xl p-4 flex flex-col h-full"
-        style={{ width: '250px', flexShrink: 0 }}
+        style={{ width: '350px', flexShrink: 0 }}
       >
         <div className="h-full flex items-center justify-center text-gray-500">
           날짜를 선택하면 식단이 표시됩니다.
@@ -36,7 +36,7 @@ const MenuDetail = ({ selectedDate, menuData }: MenuDetailProps) => {
   return (
     <div
       className="w-1/5 bg-[#FCF8F3]/90 rounded-3xl p-4 flex flex-col h-full"
-      style={{ width: '250px', flexShrink: 0 }}
+      style={{ width: '350px', flexShrink: 0 }}
     >
       <div className="flex flex-col h-full">
         <div className="text-base font-semibold text-center mb-3">

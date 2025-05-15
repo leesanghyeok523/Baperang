@@ -113,6 +113,19 @@ const Calendar = () => {
   // 화면에 표시할 년월 문자열
   const displayYearMonth = `${selectedYear}년 ${selectedMonth + 1}월`;
 
+  // 현재 선택된 달이 미래인지 확인
+  const isFutureMonth = () => {
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth();
+
+    // 선택된 연도가 현재 연도보다 크거나,
+    // 같은 연도이지만 선택된 월이 현재 월보다 큰 경우 미래로 간주
+    return (
+      selectedYear > currentYear || (selectedYear === currentYear && selectedMonth > currentMonth)
+    );
+  };
+
   // 월 이동 함수
   const goToPrevMonth = () => {
     if (selectedMonth === 0) {
@@ -426,7 +439,7 @@ const Calendar = () => {
         className="relative z-10 flex items-center justify-evenly"
         style={{ height: 'calc(100vh - 80px)', marginTop: '75px' }}
       >
-        <div className="w-[85%] mx-auto">
+        <div className="w-[90%] mx-auto">
           <div
             className="bg-[#F8F1E7] rounded-3xl shadow-lg p-0 flex flex-col overflow-hidden"
             style={{ height: '73vh' }}
@@ -439,6 +452,7 @@ const Calendar = () => {
               goToNextMonth={goToNextMonth}
               toggleView={toggleView}
               handleExcelDownload={handleExcelDownload}
+              isFutureMonth={isFutureMonth()}
             />
 
             {loading ? (
@@ -460,7 +474,7 @@ const Calendar = () => {
               </div>
             ) : (
               // 달력 뷰
-              <div className="px-6 py-3 flex-grow flex flex-row gap-4 mb-1 overflow-hidden">
+              <div className="px-6 py-3 flex-grow flex flex-row gap-4 mb-1 overflow-hidden w-[100%]">
                 {/* 달력 그리드 */}
                 <CalendarGrid
                   days={days}
