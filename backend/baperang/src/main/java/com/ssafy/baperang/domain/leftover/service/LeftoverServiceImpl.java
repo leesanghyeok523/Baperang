@@ -51,11 +51,32 @@ public class LeftoverServiceImpl implements LeftoverService {
             List<LeftoverDateResponseDto.MenuLeftoverRate> menuLeftoverRates
                     = leftoverRepository.findAverageLeftoverRateByDate(date);
 
+            List<LeftoverDateResponseDto.MenuLeftoverRate> formattedRates = new ArrayList<>();
+
+            for (LeftoverDateResponseDto.MenuLeftoverRate item : menuLeftoverRates) {
+                String menuName = item.getMenuName();
+                Float originalRate = item.getLeftoverRate();
+
+                Float formattedRate = originalRate;
+                if (originalRate != null && originalRate > 0) {
+                    formattedRate = Float.parseFloat(df.format(originalRate));
+                }
+
+                LeftoverDateResponseDto.MenuLeftoverRate formattedItem =
+                        LeftoverDateResponseDto.MenuLeftoverRate.builder()
+                                .menuName(menuName)
+                                .leftoverRate(formattedRate)
+                                .build();
+
+                formattedRates.add(formattedItem);
+            }
+
+
             log.info("getLeftoversByDate 함수 성공 종료 - 메뉴 수: {}", menuLeftoverRates.size());
 
             // 결과를 Dto로 래핑하여 반환
             return LeftoverDateResponseDto.builder()
-                    .leftovers(menuLeftoverRates)
+                    .leftovers(formattedRates)
                     .build();
         } catch (DateTimeParseException e) {
             return ErrorResponseDto.of(BaperangErrorCode.INVALID_INPUT_VALUE);
