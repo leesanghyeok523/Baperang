@@ -49,7 +49,7 @@ const MenuDetail = ({ selectedDate, menuData }: MenuDetailProps) => {
               {menuData[selectedDate].menu.map((item: string, index: number) => (
                 <div
                   key={index}
-                  className="bg-white w-full px-4 py-3 rounded-3xl text-sm shadow-sm text-center mb-2"
+                  className="bg-white w-[95%] px-4 py-3 rounded-3xl text-base shadow-sm text-center mb-2"
                 >
                   <div className="truncate">{item}</div>
                 </div>
