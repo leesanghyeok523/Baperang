@@ -11,7 +11,7 @@ const MenuDetail = ({ selectedDate, menuData }: MenuDetailProps) => {
     return (
       <div
         className="w-1/5 bg-[#FCF8F3]/90 rounded-3xl p-4 flex flex-col h-full"
-        style={{ width: '250px', flexShrink: 0 }}
+        style={{ width: '350px', flexShrink: 0 }}
       >
         <div className="h-full flex items-center justify-center text-gray-500">
           날짜를 선택하면 식단이 표시됩니다.
@@ -36,7 +36,7 @@ const MenuDetail = ({ selectedDate, menuData }: MenuDetailProps) => {
   return (
     <div
       className="w-1/5 bg-[#FCF8F3]/90 rounded-3xl p-4 flex flex-col h-full"
-      style={{ width: '250px', flexShrink: 0 }}
+      style={{ width: '350px', flexShrink: 0 }}
     >
       <div className="flex flex-col h-full">
         <div className="text-base font-semibold text-center mb-3">
@@ -49,7 +49,7 @@ const MenuDetail = ({ selectedDate, menuData }: MenuDetailProps) => {
               {menuData[selectedDate].menu.map((item: string, index: number) => (
                 <div
                   key={index}
-                  className="bg-white w-full px-4 py-3 rounded-3xl text-sm shadow-sm text-center mb-2"
+                  className="bg-white w-[95%] px-4 py-3 rounded-3xl text-base shadow-sm text-center mb-2"
                 >
                   <div className="truncate">{item}</div>
                 </div>

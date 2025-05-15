@@ -72,7 +72,17 @@ const CalendarGrid = ({
               <div className="flex justify-between">
                 <span
                   className={`font-medium ${
-                    index % 7 === 0 ? 'text-red-500' : index % 7 === 6 ? 'text-blue-500' : ''
+                    day.type === 'prev' || day.type === 'next'
+                      ? index % 7 === 0
+                        ? 'text-red-500 opacity-40'
+                        : index % 7 === 6
+                        ? 'text-blue-500 opacity-40'
+                        : 'text-gray-400'
+                      : index % 7 === 0
+                      ? 'text-red-500'
+                      : index % 7 === 6
+                      ? 'text-blue-500'
+                      : ''
                   }`}
                 >
                   {day.date}
@@ -83,10 +93,10 @@ const CalendarGrid = ({
               </div>
 
               {day.type === 'current' && day.hasMenu && dayMenus && dayMenus.length > 0 && (
-                <div className="text-[9px] mt-1 text-gray-600 overflow-hidden">
+                <div className="text-[11px] text-gray-600 overflow-hidden">
                   {dayMenus[0] && <div className="truncate">{dayMenus[0]}</div>}
                   {dayMenus.length > 1 && (
-                    <div className="text-[8px] text-gray-500">+{dayMenus.length - 1}개</div>
+                    <div className="text-[11px]text-gray-500">+{dayMenus.length - 1}개</div>
                   )}
                 </div>
               )}

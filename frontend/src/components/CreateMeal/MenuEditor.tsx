@@ -67,7 +67,10 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
   // 날짜가 선택되지 않은 경우
   if (!selectedDate) {
     return (
-      <div className="w-1/5 bg-[#FCF8F3]/90 rounded-3xl p-4 flex flex-col">
+      <div
+        className="w-1/5 bg-[#FCF8F3]/90 rounded-3xl p-4 flex flex-col"
+        style={{ width: '350px', flexShrink: 0 }}
+      >
         <div className="h-full flex items-center justify-center text-gray-500">
           날짜를 선택하면 식단이 표시됩니다.
         </div>
@@ -78,7 +81,10 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
   // 선택된 날짜에 메뉴 데이터가 없는 경우
   if (!menuData[selectedDate]) {
     return (
-      <div className="w-1/5 bg-[#FCF8F3]/90 rounded-3xl p-4 flex flex-col h-full">
+      <div
+        className="w-1/5 bg-[#FCF8F3]/90 rounded-3xl p-4 flex flex-col h-full"
+        style={{ width: '350px', flexShrink: 0 }}
+      >
         {editMode ? (
           <div className="flex flex-col h-full">
             <div className="text-base font-semibold text-center mb-3">
@@ -150,7 +156,10 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
   // 선택된 날짜에 메뉴가 있고, 보기 모드인 경우
   if (!editMode) {
     return (
-      <div className="w-1/5 bg-[#FCF8F3]/90 rounded-3xl p-4 flex flex-col h-full">
+      <div
+        className="w-1/5 bg-[#FCF8F3]/90 rounded-3xl p-4 flex flex-col h-full"
+        style={{ width: '350px', flexShrink: 0 }}
+      >
         <div className="flex flex-col h-full">
           <div className="text-base font-semibold text-center mb-3">
             {selectedDate.split('-')[1]}월 {selectedDate.split('-')[2]}일 식단
@@ -180,7 +189,10 @@ const MenuEditor: React.FC<MenuEditorProps> = ({
 
   // 편집 모드인 경우
   return (
-    <div className="w-1/5 bg-[#FCF8F3]/90 rounded-3xl p-4 flex flex-col h-full">
+    <div
+      className="w-1/5 bg-[#FCF8F3]/90 rounded-3xl p-4 flex flex-col h-full"
+      style={{ width: '350px', flexShrink: 0 }}
+    >
       <div className="flex flex-col h-full">
         <div className="text-base font-semibold text-center mb-3">
           {selectedDate.split('-')[1]}월 {selectedDate.split('-')[2]}일 수정

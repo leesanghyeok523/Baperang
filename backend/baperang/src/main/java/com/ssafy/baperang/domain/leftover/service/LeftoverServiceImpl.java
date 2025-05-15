@@ -51,11 +51,32 @@ public class LeftoverServiceImpl implements LeftoverService {
             List<LeftoverDateResponseDto.MenuLeftoverRate> menuLeftoverRates
                     = leftoverRepository.findAverageLeftoverRateByDate(date);
 
+            List<LeftoverDateResponseDto.MenuLeftoverRate> formattedRates = new ArrayList<>();
+
+            for (LeftoverDateResponseDto.MenuLeftoverRate item : menuLeftoverRates) {
+                String menuName = item.getMenuName();
+                Float originalRate = item.getLeftoverRate();
+
+                Float formattedRate = originalRate;
+                if (originalRate != null && originalRate > 0) {
+                    formattedRate = Float.parseFloat(df.format(originalRate));
+                }
+
+                LeftoverDateResponseDto.MenuLeftoverRate formattedItem =
+                        LeftoverDateResponseDto.MenuLeftoverRate.builder()
+                                .menuName(menuName)
+                                .leftoverRate(formattedRate)
+                                .build();
+
+                formattedRates.add(formattedItem);
+            }
+
+
             log.info("getLeftoversByDate 함수 성공 종료 - 메뉴 수: {}", menuLeftoverRates.size());
 
             // 결과를 Dto로 래핑하여 반환
             return LeftoverDateResponseDto.builder()
-                    .leftovers(menuLeftoverRates)
+                    .leftovers(formattedRates)
                     .build();
         } catch (DateTimeParseException e) {
             return ErrorResponseDto.of(BaperangErrorCode.INVALID_INPUT_VALUE);
@@ -179,7 +200,6 @@ public class LeftoverServiceImpl implements LeftoverService {
 
             Student student = studentOpt.get();
             LocalDate today = LocalDate.now();
-            School schoolEntity = student.getSchool();
 
             // AI 서버 응답 검증
             if (!aiResponse.containsKey("leftoverRate")) {
@@ -189,6 +209,23 @@ public class LeftoverServiceImpl implements LeftoverService {
 
             Map<String, Object> leftoverData = (Map<String, Object>) aiResponse.get("leftoverRate");
 
+            List<Leftover> existingLeftovers = leftoverRepository.findByStudentAndLeftoverDate(student, today);
+
+            if (!existingLeftovers.isEmpty()) {
+                for (Leftover leftover : existingLeftovers) {
+                    log.info("이미 저장된 잔반데이터가 있음:: 학생={}, 메뉴={}, 날자={}", student.getStudentName(), leftover.getLeftMenuName(), today);
+                }
+
+                Map<String, Object> result = new HashMap<>();
+                result.put("message", "이미 저장된 잔반 데이터가 있음");
+                result.put("leftoverCount", 0);
+                result.put("skip", existingLeftovers.size());
+                result.put("isDuplicate", true);
+
+                return result;
+            }
+
+            School schoolEntity = student.getSchool();
             List<Menu> todayMenus = menuRepository.findBySchoolAndMenuDate(schoolEntity, today);
 
             if (todayMenus.isEmpty()) {
@@ -239,17 +276,6 @@ public class LeftoverServiceImpl implements LeftoverService {
                 if (leftoverData.containsKey(position) && positionMenuMap.containsKey(position)) {
                     Menu menu = positionMenuMap.get(position);
 
-                    Optional<Leftover> existingLeftover = leftoverRepository.findByStudentAndMenuAndLeftoverDate(
-                            student, menu, today
-                    );
-
-                    if (existingLeftover.isPresent()) {
-                        log.info("이미 저장된 잔반 데이터가 있음. 학생={}, 메뉴={}, 날짜={}", student.getStudentName(), menu.getMenuName(), today);
-                        skip++;
-                        continue;
-                    }
-
-
                     float rawLeftoverRate = ((Number) leftoverData.get(position)).floatValue();
                     // 소수점 둘째 자리까지 포맷팅
                     float leftoverRate = Float.parseFloat(df.format(rawLeftoverRate));
@@ -282,5 +308,4 @@ public class LeftoverServiceImpl implements LeftoverService {
             return ErrorResponseDto.of(BaperangErrorCode.INTERNAL_SERVER_ERROR);
         }
     }
-
 }
