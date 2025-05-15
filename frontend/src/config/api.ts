@@ -39,6 +39,7 @@ const API_CONFIG = {
     STUDENT: {
       GET_ALL: '/api/v1/student/studentname/all',
       GET_STUDENT_DETAIL: '/api/v1/student/studentname', // /{studentId} 파라미터 필요
+      HEALTH_REPORT: '/api/v1/student', // /{studentId}/health-report 파라미터 필요
     },
 
     // 학교 관련

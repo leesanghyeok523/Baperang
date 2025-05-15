@@ -37,7 +37,7 @@ const MenuCard: React.FC<MenuCardProps> = ({
   };
 
   const handleMenuItemClick = (item: string) => {
-    if (onMenuSelect) {
+    if (onMenuSelect && item !== '메뉴 정보가 없습니다') {
       onMenuSelect(item);
     }
   };
@@ -89,7 +89,9 @@ const MenuCard: React.FC<MenuCardProps> = ({
             </div>
           ) : (
             <div className="text-center w-full">
-              <p className="text-xl font-medium text-gray-200">오늘의 메뉴가 없습니다</p>
+              <p className="text-xl font-medium text-gray-200 cursor-not-allowed">
+                오늘의 메뉴가 없습니다
+              </p>
             </div>
           )}
         </div>

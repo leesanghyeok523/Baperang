@@ -336,7 +336,7 @@ const MainPage = () => {
           <div className="grid grid-cols-12 gap-14 w-full">
             {/* 식단 카드 - 높이 줄임 */}
             <div className="col-span-12 md:col-span-4">
-              <div className="h-[65vh] grid grid-rows-2 gap-4">
+              <div className="h-[73vh] grid grid-rows-2 gap-4">
                 <div className="row-span-1">
                   <MenuCard
                     menuItems={currentMenuItems}
@@ -355,7 +355,7 @@ const MainPage = () => {
 
             {/* 실시간 잔반률/선호도 전환 카드 - SSE에서 받은 데이터만 사용 */}
             <div className="col-span-12 md:col-span-8">
-              <div className="h-[65vh]">
+              <div className="h-[73vh]">
                 <RateToggleCard data={todayWasteData} />
               </div>
             </div>
