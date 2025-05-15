@@ -140,7 +140,7 @@ public class HealthReportServiceImpl implements HealthReportService{
                             (existing, replacement) -> replacement
                     ));
 
-            // 일주일간 섭취한 영양소 계산 - 최적화된 메소드 사용 (AI 요청용)
+            // 일주일간 섭취한 영양소 계산 (AI 요청용)
             Map<String, Map<String, Integer>> dailyNutrientData = calcOptimizedNutrients(
                     leftoversByDate,
                     nutrientMap,
