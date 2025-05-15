@@ -34,13 +34,18 @@ class PromptTemplates:
         _, last_day = calendar.monthrange(next_year, next_month)
         end_date = date(next_year, next_month, last_day)
 
+        # 모든 평일(월~금) 찾기
+        weekdays = []
+        current_date = start_date
+        while current_date <= end_date:
+            # weekday()는 0=월요일, 1=화요일, ..., 4=금요일, 5=토요일, 6=일요일
+            if current_date.weekday() < 5:  # 5 미만이면 평일
+                weekdays.append(current_date.isoformat())
+            current_date += timedelta(days=1)
         if settings.DEBUG:
             print(f"[PROMPT][get_next_month_range] Completed in {time.time() - start_time:.4f} seconds")
 
-        return {
-            "start": start_date.isoformat(),
-            "end": end_date.isoformat()
-        }
+        return weekdays
     
     @staticmethod
     def organize_menu_by_category(menu_pool: List[str], categories: Optional[Dict[str, List[str]]]) -> Dict[str, List[str]]:
@@ -86,7 +91,7 @@ class PromptTemplates:
         return categorized
 
     @staticmethod
-    def waste_based_templates(leftover_data: Dict[str, Any], menu_pool: Dict[str, List[str]]) -> str:
+    def waste_based_templates(leftover_data: Dict[str, Any], menu_pool: Dict[str, List[str]], holidays: Dict[str, Any]) -> str:
         """
         잔반율 기반 식단 생성 프롬프트
         """
@@ -123,20 +128,23 @@ class PromptTemplates:
         {json.dumps(categorized_leftover, ensure_ascii=False, indent=2)}
         ```
 
-        ## 목표 기간
-        - 시작일: {date_range['start']}
-        - 종료일: {date_range['end']}
+        ## 생성 일정
+        - 생성 일정 : {date_range}
+        - 생성 재외 일정 : {holidays}
 
         ## 요청사항
         1. 잔반율이 낮은 메뉴를 더 자주 포함하고, 잔반율이 높은 메뉴는 개선된 조합으로 제공해주세요.
         2. 각 날짜별로 메뉴 조합을 추천해주세요.
-            - soup 1개, rice 1개, main_dish 1개, side_dishes 2개로 생성해주세요.
-        3. 기존에 없는 메뉴는 임의로 생성하지 마세요.
-        4. 같은 메뉴는 최소 5일 간격으로 배치해주세요
-    
+            - soup 1개, rice 1개, main 1개, side 2개로 생성해주세요.
+        3. 생성 일정에 해당하는 일자만 생성하되, 생성 제외 일정은 빼고 생성해주세요.
+        4. 기존에 없는 메뉴는 임의로 생성하지 마세요.
+        5. 같은 메뉴는 최소 5일 간격으로 배치해주세요
+        
         ## 중요: waste_plan 함수 호출하기
+        다른 형태("main_dish", "side_dishes" 등)는 절대 사용하지 마세요.
         결과는 반드시 waste_plan 함수를 통해 반환하세요. 함수의 plan 파라미터에 날짜별 메뉴 목록을 다음과 같은 형식의 JSON으로 입력하세요:
         
+
         ```json
         {{
           "plan": {{
@@ -161,7 +169,7 @@ class PromptTemplates:
 
 
     @staticmethod
-    def nutrition_based_template(preference_data: Dict[str, Dict[str, float]], menu_pool: List[str]) -> str:
+    def nutrition_based_template(preference_data: Dict[str, Dict[str, float]], menu_pool: List[str], holidays: Dict[str, Any]) -> str:
         """
         영양소 기반 식단 생성 프롬프트
         """
@@ -200,9 +208,9 @@ class PromptTemplates:
         ```
 
 
-        ## 목표 기간
-        - 시작일: {date_range['start']}
-        - 종료일: {date_range['end']}
+        ## 생성 일정
+        - 생성 일정 : {date_range}
+        - 생성 재외 일정 : {holidays}
 
         ## 영양목표
         - 영양소	하루 권장 섭취량	점심 한 끼 권장 섭취량
@@ -224,11 +232,14 @@ class PromptTemplates:
         1. 영양 균형을 고려한 식단을 구성해주세요.
         2. 선호도가 높은 메뉴를 적절히 활용하되, 다양성도 고려해주세요.
         3. 기존에 없는 메뉴를 임의로 생성하지 마세요.
-        4. soup 1개, rice 1개, main 1개, side 2개로 구성해주세요.
-        5. 같은 메뉴는 최소 5일 간격으로 배치해주세요.
-        6. 반드시 유효한 JSON만 반환해주세요. 설명, 주석, 코드 블록 없이 구조화된 데이터만 반환하세요.
+        4. 생성 일정에 해당하는 일자만 생성하되, 생성 제외 일정은 빼고 생성해주세요.
+        5. 각 날짜별로 메뉴 조합을 추천해주세요.
+            - soup 1개, rice 1개, main 1개, side 2개로 생성해주세요.
+        6. 같은 메뉴는 최소 5일 간격으로 배치해주세요.
+        7. 반드시 유효한 JSON만 반환해주세요. 설명, 주석, 코드 블록 없이 구조화된 데이터만 반환하세요.
 
         ## 중요: nutrition_plan 함수 호출하기
+        다른 형태("main_dish", "side_dishes" 등)는 절대 사용하지 마세요.
         결과는 반드시 nutrition_plan 함수를 통해 반환하세요. 함수의 plan 파라미터에 날짜별 메뉴 목록을 다음과 같은 형식의 JSON으로 입력하세요:
         
         ```json
@@ -255,28 +266,17 @@ class PromptTemplates:
         """
     
     @staticmethod
-    def integration_template(waste_plan: Dict[str, List[str]], nutrition_plan: Dict[str, List[str]]) -> str:
+    def integration_template(waste_plan: Dict[str, List[str]], nutrition_plan: Dict[str, List[str]], holidays: Dict[str, Any]) -> str:
         """
         통합 식단 생성 프롬프트
         """
         if settings.DEBUG:
             print(f"[PROMPT][integration_template] Starting with parameters...")
 
-        # example_output = {
-        #   "2025-06-01": ["찹쌀밥", "미역국", "돈육불고기", "시금치나물", "콩나물무침"],
-        #   "2025-06-02": ["잡곡밥", "된장찌개", "고등어구이", "도라지무침", "배추김치"]
-        # }
-        # exemple_alternatives={
-        #   "alternatives": {
-        #     "2025-06-01": {
-        #       "밥류": ["잡곡밥", "흰밥"],
-        #       "국류": ["된장국", "콩나물국"],
-        #       "메인반찬": ["제육볶음", "닭갈비"],
-        #       "부반찬": ["무생채", "도라지무침", "오이무침"]
-        #     }
-        #   }
-        # }
-
+        # 다음 달 날짜 자동 계산
+        
+        date_range = PromptTemplates.get_next_month_range()
+        
         return f"""
         당신은 다양한 요구사항을 균형있게 반영하는 메뉴 통합 전문가입니다.
 
@@ -291,16 +291,22 @@ class PromptTemplates:
         {json.dumps(nutrition_plan, ensure_ascii=False, indent=2)}
         ```
 
+        ## 생성 일정
+        - 생성 일정 : {date_range}
+        - 생성 제외 일정 : {holidays}
+
         ## 요청사항
         1. 두 식단의 장점을 결합하여 최적의 통합 식단을 생성해주세요.
         2. 잔반이 적으면서도 영양적으로 균형잡힌 식단을 구성해주세요.
         3. 메뉴 간 다양성과 조화를 고려해주세요.
         4. 기존에 없는 메뉴를 임의로 생성하지 마세요.
-        5. 각 날짜별로 메뉴 조합을 추천해주세요.
-            - soup 1개, rice 1개, main_dish 1개, side_dishes 2개로 생성해주세요.
-        6. 같은 메뉴는 최소 5일 간격으로 배치해주세요.
+        5. 생성 일정에 해당하는 일자만 생성하되, 생성 제외 일정은 빼고 생성해주세요.
+        6. 각 날짜별로 메뉴 조합을 추천해주세요.
+            - soup 1개, rice 1개, main 1개, side 2개로 생성해주세요.
+        7. 같은 메뉴는 최소 5일 간격으로 배치해주세요.
 
         ## 중요: integration_plan 함수 호출하기
+        다른 형태("main_dish", "side_dishes" 등)는 절대 사용하지 마세요.
         결과는 반드시 integration_plan 함수를 통해 반환하세요. 함수의 plan 파라미터에 날짜별 메뉴 목록을 다음과 같은 형식의 JSON으로 입력하세요:
         
         ```json
