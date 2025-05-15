@@ -90,6 +90,7 @@ public class SatisfactionServiceImpl implements SatisfactionService {
         });
     }
 
+    
     /**
      * 오늘의 메뉴 만족도 정보를 조회하여 반환 (우선순위와 최대 개수에 따라 필터링)
      */
