@@ -1,14 +1,15 @@
 package com.ssafy.baperang.domain.menu.repository;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 
 import org.springframework.stereotype.Repository;
-import lombok.RequiredArgsConstructor;
 
 import com.ssafy.baperang.domain.menu.entity.Menu;
 import com.ssafy.baperang.domain.school.entity.School;
-import com.ssafy.baperang.domain.menu.repository.MenuJpaRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Repository
 @RequiredArgsConstructor
@@ -56,4 +57,10 @@ public class MenuRepositoryImpl implements MenuRepository {
     public List<Menu> findBySchoolAndMenuDate(School school, LocalDate menuDate) {
         return menuJpaRepository.findBySchoolAndMenuDate(school, menuDate);
     }
+
+    @Override
+    public List<Menu> findAllByIdIn(Collection<Long> menuIds) {
+        return menuJpaRepository.findAllByIdIn(menuIds);
+    }
+
 }
