@@ -93,10 +93,10 @@ const CalendarGrid = ({
               </div>
 
               {day.type === 'current' && day.hasMenu && dayMenus && dayMenus.length > 0 && (
-                <div className="text-[9px] mt-1 text-gray-600 overflow-hidden">
+                <div className="text-[11px] text-gray-600 overflow-hidden">
                   {dayMenus[0] && <div className="truncate">{dayMenus[0]}</div>}
                   {dayMenus.length > 1 && (
-                    <div className="text-[8px] text-gray-500">+{dayMenus.length - 1}개</div>
+                    <div className="text-[11px]text-gray-500">+{dayMenus.length - 1}개</div>
                   )}
                 </div>
               )}
