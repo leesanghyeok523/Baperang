@@ -58,7 +58,7 @@ const CalendarHeader = ({
       </div>
 
       {/* 중앙 - 이전/다음 버튼과 제목 */}
-      <div className="flex items-center justify-center space-x-16">
+      <div className="flex items-center justify-center space-x-4">
         <button
           onClick={goToPrevMonth}
           className="text-gray-600 hover:text-gray-900 focus:outline-none"
