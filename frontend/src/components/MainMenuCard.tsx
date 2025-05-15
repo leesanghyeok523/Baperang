@@ -66,7 +66,7 @@ const MenuCard: React.FC<MenuCardProps> = ({
             <div className="w-full space-y-3 overflow-y-auto max-h-[calc(100vh-220px)]">
               {menuItems.map((item, index) => (
                 <div key={index} className="text-center p-1 rounded-lg bg-transparent">
-                  <p className="text-lg font-medium text-gray-800">{item}</p>
+                  <p className="text-xl font-medium text-gray-800">{item}</p>
                 </div>
               ))}
             </div>

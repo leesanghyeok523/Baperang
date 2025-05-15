@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   FiChevronLeft,
   FiChevronRight,
@@ -39,7 +39,9 @@ const InventoryPage: React.FC = () => {
   const [editValue, setEditValue] = useState<string>('');
 
   // 항목 추가/삭제 상태
-  const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
+  const [isAddingNewRow, setIsAddingNewRow] = useState<boolean>(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+  const [isEditMode, setIsEditMode] = useState<boolean>(false);
   const [newItem, setNewItem] = useState<Partial<InventoryItem>>({
     date: new Date().toLocaleDateString('ko-KR').replace(/\. /g, '.').replace('.', ''),
     productName: '',
@@ -49,8 +51,6 @@ const InventoryPage: React.FC = () => {
     usedQuantity: 0,
     unit: '개',
   });
-  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
-  const [isEditMode, setIsEditMode] = useState<boolean>(false);
 
   // 필터링된 데이터 (현재 월에 해당하는 데이터만)
   const [filteredData, setFilteredData] = useState<InventoryItem[]>([]);
@@ -68,10 +68,15 @@ const InventoryPage: React.FC = () => {
   }, [inventory, currentMonth]);
 
   // 현재 페이지에 표시할 데이터
-  const currentData = filteredData.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  const currentData = useMemo(() => {
+    // 추가 행이 있으면 한 개 적게 표시
+    const effectiveItemsPerPage = isAddingNewRow ? itemsPerPage - 1 : itemsPerPage;
+
+    return filteredData.slice(
+      (currentPage - 1) * itemsPerPage,
+      (currentPage - 1) * itemsPerPage + effectiveItemsPerPage
+    );
+  }, [filteredData, currentPage, itemsPerPage, isAddingNewRow]);
 
   // 월 변경 함수
   const prevMonth = () => {
@@ -110,42 +115,6 @@ const InventoryPage: React.FC = () => {
 
     setInventory(updatedInventory);
     setEditingId(null);
-  };
-
-  // 항목 추가 처리
-  const handleAddItem = () => {
-    // 유효성 검사
-    if (
-      !newItem.productName ||
-      !newItem.supplier ||
-      newItem.price === undefined ||
-      newItem.orderedQuantity === undefined
-    ) {
-      alert('모든 필드를 입력해주세요');
-      return;
-    }
-
-    // 새 ID 생성 (가장 큰 ID + 1)
-    const maxId = inventory.length > 0 ? Math.max(...inventory.map((item) => item.id)) : 0;
-    const newItemWithId: InventoryItem = {
-      ...(newItem as InventoryItem),
-      id: maxId + 1,
-    };
-
-    // 인벤토리에 추가
-    setInventory((prev) => [...prev, newItemWithId]);
-
-    // 모달 닫고 입력 초기화
-    setIsAddModalOpen(false);
-    setNewItem({
-      date: new Date().toLocaleDateString('ko-KR').replace(/\. /g, '.').replace('.', ''),
-      productName: '',
-      supplier: '',
-      price: 0,
-      orderedQuantity: 0,
-      usedQuantity: 0,
-      unit: '개',
-    });
   };
 
   // 항목 삭제 처리
@@ -203,7 +172,7 @@ const InventoryPage: React.FC = () => {
     return (
       <tr key={item.id} className="hover:bg-[#E7E3DE]">
         {isEditMode && (
-          <td className="w-10 pl-2 py-[1%] text-center border-b border-r border-gray-300">
+          <td className="w-15 text-center border-b border-r border-gray-300">
             <button
               onClick={() => setDeleteConfirmId(item.id)}
               className="text-red-500 hover:text-red-700"
@@ -238,9 +207,10 @@ const InventoryPage: React.FC = () => {
     }
   };
 
-  // 항목 추가 모달 열기
-  const openAddModal = () => {
-    // 새 항목 초기화
+  // 새 행 추가 관련 함수
+
+  // 새 행 추가 시작
+  const startAddingNewRow = () => {
     setNewItem({
       date: new Date().toLocaleDateString('ko-KR').replace(/\. /g, '.').replace('.', ''),
       productName: '',
@@ -250,7 +220,39 @@ const InventoryPage: React.FC = () => {
       usedQuantity: 0,
       unit: '개',
     });
-    setIsAddModalOpen(true);
+    setIsAddingNewRow(true);
+  };
+
+  // 새 행 추가 취소
+  const cancelAddingNewRow = () => {
+    setIsAddingNewRow(false);
+  };
+
+  // 새 행 추가 저장
+  const saveNewRow = () => {
+    // 유효성 검사
+    if (
+      !newItem.productName ||
+      !newItem.supplier ||
+      newItem.price === undefined ||
+      newItem.orderedQuantity === undefined
+    ) {
+      alert('모든 필드를 입력해주세요');
+      return;
+    }
+
+    // 새 ID 생성 (가장 큰 ID + 1)
+    const maxId = inventory.length > 0 ? Math.max(...inventory.map((item) => item.id)) : 0;
+    const newItemWithId: InventoryItem = {
+      ...(newItem as InventoryItem),
+      id: maxId + 1,
+    };
+
+    // 인벤토리에 추가
+    setInventory((prev) => [...prev, newItemWithId]);
+
+    // 새 행 추가 모드 종료
+    setIsAddingNewRow(false);
   };
 
   return (
@@ -270,7 +272,7 @@ const InventoryPage: React.FC = () => {
               {/* 왼쪽 - 항목 추가 버튼과 편집 버튼 */}
               <div className="flex items-center space-x-8 ml-4">
                 <button
-                  onClick={openAddModal}
+                  onClick={startAddingNewRow}
                   className="flex items-center space-x-1 text-blue-500 hover:text-blue-700"
                 >
                   <FiPlus size={20} />
@@ -299,7 +301,7 @@ const InventoryPage: React.FC = () => {
               </div>
 
               {/* 중앙 - 이전/다음 버튼과 제목 */}
-              <div className="flex items-center justify-center relative w-[399px] left-4">
+              <div className="flex items-center justify-center relative">
                 <button
                   onClick={prevMonth}
                   className="text-gray-600 hover:text-gray-900 focus:outline-none absolute left-0"
@@ -350,7 +352,147 @@ const InventoryPage: React.FC = () => {
                         <th className={STYLES.headerCellLast}>diff</th>
                       </tr>
                     </thead>
-                    <tbody>{currentData.map(renderTableRow)}</tbody>
+                    <tbody>
+                      {/* 새 행 추가 행 */}
+                      {isAddingNewRow && (
+                        <tr className="hover:bg-[#E7E3DE] bg-white/10">
+                          {isEditMode && (
+                            <td className="w-10 pl-2 text-center border-b border-r border-l border-gray-300 p-[1%]">
+                              <button className="text-red-500 opacity-0">
+                                <FiMinus size={18} />
+                              </button>
+                            </td>
+                          )}
+                          <td className="text-center border-b border-r border-gray-300 p-[0.7%]">
+                            <input
+                              type="date"
+                              value={
+                                newItem.date
+                                  ? (() => {
+                                      try {
+                                        const parts = newItem.date.split('.');
+                                        if (parts.length === 3) {
+                                          return `${parts[0]}-${parts[1].padStart(
+                                            2,
+                                            '0'
+                                          )}-${parts[2].padStart(2, '0')}`;
+                                        }
+                                        return '';
+                                      } catch {
+                                        return '';
+                                      }
+                                    })()
+                                  : ''
+                              }
+                              onChange={(e) => {
+                                const dateValue = e.target.value;
+                                if (dateValue) {
+                                  const [year, month, day] = dateValue.split('-');
+                                  setNewItem({
+                                    ...newItem,
+                                    date: `${year}.${month}.${day}`,
+                                  });
+                                }
+                              }}
+                              className="w-[83%] bg-white/70 p-2 border rounded-xl h-[40px]"
+                            />
+                          </td>
+                          <td className="text-center border-b border-r border-gray-300 p-[0.7%]">
+                            <input
+                              type="text"
+                              value={newItem.productName || ''}
+                              onChange={(e) =>
+                                setNewItem({ ...newItem, productName: e.target.value })
+                              }
+                              placeholder="상품명"
+                              className="w-[80%] bg-white/70 p-2 border rounded-xl h-[40px]"
+                            />
+                          </td>
+                          <td className="text-center border-b border-r border-gray-300 p-[0.7%] ">
+                            <input
+                              type="text"
+                              value={newItem.supplier || ''}
+                              onChange={(e) => setNewItem({ ...newItem, supplier: e.target.value })}
+                              placeholder="거래처"
+                              className="w-[80%] bg-white/70 p-2 border rounded-xl h-[40px]"
+                            />
+                          </td>
+                          <td className="text-center border-b border-r border-gray-300 p-[0.7%]">
+                            <div className="relative">
+                              <input
+                                type="text"
+                                value={newItem.price || 0}
+                                onChange={(e) => {
+                                  const value = e.target.value.replace(/[^0-9]/g, '');
+                                  setNewItem({ ...newItem, price: value ? parseInt(value) : 0 });
+                                }}
+                                className="w-[80%] bg-white/70 p-2 border rounded-xl h-[40px] pr-8"
+                              />
+                              <span className="absolute right-8 top-1/2 transform -translate-y-1/2 text-gray-500">
+                                원
+                              </span>
+                            </div>
+                          </td>
+                          <td className="text-center border-b border-r border-gray-300 p-[0.7%]">
+                            <div className="flex items-center justify-center">
+                              <input
+                                type="number"
+                                value={newItem.orderedQuantity || 0}
+                                onChange={(e) =>
+                                  setNewItem({
+                                    ...newItem,
+                                    orderedQuantity: parseInt(e.target.value) || 0,
+                                  })
+                                }
+                                className="w-[50%] bg-white/70 p-2 border rounded-xl h-[40px]"
+                              />
+                              <select
+                                value={newItem.unit || '개'}
+                                onChange={(e) => setNewItem({ ...newItem, unit: e.target.value })}
+                                className="w-[30%] bg-white/70 p-2 border rounded-xl h-[40px] ml-1"
+                              >
+                                <option value="개">개</option>
+                                <option value="kg">kg</option>
+                                <option value="g">g</option>
+                                <option value="L">L</option>
+                                <option value="ml">ml</option>
+                                <option value="박스">박스</option>
+                              </select>
+                            </div>
+                          </td>
+                          <td className="text-center border-b border-r border-gray-300 p-[0.7%]">
+                            <input
+                              type="number"
+                              value={newItem.usedQuantity || 0}
+                              onChange={(e) =>
+                                setNewItem({
+                                  ...newItem,
+                                  usedQuantity: parseInt(e.target.value) || 0,
+                                })
+                              }
+                              className="w-[80%] bg-white/70 p-2 border rounded-xl h-[40px]"
+                            />
+                          </td>
+                          <td className="text-center border-b border-gray-300 font-medium p-[0.7%]">
+                            <div className="flex justify-center space-x-2">
+                              <button
+                                onClick={saveNewRow}
+                                className="bg-green-500 text-white px-4 py-2 text-sm rounded-lg hover:bg-green-600"
+                              >
+                                저장
+                              </button>
+                              <button
+                                onClick={cancelAddingNewRow}
+                                className="bg-red-500 text-white px-4 py-2 text-sm rounded-lg hover:bg-red-600"
+                              >
+                                취소
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                      {currentData.map(renderTableRow)}
+                    </tbody>
                   </table>
                 </div>
               </div>
@@ -378,133 +520,10 @@ const InventoryPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 항목 추가 모달 */}
-      {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg p-6 w-[500px] max-w-[90%]">
-            <h2 className="text-xl font-bold mb-4">새 항목 추가</h2>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">날짜</label>
-                <input
-                  type="date"
-                  value={
-                    newItem.date
-                      ? (() => {
-                          try {
-                            const parts = newItem.date.split('.');
-                            if (parts.length === 3) {
-                              return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(
-                                2,
-                                '0'
-                              )}`;
-                            }
-                            return '';
-                          } catch {
-                            return '';
-                          }
-                        })()
-                      : ''
-                  }
-                  onChange={(e) => {
-                    const dateValue = e.target.value;
-                    if (dateValue) {
-                      const [year, month, day] = dateValue.split('-');
-                      setNewItem({
-                        ...newItem,
-                        date: `${year}.${month}.${day}`,
-                      });
-                      console.log(`날짜 선택됨: ${year}.${month}.${day}`);
-                    }
-                  }}
-                  className="w-full p-2 border rounded"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">상품명</label>
-                <input
-                  type="text"
-                  value={newItem.productName || ''}
-                  onChange={(e) => setNewItem({ ...newItem, productName: e.target.value })}
-                  className="w-full p-2 border rounded"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">거래처</label>
-                <input
-                  type="text"
-                  value={newItem.supplier || ''}
-                  onChange={(e) => setNewItem({ ...newItem, supplier: e.target.value })}
-                  className="w-full p-2 border rounded"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">가격</label>
-                <input
-                  type="number"
-                  value={newItem.price || 0}
-                  onChange={(e) => setNewItem({ ...newItem, price: parseInt(e.target.value) || 0 })}
-                  className="w-full p-2 border rounded"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">주문수량</label>
-                  <input
-                    type="number"
-                    value={newItem.orderedQuantity || 0}
-                    onChange={(e) =>
-                      setNewItem({ ...newItem, orderedQuantity: parseInt(e.target.value) || 0 })
-                    }
-                    className="w-full p-2 border rounded"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">단위</label>
-                  <select
-                    value={newItem.unit || '개'}
-                    onChange={(e) => setNewItem({ ...newItem, unit: e.target.value })}
-                    className="w-full p-2 border rounded"
-                  >
-                    <option value="개">개</option>
-                    <option value="kg">kg</option>
-                    <option value="g">g</option>
-                    <option value="L">L</option>
-                    <option value="ml">ml</option>
-                    <option value="박스">박스</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end space-x-3 mt-6">
-              <button
-                onClick={() => setIsAddModalOpen(false)}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800"
-              >
-                취소
-              </button>
-              <button
-                onClick={handleAddItem}
-                className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
-              >
-                추가
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* 삭제 확인 모달 */}
       {deleteConfirmId !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg p-6 w-[400px] max-w-[90%]">
+          <div className="bg-white rounded-2xl p-6 w-[400px] max-w-[90%]">
             <h2 className="text-xl font-bold mb-4">항목 삭제</h2>
             <p className="mb-6">정말로 이 항목을 삭제하시겠습니까?</p>
 
