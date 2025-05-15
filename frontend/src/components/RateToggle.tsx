@@ -57,7 +57,7 @@ const RateToggleCard: React.FC<RateToggleCardProps> = ({ data }) => {
   };
 
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader>
         <button
           className="text-gray-600 hover:text-gray-900 focus:outline-none"
@@ -73,10 +73,8 @@ const RateToggleCard: React.FC<RateToggleCardProps> = ({ data }) => {
           <FiChevronRight size={30} />
         </button>
       </CardHeader>
-      <CardBody className="flex items-center justify-center">
-        <div className="w-full h-full" style={{ maxHeight: 'calc(70vh - 100px)' }}>
-          {renderContent()}
-        </div>
+      <CardBody className="flex items-center justify-center flex-grow">
+        <div className="w-full h-full">{renderContent()}</div>
       </CardBody>
     </Card>
   );
