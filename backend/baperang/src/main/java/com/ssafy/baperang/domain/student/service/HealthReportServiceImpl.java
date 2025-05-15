@@ -24,7 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 import com.ssafy.baperang.global.jwt.JwtService;
-import org.springframework.beans.factory.annotation.Value;
+// import org.springframework.beans.factory.annotation.Value;
 
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -46,10 +46,10 @@ public class HealthReportServiceImpl implements HealthReportService{
 
     private final DecimalFormat df = new DecimalFormat("#.##", new DecimalFormatSymbols(Locale.US));
 
-    @Value("${AI_SERVER_BASE_URL}")
-    private String aiServerBaseUrl;
+    // @Value("${AI_SERVER_BASE_URL}")
+    // private String aiServerBaseUrl;
 
-    private static final String HEALTH_REPORT_ENDPOINT = "/ai/health-report";
+    // private static final String HEALTH_REPORT_ENDPOINT = "/ai/health-report";
 
 //    private static final String AI_SERVER_URL = "http://127.0.0.1:8001/ai/health-report";
 
@@ -468,7 +468,9 @@ public class HealthReportServiceImpl implements HealthReportService{
         String requestBody = objectMapper.writeValueAsString(requestDto);
         HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
 
-        String aiServerUrl = aiServerBaseUrl + HEALTH_REPORT_ENDPOINT;
+        // String aiServerUrl = aiServerBaseUrl + HEALTH_REPORT_ENDPOINT;
+        // 로컬 테스트를 위한 하드코딩 URL 사용 (주석 해제)
+        String aiServerUrl = "http://127.0.0.1:8001/ai/health-report";
         log.info("AI 서버 URL: {}", aiServerUrl);
 
         // RestTemplate 인스턴스를 필요할 때 생성
