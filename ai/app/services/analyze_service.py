@@ -10,6 +10,7 @@ import requests
 import cv2
 import numpy as np
 from .custom_model import analyze_food_image_custom, load_resnet_model, load_midas_model
+import torch
 
 
 def download_image(url):
@@ -42,6 +43,7 @@ class AnalyzeService:
     def __init__(self):
         if settings.DEBUG:
             print("[ANALYZE] Initializing analyze service")
+        self.device = torch.device("cpu")  # CPU 디바이스 설정
 
     async def analyze_image(self, image_url: str) -> Dict[str, Any]:
         start = time.time()
@@ -63,8 +65,8 @@ class AnalyzeService:
         # 모델 가중치 파일 경로 설정 + 로딩 시간 측정
         load_start = time.time()
         weights_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'weights', 'new_opencv_ckpt_b84_e200.pth')
-        resnet_model = load_resnet_model(weights_path, device='cuda')
-        midas_model, midas_transform = load_midas_model(device='cuda')
+        resnet_model = load_resnet_model(weights_path, device='cpu')  # 'cuda' -> 'cpu'
+        midas_model, midas_transform = load_midas_model(device='cpu')  # 'cuda' -> 'cpu'
         load_elapsed = time.time() - load_start
         if settings.DEBUG:
             print(f"[TIMING] Model load: {load_elapsed:.3f}s")
