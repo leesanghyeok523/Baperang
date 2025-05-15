@@ -237,7 +237,7 @@ def load_resnet_model(weights_path, device='cpu'):
             print(f"가중치 파일을 찾을 수 없습니다: {abs_weights_path}")
             raise FileNotFoundError(f"가중치 파일을 찾을 수 없습니다: {abs_weights_path}")
             
-        checkpoint = torch.load(abs_weights_path, map_location=device)
+        checkpoint = torch.load(abs_weights_path, map_location=device, weights_only=False)
         model = checkpoint['model_ft']
         model.load_state_dict(checkpoint['state_dict'], strict=False)
         
