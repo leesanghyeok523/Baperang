@@ -16,7 +16,7 @@ import com.ssafy.baperang.domain.menu.repository.MenuJpaRepository;
 public class MenuRepositoryImpl implements MenuRepository {
 
     private final MenuJpaRepository menuJpaRepository;
-    
+
     @Override
     public Menu saveAndFlush(Menu menu) {
         return menuJpaRepository.saveAndFlush(menu);
@@ -42,17 +42,17 @@ public class MenuRepositoryImpl implements MenuRepository {
     public boolean existsBySchoolAndMenuDateAndMenuName(School school, LocalDate menuDate, String menuName) {
         return menuJpaRepository.existsBySchoolAndMenuDateAndMenuName(school, menuDate, menuName);
     }
-    
+
     @Override
     public List<String> findDistinctMenuNamesBySchoolAndMenuDate(School school, LocalDate menuDate) {
         return menuJpaRepository.findDistinctMenuNamesBySchoolAndMenuDate(school, menuDate);
     }
-    
+
     @Override
     public Menu findBySchoolAndMenuDateAndMenuName(School school, LocalDate menuDate, String menuName) {
         return menuJpaRepository.findBySchoolAndMenuDateAndMenuName(school, menuDate, menuName);
     }
-    
+
     @Override
     public List<Menu> findBySchoolAndMenuDate(School school, LocalDate menuDate) {
         return menuJpaRepository.findBySchoolAndMenuDate(school, menuDate);

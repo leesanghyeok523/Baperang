@@ -38,14 +38,14 @@ public interface MenuRepository {
             LocalDate menuDate,
             String menuName
     );
-    
+
     // 특정 학교, 날짜, 메뉴명으로 메뉴 조회
     Menu findBySchoolAndMenuDateAndMenuName(
             School school,
             LocalDate menuDate,
             String menuName
     );
-    
+
     // 특정 학교, 날짜의 모든 메뉴 조회
     List<Menu> findBySchoolAndMenuDate(
             School school,
