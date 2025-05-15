@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import InputCard from '../../components/ui/inputcard';
 import { FiDownload } from 'react-icons/fi';
 import jsPDF from 'jspdf';
@@ -112,54 +112,66 @@ const StudentManagement = () => {
   };
 
   // 특정 학생 정보 가져오기
-  const fetchStudentDetail = async (studentId: number) => {
-    try {
-      // 인증 여부 확인
-      if (!isAuthenticated || !accessToken) {
-        alert('로그인이 필요합니다. 다시 로그인해주세요.');
-        return;
-      }
-
-      const response = await axios.get<StudentDetailResponse>(
-        API_CONFIG.getUrlWithPathParams(API_CONFIG.ENDPOINTS.STUDENT.GET_STUDENT_DETAIL, [
-          studentId.toString(),
-        ]),
-        {
-          headers: {
-            Authorization: accessToken,
-          },
+  const fetchStudentDetail = useCallback(
+    async (studentId: number) => {
+      try {
+        // 인증 여부 확인
+        if (!isAuthenticated || !accessToken) {
+          alert('로그인이 필요합니다. 다시 로그인해주세요.');
+          return;
         }
-      );
 
-      const data = response.data;
+        const response = await axios.get<StudentDetailResponse>(
+          API_CONFIG.getUrlWithPathParams(API_CONFIG.ENDPOINTS.STUDENT.GET_STUDENT_DETAIL, [
+            studentId.toString(),
+          ]),
+          {
+            headers: {
+              Authorization: accessToken,
+            },
+          }
+        );
 
-      // BMI 계산 (키는 cm 단위로 m로 변환)
-      const heightInMeters = data.height / 100;
-      const bmi = data.weight / (heightInMeters * heightInMeters);
+        const data = response.data;
 
-      // 현재 학생 정보 업데이트
-      const updatedStudent: StudentType = {
-        id: data.studentId,
-        name: data.studentName,
-        grade: data.grade,
-        classNum: data.classNum,
-        studentNum: data.number,
-        gender: students.find((s) => s.id === data.studentId)?.gender || '남',
-        height: data.height,
-        weight: data.weight,
-        bmi: parseFloat(bmi.toFixed(1)),
-        date: data.date,
-        content: data.content,
-        schoolName: data.schoolName,
-        wasteRate: students.find((s) => s.id === data.studentId)?.wasteRate || 0,
-      };
+        // BMI 계산 (키는 cm 단위로 m로 변환)
+        const heightInMeters = data.height / 100;
+        const bmi = data.weight / (heightInMeters * heightInMeters);
 
-      setSelectedStudent(updatedStudent);
-    } catch (err) {
-      console.error('학생 상세 정보를 가져오는 중 오류 발생:', err);
-      alert('학생 상세 정보를 불러오는 데 실패했습니다.');
-    }
-  };
+        // 현재 학생 정보 업데이트
+        const updatedStudent: StudentType = {
+          id: data.studentId,
+          name: data.studentName,
+          grade: data.grade,
+          classNum: data.classNum,
+          studentNum: data.number,
+          gender: students.find((s) => s.id === data.studentId)?.gender || '남자',
+          height: data.height,
+          weight: data.weight,
+          bmi: parseFloat(bmi.toFixed(1)),
+          date: data.date,
+          content: data.content,
+          schoolName: data.schoolName,
+          wasteRate: students.find((s) => s.id === data.studentId)?.wasteRate || 0,
+        };
+
+        setSelectedStudent(updatedStudent);
+      } catch (err) {
+        console.error('학생 상세 정보를 가져오는 중 오류 발생:', err);
+        alert('학생 상세 정보를 불러오는 데 실패했습니다.');
+      }
+    },
+    [accessToken, isAuthenticated, students]
+  );
+
+  // 학생 선택 함수를 useCallback으로 메모이제이션
+  const handleSelectStudent = useCallback(
+    (student: StudentType) => {
+      fetchStudentDetail(student.id); // 상세 정보 가져오기
+      setAiReport(null); // 새 학생 선택시 리포트 초기화
+    },
+    [fetchStudentDetail]
+  );
 
   // 컴포넌트 마운트 시 학생 목록 가져오기
   useEffect(() => {
@@ -196,140 +208,129 @@ const StudentManagement = () => {
         handleSelectStudent(result[0]);
       }
     }
-  }, [selectedGrade, selectedClass, searchName, students]);
-
-  // 학생 선택 함수
-  const handleSelectStudent = (student: StudentType) => {
-    fetchStudentDetail(student.id); // 상세 정보 가져오기
-    setAiReport(null); // 새 학생 선택시 리포트 초기화
-  };
+  }, [
+    selectedGrade,
+    selectedClass,
+    searchName,
+    students,
+    selectedStudent?.id,
+    handleSelectStudent,
+  ]);
 
   // AI 건강 리포트 생성 함수
-  const generateAIReport = () => {
+  const generateAIReport = async () => {
     if (!selectedStudent) return;
 
-    const { name, grade, classNum, studentNum, bmi, wasteRate } = selectedStudent;
+    try {
+      setLoading(true);
 
-    // BMI 상태 평가
-    let bmiStatus = '';
-    if (!bmi) {
-      bmiStatus = '정보 없음';
-    } else if (bmi < 18.5) {
-      bmiStatus = '저체중';
-    } else if (bmi >= 18.5 && bmi < 23) {
-      bmiStatus = '정상';
-    } else if (bmi >= 23 && bmi < 25) {
-      bmiStatus = '과체중';
-    } else {
-      bmiStatus = '비만';
+      // 인증 여부 확인
+      if (!isAuthenticated || !accessToken) {
+        setError('로그인이 필요합니다. 다시 로그인해주세요.');
+        setLoading(false);
+        return;
+      }
+
+      // 학생 ID로 건강 리포트 API 호출
+      console.log('토큰 정보:', accessToken);
+      const response = await axios.get(
+        API_CONFIG.getUrlWithPathParams(API_CONFIG.ENDPOINTS.STUDENT.HEALTH_REPORT, [
+          selectedStudent.id.toString(),
+          'health-report',
+        ]),
+        {
+          headers: {
+            Authorization: accessToken,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      // API 응답 데이터
+      const reportData = response.data;
+
+      // 현재 날짜
+      const today = new Date();
+      const dateString = `${today.getFullYear()}년 ${today.getMonth() + 1}월 ${today.getDate()}일`;
+
+      // HTML 리포트 생성
+      const report = `
+        <div style="font-family: 'Noto Sans KR', sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; color: #333; position: relative;">
+          <!-- 헤더 -->
+          <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #2c5282; padding-bottom: 10px;">
+            <h1 style="font-size: 24px; font-weight: bold; margin: 0; color: #2c5282;">학생 건강 관리 기록부</h1>
+            <p style="font-size: 14px; margin: 5px 0 0;">발행일: ${dateString}</p>
+          </div>
+
+          <!-- 학생 정보 섹션 -->
+          <div style="display: flex; margin-bottom: 20px;">
+            <div style="flex: 1;">
+              <table style="width: 100%; border-collapse: collapse; border: 1px solid #ddd;">
+                <tr>
+                  <th style="background-color: #f0f4f8; padding: 8px; border: 1px solid #ddd; text-align: center; width: 100px;">이름</th>
+                  <td style="padding: 8px; border: 1px solid #ddd;">${selectedStudent.name}</td>
+                  <th style="background-color: #f0f4f8; padding: 8px; border: 1px solid #ddd; text-align: center;">학년/반/번호</th>
+                  <td style="padding: 8px; border: 1px solid #ddd;">${selectedStudent.grade}학년 ${
+        selectedStudent.classNum
+      }반 ${selectedStudent.studentNum}번</td>
+                </tr>
+                <tr>
+                  <th style="background-color: #f0f4f8; padding: 8px; border: 1px solid #ddd; text-align: center;">BMI 지수</th>
+                  <td style="padding: 8px; border: 1px solid #ddd;">${
+                    selectedStudent.bmi || '정보 없음'
+                  }</td>
+                  <th style="background-color: #f0f4f8; padding: 8px; border: 1px solid #ddd; text-align: center;">잔반율</th>
+                  <td style="padding: 8px; border: 1px solid #ddd;">${
+                    selectedStudent.wasteRate || 0
+                  }%</td>
+                </tr>
+              </table>
+            </div>
+          </div>
+
+          <!-- 건강 분석 결과 -->
+          <div style="margin-bottom: 20px;">
+            <h2 style="font-size: 18px; margin: 0 0 10px; padding: 5px 10px; background-color: #2c5282; color: white;">건강 분석 결과</h2>
+            <div style="border: 1px solid #ddd; padding: 15px; background-color: #f9f9f9;">
+              <p style="margin: 0;">${reportData.analyzeReport}</p>
+            </div>
+          </div>
+
+          <!-- 개선 방안 -->
+          <div style="margin-bottom: 20px;">
+            <h2 style="font-size: 18px; margin: 0 0 10px; padding: 5px 10px; background-color: #2c5282; color: white;">개선 방안</h2>
+            <div style="border: 1px solid #ddd; padding: 15px; background-color: #f9f9f9;">
+              <p style="margin: 0;">${reportData.plan}</p>
+            </div>
+          </div>
+
+          <!-- 영양사 소견 -->
+          <div style="margin-bottom: 20px;">
+            <h2 style="font-size: 18px; margin: 0 0 10px; padding: 5px 10px; background-color: #2c5282; color: white;">영양사 소견</h2>
+            <div style="border: 1px solid #ddd; padding: 15px; min-height: 80px; background-color: #f9f9f9;">
+              <p style="margin: 0;">${reportData.opinion}</p>
+            </div>
+          </div>
+
+          <!-- 바닥글/서명 -->
+          <div style="text-align: center; margin-top: 40px;">
+            <div style="font-size: 14px; margin-bottom: 30px;">
+              본 건강 기록부는 AI 분석을 기반으로 작성되었습니다.
+            </div>
+            <div style="font-weight: bold;">
+              영양사 : ________________ (인)
+            </div>
+          </div>
+        </div>
+      `;
+
+      setAiReport(report);
+      setLoading(false);
+    } catch (err) {
+      console.error('AI 건강 리포트 생성 중 오류 발생:', err);
+      setError('AI 건강 리포트를 생성하는 데 실패했습니다.');
+      setLoading(false);
     }
-
-    // 잔반율 평가
-    const wasteRateValue = wasteRate || 0;
-    let wasteComment = '';
-    if (wasteRateValue <= 10) wasteComment = '매우 좋습니다';
-    else if (wasteRateValue <= 20) wasteComment = '보통입니다';
-    else wasteComment = '개선이 필요합니다';
-
-    // 개선 방안 리스트 생성
-    const improvementList: string[] = [];
-    if (bmiStatus !== '정상') improvementList.push('규칙적인 운동 습관을 기르세요.');
-    if (bmiStatus === '저체중') improvementList.push('영양가 있는 음식을 충분히 섭취하세요.');
-    if (bmiStatus === '과체중' || bmiStatus === '비만')
-      improvementList.push('당분과 지방 섭취를 줄이세요.');
-    if (wasteRateValue > 20) improvementList.push('적정량의 음식을 선택해 잔반을 줄이세요.');
-
-    // 현재 날짜
-    const today = new Date();
-    const dateString = `${today.getFullYear()}년 ${today.getMonth() + 1}월 ${today.getDate()}일`;
-
-    // 리포트 생성 (생활기록부 스타일)
-    const report = `
-      <div style="font-family: 'Noto Sans KR', sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; color: #333; position: relative;">
-        <!-- 헤더 -->
-        <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #2c5282; padding-bottom: 10px;">
-          <h1 style="font-size: 24px; font-weight: bold; margin: 0; color: #2c5282;">학생 건강 관리 기록부</h1>
-          <p style="font-size: 14px; margin: 5px 0 0;">발행일: ${dateString}</p>
-        </div>
-
-        <!-- 학생 정보 섹션 -->
-        <div style="display: flex; margin-bottom: 20px;">
-          <div style="flex: 1;">
-            <table style="width: 100%; border-collapse: collapse; border: 1px solid #ddd;">
-              <tr>
-                <th style="background-color: #f0f4f8; padding: 8px; border: 1px solid #ddd; text-align: center; width: 100px;">이름</th>
-                <td style="padding: 8px; border: 1px solid #ddd;">${name}</td>
-                <th style="background-color: #f0f4f8; padding: 8px; border: 1px solid #ddd; text-align: center;">학년/반/번호</th>
-                <td style="padding: 8px; border: 1px solid #ddd;">${grade}학년 ${classNum}반 ${studentNum}번</td>
-              </tr>
-              <tr>
-                <th style="background-color: #f0f4f8; padding: 8px; border: 1px solid #ddd; text-align: center;">BMI 지수</th>
-                <td style="padding: 8px; border: 1px solid #ddd;">${bmi} (${bmiStatus})</td>
-                <th style="background-color: #f0f4f8; padding: 8px; border: 1px solid #ddd; text-align: center;">잔반율</th>
-                <td style="padding: 8px; border: 1px solid #ddd;">${wasteRateValue}%</td>
-              </tr>
-            </table>
-          </div>
-        </div>
-
-        <!-- 건강 분석 결과 -->
-        <div style="margin-bottom: 20px;">
-          <h2 style="font-size: 18px; margin: 0 0 10px; padding: 5px 10px; background-color: #2c5282; color: white;">건강 분석 결과</h2>
-          <div style="border: 1px solid #ddd; padding: 15px; background-color: #f9f9f9;">
-            <p style="margin: 0 0 10px;">BMI 지수 ${bmi}는 <strong>${bmiStatus}</strong> 상태입니다. ${
-      bmiStatus === '정상'
-        ? '현재 건강한 상태를 유지하고 있습니다.'
-        : '식습관 개선과 적절한 운동이 필요합니다.'
-    }</p>
-            <p style="margin: 0;">잔반율은 <strong>${wasteRateValue}%</strong>로, ${wasteComment}. ${
-      wasteRateValue > 20
-        ? '음식을 남기지 않고 적절히 섭취하는 습관을 기르는 것이 중요합니다.'
-        : '앞으로도 균형 잡힌 식사를 유지하세요.'
-    }</p>
-          </div>
-        </div>
-
-        <!-- 개선 방안 -->
-        <div style="margin-bottom: 20px;">
-          <h2 style="font-size: 18px; margin: 0 0 10px; padding: 5px 10px; background-color: #2c5282; color: white;">개선 방안</h2>
-          <div style="border: 1px solid #ddd; padding: 15px; background-color: #f9f9f9;">
-            ${
-              improvementList.length > 0
-                ? `<ul style="margin: 0; padding-left: 20px;">
-                  ${improvementList
-                    .map((item) => `<li style="margin-bottom: 5px;">${item}</li>`)
-                    .join('')}
-                </ul>`
-                : '<p style="margin: 0;">현재 상태를 유지하세요.</p>'
-            }
-          </div>
-        </div>
-
-        <!-- 영양사 소견 -->
-        <div style="margin-bottom: 20px;">
-          <h2 style="font-size: 18px; margin: 0 0 10px; padding: 5px 10px; background-color: #2c5282; color: white;">영양사 소견</h2>
-          <div style="border: 1px solid #ddd; padding: 15px; min-height: 80px; background-color: #f9f9f9;">
-            ${
-              bmiStatus === '정상' && wasteRateValue <= 20
-                ? '전반적으로 건강한 상태를 유지하고 있으며, 잔반율도 양호합니다. 앞으로도 균형 잡힌 식습관을 유지하시기 바랍니다.'
-                : '식습관 개선과 영양 균형에 주의가 필요합니다. 정기적인 운동과 균형 잡힌 식단 관리를 통해 건강 상태를 개선하시기 바랍니다.'
-            }
-          </div>
-        </div>
-
-        <!-- 바닥글/서명 -->
-        <div style="text-align: center; margin-top: 40px;">
-          <div style="font-size: 14px; margin-bottom: 30px;">
-            본 건강 기록부는 AI 분석을 기반으로 작성되었습니다.
-          </div>
-          <div style="font-weight: bold;">
-            영양사 : ________________ (인)
-          </div>
-        </div>
-      </div>
-    `;
-
-    setAiReport(report);
   };
 
   // PDF 다운로드 함수
@@ -561,9 +562,9 @@ const StudentManagement = () => {
                               <div className="w-10 h-10 flex-shrink-0 mr-3">
                                 <img
                                   src={`/images/student/${
-                                    student.gender === '여'
+                                    student.gender === '여자자'
                                       ? 'girl.png'
-                                      : student.gender === '남'
+                                      : student.gender === '남자'
                                       ? 'boy.png'
                                       : 'blank.png'
                                   }`}
@@ -611,9 +612,9 @@ const StudentManagement = () => {
                         <div className="w-[180px] h-[180px] overflow-hidden mb-4 mx-auto flex items-center justify-center">
                           <img
                             src={`/images/student/${
-                              selectedStudent.gender === '여'
+                              selectedStudent.gender === '여자'
                                 ? 'girl.png'
-                                : selectedStudent.gender === '남'
+                                : selectedStudent.gender === '남자'
                                 ? 'boy.png'
                                 : 'blank.png'
                             }`}
