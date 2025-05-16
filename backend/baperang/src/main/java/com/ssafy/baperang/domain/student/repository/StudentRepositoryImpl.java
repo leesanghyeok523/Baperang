@@ -30,11 +30,6 @@ public class StudentRepositoryImpl implements StudentRepository {
     }
 
     @Override
-    public List<String> findAllStudentNames() {
-        return studentJpaRepository.findAllStudentNames();
-    }
-
-    @Override
     public List<String> findAllStudentNamesBySchoolId(Long schoolId) {
         return studentJpaRepository.findAllStudentNamesBySchoolId(schoolId);
     }
