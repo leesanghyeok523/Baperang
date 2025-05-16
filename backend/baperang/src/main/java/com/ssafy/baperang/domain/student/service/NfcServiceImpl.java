@@ -261,7 +261,6 @@ public class NfcServiceImpl implements NfcService {
             // AI 서버로 url 전송
             try {
 
-//                String aiServerUrl = "http://127.0.0.1:8001/ai/analyze-leftover";
 
                 String aiServerUrl = aiServerBaseUrl + ANALYZE_LEFTOVER_ENDPOINT;
 
