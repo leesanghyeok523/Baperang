@@ -57,4 +57,10 @@ public interface MenuRepository {
     );
 
     List<Menu> findAllByIdIn(Collection<Long> menuIds);
+    
+    // 특정 학교의 특정 메뉴 이름 조회 (모든 날짜)
+    List<Menu> findBySchoolAndMenuName(
+            School school,
+            String menuName
+    );
 }

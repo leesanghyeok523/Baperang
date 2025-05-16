@@ -598,7 +598,6 @@ public class MenuServiceImpl implements MenuService {
                     // 응답 DTO에 메뉴 정보 추가
                     MenuPlanResponseDto.MenuInfo menuInfo = MenuPlanResponseDto.MenuInfo.builder()
                             .menuName(menuName)
-                            .alternatives(alternatives)
                             .build();
                     
                     menuInfoList.add(menuInfo);
@@ -688,7 +687,7 @@ public class MenuServiceImpl implements MenuService {
 
     @Override
     @Transactional
-    public Object updateMenu(String token, String menu, String date) {
+    public Object updateMenu(String token, String menu, String date, String alternative_menu) {
         try {
             // 토큰 유효성
             if (!jwtService.validateToken(token)) {
@@ -708,11 +707,61 @@ public class MenuServiceImpl implements MenuService {
             School school = user.getSchool();
             
             LocalDate menuDate = LocalDate.parse(date);
+
+            Menu menuItem = menuRepository.findBySchoolAndMenuDateAndMenuName(school, menuDate, menu);
+
+            if (menuItem == null) {
+                log.info("updateMenu - 해당 메뉴를 찾을 수 없음: {}", menu);
+                return ErrorResponseDto.of(BaperangErrorCode.MENU_NOT_FOUND);
+            }
+
+            // 대체 메뉴 리스트 확인
+            List<String> alternatives = menuItem.getAlternatives();
+            if (alternatives == null || alternatives.isEmpty() || !alternatives.contains(alternative_menu)) {
+                log.info("updateMenu - 대체 메뉴로 지정된 메뉴가 아님: {}", alternative_menu);
+                Map<String, String> response = new HashMap<>();
+                response.put("message", "대체 메뉴로 지정된 메뉴가 아닙니다.");
+                return response;
+            }
             
-            // 메뉴 수정 로직 구현 필요 (아직 미구현)
-            log.info("updateMenu - 메뉴 수정 로직 미구현");
-            Map<String, String> response = new HashMap<>();
-            response.put("message", "메뉴 수정 기능이 아직 구현되지 않았습니다.");
+            // 대체 메뉴의 amount 조회 시도
+            Integer newAmount = menuItem.getAmount(); // 기본값으로 현재 메뉴의 양 사용
+            
+            // 기존에 대체 메뉴가 DB에 있는지 확인하여 해당 메뉴의 amount 값 가져오기
+            List<Menu> existingMenus = menuRepository.findBySchoolAndMenuName(school, alternative_menu);
+            if (!existingMenus.isEmpty()) {
+                // 가장 최근 메뉴의 amount 값 사용
+                Menu recentMenu = existingMenus.stream()
+                        .sorted((m1, m2) -> m2.getMenuDate().compareTo(m1.getMenuDate()))
+                        .findFirst()
+                        .orElse(null);
+                
+                if (recentMenu != null && recentMenu.getAmount() != null) {
+                    newAmount = recentMenu.getAmount();
+                    log.info("updateMenu - 대체 메뉴 기존 amount 값 찾음: {}", newAmount);
+                }
+            }
+            
+            // 대체 메뉴 목록 업데이트 (현재 메뉴를 대체 메뉴로 넣고, 선택한 대체 메뉴 제거)
+            List<String> newAlternatives = new ArrayList<>(alternatives);
+            newAlternatives.remove(alternative_menu); // 선택한 대체 메뉴 제거
+            if (!newAlternatives.contains(menu)) {
+                newAlternatives.add(menu); // 원래 메뉴를 대체 메뉴로 추가
+            }
+            
+            // 메뉴 업데이트
+            menuItem.updateMenuName(alternative_menu);
+            menuItem.updateAmount(newAmount);
+            menuItem.updateAlternatives(newAlternatives);
+            
+            // DB 저장 (트랜잭션으로 인해 자동 저장)
+            log.info("updateMenu - 메뉴 업데이트 완료: {} -> {}", menu, alternative_menu);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "메뉴가 성공적으로 변경되었습니다.");
+            response.put("menuName", alternative_menu);
+            response.put("alternatives", newAlternatives);
+            
             return response;
                 
         } catch (Exception e) {
