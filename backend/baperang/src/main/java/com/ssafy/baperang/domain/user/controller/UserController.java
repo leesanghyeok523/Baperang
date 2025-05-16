@@ -90,6 +90,25 @@ public class UserController {
         return ResponseEntity.ok(result);
     }
     
+    @GetMapping("/validate-token")
+    @Operation(summary = "토큰 유효성 검사", description = "토큰 유효성 검사 기능")
+    public ResponseEntity<?> validateToken(@RequestHeader("Authorization") String authorizationHeader) {
+        log.info("validateToken 컨트롤러 함수 호출");
+
+        String token = authorizationHeader.substring(7);
+
+        Object result = userService.validateToken(token);
+
+        if (result instanceof ErrorResponseDto) {
+            ErrorResponseDto errorResponse = (ErrorResponseDto) result;
+            log.info("validateToken 컨트롤러 함수 에러 응답");
+            return ResponseEntity.status(errorResponse.getStatus()).body(result);
+        }
+
+        log.info("validateToken 컨트롤러 함수 정상 응답");
+        return ResponseEntity.ok(result);
+    }
+
     @PostMapping("/refresh")
     @Operation(summary = "리프레시 토큰 갱신", description = "리프레시 토큰 갱신 기능")
     public ResponseEntity<?> refreshAccessToken(@CookieValue(name = "refreshToken", required = false) String refreshToken,
