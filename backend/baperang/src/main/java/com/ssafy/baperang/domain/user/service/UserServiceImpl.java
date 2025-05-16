@@ -11,6 +11,7 @@ import com.ssafy.baperang.domain.school.entity.School;
 import com.ssafy.baperang.domain.school.repository.SchoolRepository;
 import com.ssafy.baperang.domain.user.dto.request.LoginRequestDto;
 import com.ssafy.baperang.domain.user.dto.request.SignupRequestDto;
+import com.ssafy.baperang.domain.user.dto.response.ValidateTokenResponseDto;
 import com.ssafy.baperang.domain.user.entity.User;
 import com.ssafy.baperang.domain.user.repository.UserRepository;
 import com.ssafy.baperang.global.exception.BaperangErrorCode;
@@ -373,6 +374,8 @@ public class UserServiceImpl implements UserService{
         }
 
         log.info("validateToken 함수 성공 종료");
-        return ResponseEntity.ok("토큰 유효함");
+        return ValidateTokenResponseDto.builder()
+                .message("토큰 유효함")
+                .build();
     }
 }
