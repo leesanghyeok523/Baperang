@@ -528,8 +528,10 @@ public class HealthReportServiceImpl implements HealthReportService{
         HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
 
 
-        String aiServerUrl = aiServerBaseUrl + HEALTH_REPORT_ENDPOINT;
 
+        String aiServerUrl = aiServerBaseUrl + HEALTH_REPORT_ENDPOINT;
+        // 로컬 테스트를 위한 하드코딩 URL 사용 (주석 해제)
+        // String aiServerUrl = "http://127.0.0.1:8001/ai/health-report";
         log.info("AI 서버 URL: {}", aiServerUrl);
 
         // RestTemplate 인스턴스를 필요할 때 생성

@@ -264,7 +264,7 @@ const MyPage: React.FC = () => {
     if (!accessToken) {
       // 토큰이 없는 경우 로컬 상태만 초기화
       logout();
-      navigate('/');
+      navigate('/login');
       return;
     }
 
