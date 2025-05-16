@@ -7,14 +7,23 @@ import { useAuthStore } from '../store/authStore';
  * 인증되지 않은 사용자는 로그인 페이지로 리다이렉트
  */
 const ProtectedRoute = () => {
-  const { isAuthenticated, isLoading, refreshToken, initializeAuth, accessToken } = useAuthStore();
+  const { isAuthenticated, isLoading, refreshToken, initializeAuth, accessToken, validateToken } =
+    useAuthStore();
   const [checking, setChecking] = useState(true);
 
   // 인증 상태 확인
   useEffect(() => {
     const verifyAuth = async () => {
-      // 이미 인증된 상태이고 토큰이 있는 경우 추가 체크 필요 없음
+      // 이미 인증된 상태이고 토큰이 있는 경우 토큰 유효성 검증
       if (isAuthenticated && accessToken) {
+        const isValid = await validateToken();
+
+        if (isValid) {
+          setChecking(false);
+          return;
+        }
+
+        // 토큰이 유효하지 않고 토큰 갱신도 실패한 경우
         setChecking(false);
         return;
       }
@@ -35,7 +44,7 @@ const ProtectedRoute = () => {
     };
 
     verifyAuth();
-  }, [isAuthenticated, refreshToken, initializeAuth, accessToken]);
+  }, [isAuthenticated, refreshToken, initializeAuth, accessToken, validateToken]);
 
   // 인증 상태 확인 중이거나 앱 로딩 중인 경우
   if (isLoading || checking) {

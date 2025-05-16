@@ -37,24 +37,38 @@ class ApiClient {
 
       // 401 Unauthorized 에러 처리 (토큰 만료)
       if (response.status === 401) {
-        const refreshSuccess = await authStore.refreshToken();
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (_) {
+          // JSON 파싱 실패해도 계속 진행
+        }
 
-        // 토큰 갱신 성공 시 원래 요청 재시도
-        if (refreshSuccess) {
-          // 갱신된 토큰으로 헤더 업데이트
-          const newToken = useAuthStore.getState().accessToken;
-          if (newToken) {
-            const authHeaderValue = newToken.startsWith('Bearer ')
-              ? newToken
-              : `Bearer ${newToken}`;
-            headers.set('Authorization', authHeaderValue);
+        // T004 코드는 유효하지 않은 토큰 에러
+        if (errorData?.code === 'T004') {
+          const refreshSuccess = await authStore.refreshToken();
+
+          // 토큰 갱신 성공 시 원래 요청 재시도
+          if (refreshSuccess) {
+            // 갱신된 토큰으로 헤더 업데이트
+            const newToken = useAuthStore.getState().accessToken;
+            if (newToken) {
+              const authHeaderValue = newToken.startsWith('Bearer ')
+                ? newToken
+                : `Bearer ${newToken}`;
+              headers.set('Authorization', authHeaderValue);
+            }
+            requestOptions.headers = headers;
+            response = await fetch(url, requestOptions);
+          } else {
+            // 토큰 갱신 실패 시 로그아웃
+            await authStore.logout();
+            throw new Error('인증이 만료되었습니다. 다시 로그인해주세요.');
           }
-          requestOptions.headers = headers;
-          response = await fetch(url, requestOptions);
         } else {
-          // 토큰 갱신 실패 시 로그아웃
+          // 다른 종류의 401 에러에 대한 처리
           await authStore.logout();
-          throw new Error('인증이 만료되었습니다. 다시 로그인해주세요.');
+          throw new Error('인증에 실패했습니다. 다시 로그인해주세요.');
         }
       }
 

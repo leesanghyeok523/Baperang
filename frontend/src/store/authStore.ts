@@ -20,6 +20,7 @@ interface AuthState {
   login: (credentials: { loginId: string; password: string }) => Promise<void>;
   logout: () => Promise<void>;
   refreshToken: () => Promise<boolean>;
+  validateToken: () => Promise<boolean>;
   initializeAuth: () => Promise<void>;
   setUserData: (userData: User) => void;
 }
@@ -101,6 +102,58 @@ export const useAuthStore = create<AuthState>()(
           });
         } finally {
           set({ accessToken: null, user: null, isAuthenticated: false });
+        }
+      },
+
+      validateToken: async () => {
+        const currentToken = get().accessToken;
+
+        if (!currentToken) {
+          set({ isAuthenticated: false });
+          return false;
+        }
+
+        try {
+          const response = await fetch(
+            API_CONFIG.getUrl(API_CONFIG.ENDPOINTS.AUTH.VALIDATE_TOKEN),
+            {
+              method: 'GET',
+              headers: {
+                Authorization: `${currentToken}`,
+                'Content-Type': 'application/json',
+              },
+              credentials: 'include',
+            }
+          );
+
+          // 토큰이 유효한 경우
+          if (response.ok) {
+            return true;
+          }
+
+          // 토큰이 유효하지 않은 경우 (401 응답)
+          if (response.status === 401) {
+            const data = await response.json();
+
+            // 토큰 갱신 시도
+            if (data.code === 'T004') {
+              const refreshSuccess = await get().refreshToken();
+
+              // 토큰 갱신 성공
+              if (refreshSuccess) {
+                return true;
+              }
+
+              // 토큰 갱신 실패 (리프레시 토큰도 만료됨)
+              set({ accessToken: null, user: null, isAuthenticated: false });
+              return false;
+            }
+          }
+
+          return false;
+        } catch (error) {
+          console.error('토큰 검증 실패:', error);
+          return false;
         }
       },
 

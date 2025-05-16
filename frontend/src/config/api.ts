@@ -13,11 +13,12 @@ const API_CONFIG = {
       LOGIN: '/api/v1/user/login',
       LOGOUT: '/api/v1/user/logout', // {userId} 파라미터 필요
       VALIDATE_ID: '/api/v1/user/validate-id',
+      VALIDATE_TOKEN: '/api/v1/user/validate-token', // 토큰 유효성 검사 엔드포인트 추가
       FIND_ID: '/api/v1/user/find-id',
       NEW_PASSWORD: '/api/v1/user/new-password',
       USER_INFO: '/api/v1/user/users', // /{user-id} 파라미터 필요
       MYPAGE: '/api/v1/user/profile',
-      REFRESH_TOKEN: '/api/v1/user/refresh-token',
+      REFRESH_TOKEN: '/api/v1/user/refresh',
       DELETE_USER: '/api/v1/user/users',
     },
 
