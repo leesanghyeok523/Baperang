@@ -17,8 +17,9 @@ const API_CONFIG = {
       NEW_PASSWORD: '/api/v1/user/new-password',
       USER_INFO: '/api/v1/user/users', // /{user-id} 파라미터 필요
       MYPAGE: '/api/v1/user/profile',
-      REFRESH_TOKEN: '/api/v1/user/refresh-token',
+      REFRESH_TOKEN: '/api/v1/user/refresh',
       DELETE_USER: '/api/v1/user/users',
+      VALIDATE_TOKEN: '/api/v1/user/validate-token',
     },
 
     // 식단 관리
