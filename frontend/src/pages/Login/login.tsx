@@ -4,6 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import Button from '../../components/ui/button';
 import InputCard from '../../components/ui/inputcard';
 import useAuth from '../../hooks/useAuth';
+import { showErrorAlert } from '../../utils/sweetalert';
 
 const LoginPage: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -45,7 +46,7 @@ const LoginPage: React.FC = () => {
       }
 
       setError(errorMessage);
-      alert(errorMessage);
+      showErrorAlert('로그인 오류', errorMessage);
     }
   };
 

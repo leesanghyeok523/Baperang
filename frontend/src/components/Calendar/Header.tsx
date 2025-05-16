@@ -117,14 +117,14 @@ const CalendarHeader = ({
       </div>
 
       {/* 중앙 - 이전/다음 버튼과 제목 */}
-      <div className="flex items-center justify-center space-x-4">
+      <div className="flex items-center justify-center">
         <button
           onClick={goToPrevMonth}
           className="text-gray-600 hover:text-gray-900 focus:outline-none"
         >
           <FiChevronLeft size={30} />
         </button>
-        <h1 className="text-xl font-bold text-center">
+        <h1 className="text-xl font-bold text-center w-[50%]">
           {displayYearMonth} {showWasteChart ? '잔반률' : '식단표'}
         </h1>
         <button

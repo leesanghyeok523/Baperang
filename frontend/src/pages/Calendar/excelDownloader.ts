@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { MenuDataType } from './index';
+import { showErrorAlert, showSuccessAlert } from '../../utils/sweetalert';
 
 /**
  * 월별 식단표를 Excel 파일로 다운로드하는 함수
@@ -102,9 +103,9 @@ export const downloadMenuExcel = (year: number, month: number, menuData: MenuDat
     // Step 3: FileSaver를 사용하여 다운로드
     saveAs(blob, fileName);
 
-    console.log('엑셀 파일 다운로드 성공');
+    showSuccessAlert('엑셀 파일 다운로드 완료');
   } catch (error) {
     console.error('엑셀 파일 다운로드 중 오류 발생:', error);
-    alert('엑셀 파일 다운로드 중 오류가 발생했습니다.');
+    showErrorAlert('엑셀 파일 다운로드 오류', '엑셀 파일 다운로드 중 오류가 발생했습니다.');
   }
 };
