@@ -6,9 +6,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ssafy.baperang.domain.menu.dto.request.MenuRequestDto;
+import com.ssafy.baperang.domain.menu.dto.request.UpdateMenuRequestDto;
 import com.ssafy.baperang.domain.menu.dto.response.ErrorResponseDto;
 import com.ssafy.baperang.domain.menu.service.MenuService;
 import com.ssafy.baperang.global.exception.BaperangErrorCode;
@@ -145,6 +147,52 @@ public class MenuController {
         }
 
         log.info("makeMonthMenu 컨트롤러 함수 정상 응답");
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/alternatives")
+    public ResponseEntity<?> getAlternatives(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @RequestParam String menu,
+            @RequestParam String date) {
+
+        log.info("getAlternatives 컨트롤러 함수 호출");
+
+        String token = authorizationHeader.substring(7);
+
+        Object result = menuService.getAlternatives(token, menu, date);
+
+        if (result instanceof ErrorResponseDto) {
+            ErrorResponseDto errorResponse = (ErrorResponseDto) result;
+            log.info("getAlternatives 컨트롤러 함수 에러 응답");
+            return ResponseEntity.status(errorResponse.getStatus()).body(result);
+        }
+
+        log.info("getAlternatives 컨트롤러 함수 정상 응답");
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/update_menu")
+    public ResponseEntity<?> updateMenu(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @RequestBody UpdateMenuRequestDto requestDto) {
+
+        log.info("updateMenu 컨트롤러 함수 호출");
+
+        String token = authorizationHeader.substring(7);
+
+        String menu = requestDto.getMenu();
+        String date = requestDto.getDate();
+
+        Object result = menuService.updateMenu(token, menu, date);
+
+        if (result instanceof ErrorResponseDto) {
+            ErrorResponseDto errorResponse = (ErrorResponseDto) result;
+            log.info("updateMenu 컨트롤러 함수 에러 응답");
+            return ResponseEntity.status(errorResponse.getStatus()).body(result);
+        }
+
+        log.info("updateMenu 컨트롤러 함수 정상 응답");
         return ResponseEntity.ok(result);
     }
 }

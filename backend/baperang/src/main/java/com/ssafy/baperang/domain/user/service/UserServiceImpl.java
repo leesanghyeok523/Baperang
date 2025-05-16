@@ -169,7 +169,6 @@ public class UserServiceImpl implements UserService{
     
     @Transactional(readOnly = true)
     public Object refreshAccessToken(String refreshToken, HttpServletResponse response) {
-        log.info("refreshAccessToken 함수 실행");
         
         // refreshToken 검증
         if (!jwtService.validateToken(refreshToken)) {
@@ -213,8 +212,6 @@ public class UserServiceImpl implements UserService{
         
         // 응답 헤더에 새 액세스 토큰 추가
         response.setHeader("Authorization", "Bearer " + newAccessToken);
-        
-        log.info("refreshAccessToken 함수 성공 종료");
         // 빈 응답 본문 반환
         return new LoginResponseDto();
     }
@@ -366,14 +363,12 @@ public class UserServiceImpl implements UserService{
 
     @Transactional(readOnly = true)
     public Object validateToken(String token) {
-        log.info("validateToken 함수 실행");
         
         if (!jwtService.validateToken(token)) {
             log.info("validateToken - 토큰 유효하지 않음");
             return ErrorResponseDto.of(BaperangErrorCode.INVALID_TOKEN);
         }
 
-        log.info("validateToken 함수 성공 종료");
         return ValidateTokenResponseDto.builder()
                 .message("토큰 유효함")
                 .build();
