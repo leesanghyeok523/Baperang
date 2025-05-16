@@ -1,4 +1,4 @@
-import { isHoliday } from '../../data/holidays';
+import { isHoliday, holidays } from '../../data/holidays';
 import { MenuDataType } from './index';
 
 // 주말 여부 확인
@@ -24,6 +24,8 @@ export interface CalendarDay {
   date: number;
   type: string;
   hasMenu?: boolean;
+  isHoliday?: boolean; // 공휴일 여부
+  holidayName?: string; // 공휴일 이름
 }
 
 export const createCalendarDays = (
@@ -66,10 +68,37 @@ export const createCalendarDays = (
       const hasMenuData =
         dateString in menuData && menuData[dateString]?.menu?.length > 0 && !isWeekendDay;
 
+      // API 응답의 공휴일 정보 확인
+      const isApiHoliday =
+        dateString in menuData &&
+        menuData[dateString]?.holiday &&
+        menuData[dateString]?.holiday?.length > 0;
+
+      // API 응답의 공휴일 이름
+      const apiHolidayName = isApiHoliday ? menuData[dateString]?.holiday?.[0] : undefined;
+
+      // holidays.ts에 정의된 공휴일인지 확인
+      const isStaticHoliday = holidays.includes(dateString);
+
+      // 최종 공휴일 여부 및 이름 결정
+      // API 응답의 공휴일 정보가 있으면 그것을 우선 사용하고,
+      // 없으면 holidays.ts에 정의된 공휴일 사용
+      const isHolidayDay = isApiHoliday || isStaticHoliday;
+
+      // 공휴일 이름 결정
+      let holidayName = apiHolidayName;
+      if (!holidayName && isStaticHoliday) {
+        // holidays.ts의 공휴일은 주석으로 이름이 표시되어 있으므로
+        // 간단히 '공휴일'로 표시
+        holidayName = '공휴일';
+      }
+
       return {
         date: i + 1,
         type: 'current',
         hasMenu: hasMenuData,
+        isHoliday: isHolidayDay,
+        holidayName: holidayName,
       };
     });
 

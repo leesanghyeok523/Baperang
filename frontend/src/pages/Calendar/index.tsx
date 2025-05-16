@@ -128,6 +128,22 @@ const Calendar = () => {
     );
   };
 
+  // 현재 날짜 기준 다음 달인지 확인
+  const isNextMonth = () => {
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth();
+
+    // 현재 달의 다음 달인 경우를 확인
+    if (currentMonth === 11) {
+      // 현재 12월인 경우 다음 달은 다음 해 1월
+      return selectedYear === currentYear + 1 && selectedMonth === 0;
+    } else {
+      // 그 외 경우는 같은 해의 다음 달
+      return selectedYear === currentYear && selectedMonth === currentMonth + 1;
+    }
+  };
+
   // 월 이동 함수
   const goToPrevMonth = () => {
     if (selectedMonth === 0) {
@@ -159,15 +175,14 @@ const Calendar = () => {
     try {
       setLoading(true);
 
-      console.log('fetchMenuData 호출됨', { year: selectedYear, month: selectedMonth + 1 });
+      console.log('fetchMenuData 호출됨', {
+        year: selectedYear,
+        month: selectedMonth + 1,
+        isFutureMonth: isFutureMonth(),
+        isForceUpdate,
+      });
 
-      // 미래 달인 경우 API 호출하지 않고 빈 데이터 설정 (식단 생성 전)
-      if (isFutureMonth() && !isForceUpdate) {
-        console.log('미래 달이므로 식단 데이터를 조회하지 않습니다.');
-        setMenuData({});
-        setLoading(false);
-        return;
-      }
+      // 미래 달 여부와 상관없이 항상 메뉴 데이터 조회
 
       if (!accessToken) {
         console.error('인증 토큰이 없습니다. 로그인이 필요합니다.');
@@ -230,6 +245,7 @@ const Calendar = () => {
             )}일`,
             menu: allMenuItems,
             wasteData: [],
+            holiday: dayData.holiday, // 공휴일 정보 추가
           };
         }
       });
@@ -239,7 +255,9 @@ const Calendar = () => {
 
       setMenuData(newMenuData);
       // 강제 업데이트 후 플래그 초기화
-      setIsForceUpdate(false);
+      if (isForceUpdate) {
+        setIsForceUpdate(false);
+      }
     } catch (error) {
       console.error('메뉴 데이터 가져오기 오류:', error);
       // 에러 상세 정보 출력
@@ -251,7 +269,9 @@ const Calendar = () => {
         });
       }
       // 강제 업데이트 후 플래그 초기화
-      setIsForceUpdate(false);
+      if (isForceUpdate) {
+        setIsForceUpdate(false);
+      }
     } finally {
       setLoading(false);
     }
@@ -443,16 +463,14 @@ const Calendar = () => {
 
   // 메뉴 데이터 새로고침 (식단 생성 후 호출될 콜백)
   const refreshMenuData = () => {
-    // 다음 달로 이동
-    goToNextMonth();
+    // 현재 선택된 달에서 강제 업데이트 수행
+    console.log('메뉴 데이터 새로고침', { selectedYear, selectedMonth });
 
     // 강제 업데이트 플래그 설정
     setIsForceUpdate(true);
 
-    // 약간의 지연 후 데이터 다시 가져오기 (상태 업데이트 후)
-    setTimeout(() => {
-      fetchMenuData();
-    }, 300);
+    // 바로 데이터 다시 가져오기 (지연 없이)
+    fetchMenuData();
   };
 
   return (
@@ -479,13 +497,43 @@ const Calendar = () => {
               toggleView={toggleView}
               handleExcelDownload={handleExcelDownload}
               isFutureMonth={isFutureMonth()}
+              isNextMonth={isNextMonth()}
               token={accessToken || undefined}
+              selectedYear={selectedYear}
+              selectedMonth={selectedMonth}
+              hasMenu={
+                // 해당 월에 메뉴가 있는지 확인 (연도와 월이 일치하는 날짜 찾기)
+                Object.keys(menuData).some((dateStr) => {
+                  const date = new Date(dateStr);
+                  return date.getFullYear() === selectedYear && date.getMonth() === selectedMonth;
+                })
+              }
+              updateMenuData={(data) => {
+                // 각 날짜별로 데이터를 처리하여 MenuDataType 형식으로 변환
+                const processedData: MenuDataType = {};
+
+                Object.keys(data).forEach((date) => {
+                  if (date && data[date].menu) {
+                    processedData[date] = {
+                      date:
+                        data[date].date ||
+                        `${parseInt(date.split('-')[1])}월 ${parseInt(date.split('-')[2])}일`,
+                      menu: data[date].menu,
+                      wasteData: data[date].wasteData || [],
+                      holiday: data[date].holiday || [],
+                    };
+                  }
+                });
+
+                setMenuData((current) => ({ ...current, ...processedData }));
+                console.log('메뉴 데이터 업데이트됨:', processedData);
+              }}
               onMenuGenerated={refreshMenuData}
             />
 
             {loading ? (
               <div className="flex-grow flex items-center justify-center">
-                <p className="text-lg">데이터를 불러오는 중입니다...</p>
+                <p className="text-sm">데이터를 불러오는 중입니다...</p>
               </div>
             ) : showWasteChart ? (
               // 월간 잔반률 차트 뷰

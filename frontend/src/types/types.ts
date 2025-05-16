@@ -89,6 +89,7 @@ export interface DayMenuData {
   date: string;
   dayOfWeekName: string;
   menu: MenuItem[];
+  holiday?: string[];
 }
 
 export interface MenuResponse {
@@ -100,6 +101,7 @@ export interface MenuDataType {
     date: string;
     menu: string[];
     wasteData?: DishWasteRate[];
+    holiday?: string[];
   };
 }
 
@@ -107,6 +109,7 @@ export interface DayData {
   date: string;
   dayOfWeekName: string;
   menu: MenuItem[];
+  holiday?: string[];
 }
 
 export interface ApiResponse {
