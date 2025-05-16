@@ -12,4 +12,8 @@ public interface MenuService {
     Object getMenuNutrient(String token, String menu, String date);
 
     Object makeMonthMenu(String token);
+
+    Object getAlternatives(String token, String menu, String date);
+
+    Object updateMenu(String token, String menu, String date);
 }

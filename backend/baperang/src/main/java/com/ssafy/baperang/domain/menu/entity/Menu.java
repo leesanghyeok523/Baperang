@@ -1,6 +1,7 @@
 package com.ssafy.baperang.domain.menu.entity;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -65,6 +66,11 @@ public class Menu {
     @Convert(converter = StringListConverter.class)
     private List<String> alternatives;
 
+    // Custom getter for alternatives to ensure it's never null
+    public List<String> getAlternatives() {
+        return alternatives != null ? alternatives : new ArrayList<>();
+    }
+
     @Builder
     public Menu(School school, LocalDate menuDate, String menuName, String category, 
     Integer amount, Float favorite, Integer votes, List<String> alternatives) {
@@ -75,7 +81,7 @@ public class Menu {
         this.amount = amount != null ? amount : 0;
         this.favorite = favorite != null ? favorite : 0.0f;
         this.votes = votes != null ? votes : 0;
-        this.alternatives = alternatives;
+        this.alternatives = alternatives != null ? alternatives : new ArrayList<>();
     }
 
     // 메뉴 내용이 변경될 경우 사용
@@ -91,7 +97,7 @@ public class Menu {
     public void updateAmount(Integer amount) {this.amount = amount;}
 
     public void updateAlternatives(List<String> alternatives) {
-        this.alternatives = alternatives;
+        this.alternatives = alternatives != null ? alternatives : new ArrayList<>();
     }
     
     /**
