@@ -6,4 +6,5 @@ import lombok.Getter;
 public class UpdateMenuRequestDto {
     private String menu;
     private String date;
+    private String alternative_menu;
 }

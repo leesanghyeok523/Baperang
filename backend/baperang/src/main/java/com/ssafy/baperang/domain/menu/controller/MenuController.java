@@ -1,13 +1,7 @@
 package com.ssafy.baperang.domain.menu.controller;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.ssafy.baperang.domain.menu.dto.request.MenuRequestDto;
 import com.ssafy.baperang.domain.menu.dto.request.UpdateMenuRequestDto;
@@ -172,7 +166,7 @@ public class MenuController {
         return ResponseEntity.ok(result);
     }
 
-    @PostMapping("/update_menu")
+    @PatchMapping("/update_menu")
     public ResponseEntity<?> updateMenu(
             @RequestHeader("Authorization") String authorizationHeader,
             @RequestBody UpdateMenuRequestDto requestDto) {
@@ -183,8 +177,9 @@ public class MenuController {
 
         String menu = requestDto.getMenu();
         String date = requestDto.getDate();
+        String alternative_menu = requestDto.getAlternative_menu();
 
-        Object result = menuService.updateMenu(token, menu, date);
+        Object result = menuService.updateMenu(token, menu, date, alternative_menu);
 
         if (result instanceof ErrorResponseDto) {
             ErrorResponseDto errorResponse = (ErrorResponseDto) result;
