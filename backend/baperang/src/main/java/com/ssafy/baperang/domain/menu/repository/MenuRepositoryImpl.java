@@ -66,4 +66,9 @@ public class MenuRepositoryImpl implements MenuRepository {
     public List<Menu> findAllByIdIn(Collection<Long> menuIds) {
         return menuJpaRepository.findAllByIdIn(menuIds);
     }
+    
+    @Override
+    public List<Menu> findBySchoolAndMenuName(School school, String menuName) {
+        return menuJpaRepository.findBySchoolAndMenuName(school, menuName);
+    }
 }
