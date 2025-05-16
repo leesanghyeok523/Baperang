@@ -48,7 +48,8 @@ public class MenuController {
             return ResponseEntity.status(errorResponse.getStatus()).body(result);
         }
 
-        log.info("getMenuCalendar 컨트롤러 함수 정상 응답");
+
+        log.info("getMenuCalendar 컨트롤러 함수 정상 응답", result);
         return ResponseEntity.ok(result);
     }
 
