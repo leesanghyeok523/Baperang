@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { MenuDataType } from '../../data/menuData';
+import { MenuDataType } from '../../types/types';
 import { createCalendarDays, isWorkday, CalendarDay } from '../Calendar/calendarUtils';
 import CalendarGrid from '../../components/Calendar/CalendarGrid';
 import MenuEditor from '../../components/CreateMeal/MenuEditor';
@@ -18,6 +18,7 @@ interface DayData {
   date: string;
   dayOfWeekName: string;
   menus: MenuItem[];
+  holiday?: string[];
 }
 
 interface ApiResponse {
@@ -98,6 +99,7 @@ const CreateMeal = () => {
           transformedData[day.date] = {
             date: `${parseInt(day.date.split('-')[1])}월 ${parseInt(day.date.split('-')[2])}일`,
             menu: menuNames,
+            holiday: day.holiday,
           };
         });
       }
@@ -224,7 +226,7 @@ const CreateMeal = () => {
             {/* 달력 및 메뉴 편집 영역 */}
             {loading ? (
               <div className="flex-grow flex items-center justify-center">
-                <p className="text-lg">데이터를 불러오는 중입니다...</p>
+                <p className="text-sm">데이터를 불러오는 중입니다...</p>
               </div>
             ) : (
               <div className="px-6 py-3 flex-grow flex flex-row gap-4 mb-1">
