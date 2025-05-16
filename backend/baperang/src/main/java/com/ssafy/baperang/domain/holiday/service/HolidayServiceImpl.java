@@ -32,8 +32,8 @@ import org.xml.sax.InputSource;
 public class HolidayServiceImpl implements HolidayService {
 
     private final HolidayRepository holidayRepository;
-    private final String API_KEY = "Hkw+ZHhSmEkADxkFrvX6ZCkDRd1r9kaWpE/eh764ywn1qGIjxd1gSyw9y+sObKK8OcLeOSCudQaHzf3hVfxA5w==";
-    private final String API_URL = "https://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/getRestDeInfo";
+    private final String API_KEY = "Hkw%2BZHhSmEkADxkFrvX6ZCkDRd1r9kaWpE%2Feh764ywn1qGIjxd1gSyw9y%2BsObKK8OcLeOSCudQaHzf3hVfxA5w%3D%3D";
+    private final String API_URL = "https://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/getHoliDeInfo";
 
     @Override
     @Transactional

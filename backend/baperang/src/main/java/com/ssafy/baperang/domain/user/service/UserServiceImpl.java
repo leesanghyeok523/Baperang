@@ -4,12 +4,14 @@ import com.ssafy.baperang.domain.user.dto.request.UpdateUserRequestDto;
 import com.ssafy.baperang.domain.user.dto.response.*;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.ssafy.baperang.domain.school.entity.School;
 import com.ssafy.baperang.domain.school.repository.SchoolRepository;
 import com.ssafy.baperang.domain.user.dto.request.LoginRequestDto;
 import com.ssafy.baperang.domain.user.dto.request.SignupRequestDto;
+import com.ssafy.baperang.domain.user.dto.response.ValidateTokenResponseDto;
 import com.ssafy.baperang.domain.user.entity.User;
 import com.ssafy.baperang.domain.user.repository.UserRepository;
 import com.ssafy.baperang.global.exception.BaperangErrorCode;
@@ -19,7 +21,6 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -173,6 +174,15 @@ public class UserServiceImpl implements UserService{
         // refreshToken 검증
         if (!jwtService.validateToken(refreshToken)) {
             log.info("refreshAccessToken - 리프레시 토큰 유효하지 않음");
+            
+            // 유효하지 않은 리프레시 토큰을 쿠키에서 삭제
+            Cookie cookie = new Cookie("refreshToken", null);
+            cookie.setMaxAge(0);
+            cookie.setPath("/");
+            cookie.setHttpOnly(true);
+            cookie.setSecure(true); // HTTPS에서만 전송
+            response.addCookie(cookie);
+            
             return ErrorResponseDto.of(BaperangErrorCode.INVALID_REFRESH_TOKEN);
         }
         
@@ -186,6 +196,15 @@ public class UserServiceImpl implements UserService{
                 
         if (user == null) {
             log.info("refreshAccessToken - 사용자 없음");
+            
+            // 사용자가 존재하지 않을 경우에도 쿠키 삭제
+            Cookie cookie = new Cookie("refreshToken", null);
+            cookie.setMaxAge(0);
+            cookie.setPath("/");
+            cookie.setHttpOnly(true);
+            cookie.setSecure(true); // HTTPS에서만 전송
+            response.addCookie(cookie);
+            
             return ErrorResponseDto.of(BaperangErrorCode.USER_NOT_FOUND);
         }
         
@@ -345,4 +364,18 @@ public class UserServiceImpl implements UserService{
         }
     }
 
+    @Transactional(readOnly = true)
+    public Object validateToken(String token) {
+        log.info("validateToken 함수 실행");
+        
+        if (!jwtService.validateToken(token)) {
+            log.info("validateToken - 토큰 유효하지 않음");
+            return ErrorResponseDto.of(BaperangErrorCode.INVALID_TOKEN);
+        }
+
+        log.info("validateToken 함수 성공 종료");
+        return ValidateTokenResponseDto.builder()
+                .message("토큰 유효함")
+                .build();
+    }
 }

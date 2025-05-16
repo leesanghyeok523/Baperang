@@ -113,6 +113,7 @@ async def generate_menu_plan(
     try:
         menu_data = request.menuData
         menu_pool = request.menuPool
+        holidays = request.holidays
 
         if settings.DEBUG:
             print(f"[ROUTE][generate_menu_plan] Preparing data for LLM")
@@ -125,11 +126,11 @@ async def generate_menu_plan(
 
         # 워크 플로우 실행
         print(f"[ROUTE][generate_menu_plan] Before awaiting workflow")
-        result = await workflow.run_workflow(processed_data)
-        print(f"[ROUTE][generate_menu_plan] After awaiting workflow, result type: {type(result)}")
+        result = await workflow.run_workflow(processed_data, holidays)
+        # print(f"[ROUTE][generate_menu_plan] After awaiting workflow, result type: {type(result)}")
 
         print("[ROUTE][generate_menu_plan] After awaiting workflow, result : ", result)
-        print("[ROUTE][generate_menu_plan] After awaiting workflow, processed_data : ", processed_data)
+        # print("[ROUTE][generate_menu_plan] After awaiting workflow, processed_data : ", processed_data)
 
 
         # # 카테고리별 메뉴 매핑 생성(반대 방향 매핑)
@@ -141,14 +142,49 @@ async def generate_menu_plan(
         # 통합 식단 검증 - 메뉴 풀 활용
         integrated_plan = result["integrated_plan"]
         
-        print("[ROUTES][generate_menu_plan] start formatting :", integrated_plan)
+        # MenuService.generate_alternatives_async 메소드를 위한 데이터 변환
+        # 1. 날짜별 메뉴 리스트 형태로 변환
+        plan_for_alternatives = {}
+        for date, menu_categories in integrated_plan.items():
+            plan_for_alternatives[date] = list(menu_categories.keys())
+        
+        # 2. 메뉴 메타데이터 준비
+        menu_metadata = {
+            "categorized_menus": processed_data["menu_pool"],
+            "menu_preference": processed_data.get("preference_data", {}).get("average_rating", {}),
+            "menu_leftover": processed_data.get("leftover_data", {})
+        }
+        
+        # 3. 대체 메뉴 생성 (선호도 기반)
+        alternatives_data = await menu_service.generate_alternatives_async(
+            plan_for_alternatives, 
+            menu_metadata
+        )
+        
+        # 4. 결과 포맷팅
+        menu_based_plan = {}
+        for date, menu_categories in integrated_plan.items():
+            menu_map = {}
+            for menu_name, category in menu_categories.items():
+                # 대체 메뉴 가져오기 (없으면 빈 리스트)
+                alternative_menus = alternatives_data.get(date, {}).get(menu_name, [])
+                
+                menu_map[menu_name] = {
+                    "category": category,
+                    "alternatives": alternative_menus
+                }
+            
+            menu_based_plan[date] = menu_map
+    
+        """
+        # print("[ROUTES][generate_menu_plan] start formatting :", integrated_plan)
         
         # 메뉴 기반 형식으로 직접 변환
         menu_based_plan = {}
         for date, menu_categories in integrated_plan.items():
             # menus는 딕셔너리: {'된장찌개': 'soup', '김치볶음밥': 'rice', ...}
             
-            print("[ROUTES][generate_menu_plan] start creating alternatives : ", menu_categories)
+            # print("[ROUTES][generate_menu_plan] start creating alternatives : ", menu_categories)
 
             # 카테고리별 메뉴 추출
             soup_menu = next((menu for menu, category in menu_categories.items() if category == "soup"), None)
@@ -190,7 +226,7 @@ async def generate_menu_plan(
                 }
     
             menu_based_plan[date] = menu_map
-
+        """
         print("menu_based_plan : ", menu_based_plan)
 
         return PlanResponse(
