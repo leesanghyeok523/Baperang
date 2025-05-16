@@ -127,6 +127,7 @@ public class MenuServiceImpl implements MenuService {
                             .date(currentDate.format(formatter))
                             .dayOfWeekName(dayOfWeekName)
                             .holiday(holidayNames)
+                            .menu(Collections.emptyList())
                             .build();
                     
                     daysList.add(day);
