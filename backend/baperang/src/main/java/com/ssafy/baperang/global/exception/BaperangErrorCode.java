@@ -48,6 +48,9 @@ public enum BaperangErrorCode {
     // 메뉴관련
     MENU_NOT_FOUND(404, "M001", "메뉴를 찾을 수 없습니다."),
 
+    // 재고 관련
+    RESOURCE_NOT_FOUND( 404, "R001", "요청한 리소스를 찾을 수 없습니다."),
+
     // 친구 관련 에러
     FRIEND_NOT_FOUND(404, "F001", "존재하지 않는 친구 요청입니다."),
     DUPLICATE_FRIEND_REQUEST(409, "F002", "이미 친구 요청을 보냈거나 친구 상태입니다."),
