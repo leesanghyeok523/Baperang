@@ -33,6 +33,7 @@ const API_CONFIG = {
       MENU_FAVORITE: '/api/v1/menu/favorite',
       MONTHLY_WASTE: '/api/v1/menu/leftover/month', // /{year}/{month} 파라미터 필요
       DAILY_DISH_WASTE: '/api/v1/menu/leftover/date', // /{date} 파라미터 필요
+      MAKE_MONTH_MENU: '/api/v1/menu/make_month_menu', // 다음 달 식단 생성
     },
 
     // 학생 관리

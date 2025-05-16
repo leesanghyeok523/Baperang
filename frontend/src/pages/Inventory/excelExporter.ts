@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx';
 import { InventoryItem } from '../../data/inventoryData';
+import { showErrorAlert, showSuccessAlert } from '../../utils/sweetalert';
 
 /**
  * 재고 관리 데이터를 Excel 파일로 내보내는 함수
@@ -44,9 +45,9 @@ export const exportInventoryToExcel = (
     // 파일로 저장
     XLSX.writeFile(workbook, filename);
 
-    console.log('엑셀 파일 다운로드 성공');
+    showSuccessAlert('엑셀 파일 다운로드 완료');
   } catch (error) {
     console.error('엑셀 파일 다운로드 중 오류 발생:', error);
-    alert('엑셀 파일 다운로드 중 오류가 발생했습니다.');
+    showErrorAlert('엑셀 파일 다운로드 오류', '엑셀 파일 다운로드 중 오류가 발생했습니다.');
   }
 };

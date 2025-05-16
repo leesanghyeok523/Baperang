@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { AxiosError } from 'axios';
 
 /**
  * 인증 관련 기능을 제공하는 커스텀 훅
@@ -27,9 +28,21 @@ const useAuth = () => {
       setError(null);
       await login(credentials);
       navigate(redirectPath);
-    } catch (err) {
-      setError('로그인에 실패했습니다. 아이디와 비밀번호를 확인해주세요.');
-      console.error('로그인 에러:', err);
+    } catch (err: unknown) {
+      if (err instanceof AxiosError) {
+        // 백엔드에서 받은 에러 메시지를 설정
+        const errorMessage =
+          err.response?.data?.message || '로그인에 실패했습니다. 아이디와 비밀번호를 확인해주세요.';
+        setError(errorMessage);
+        throw new Error(errorMessage);
+      } else if (err instanceof Error) {
+        setError(err.message);
+        throw err;
+      } else {
+        const errorMessage = '알 수 없는 오류가 발생했습니다.';
+        setError(errorMessage);
+        throw new Error(errorMessage);
+      }
     }
   };
 

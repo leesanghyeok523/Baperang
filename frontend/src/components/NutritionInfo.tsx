@@ -86,11 +86,11 @@ const NutritionInfo: React.FC<NutritionInfoProps> = ({ selectedMenu, currentDate
               className="w-full overflow-y-auto flex justify-center"
               style={{ maxHeight: '100%' }}
             >
-              <div className="space-y-2 pr-2 w-full max-w-[98%]">
+              <div className="space-y-3 pr-2 w-full max-w-[98%]">
                 {Object.entries(nutritionData).map(([name, value], index) => (
                   <div
                     key={index}
-                    className="flex justify-between items-center px-3 py-3 rounded-xl bg-white/60 mx-auto"
+                    className="flex justify-between items-center px-3 py-3.5 rounded-xl bg-white/60 mx-auto"
                   >
                     <span className="text-sm font-medium text-gray-700 truncate mr-2">{name}</span>
                     <span className="text-sm font-medium text-gray-700 whitespace-nowrap">
