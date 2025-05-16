@@ -257,6 +257,7 @@ const MainPage = () => {
         return;
       }
 
+      // 해당 날짜의 데이터가 있는 경우
       if (dayData && dayData.menu && dayData.menu.length > 0) {
         // <br/> 태그로 분리하여 메뉴 항목으로 처리
         const allMenuItems: string[] = [];
@@ -272,6 +273,9 @@ const MainPage = () => {
         // 메뉴가 있는 경우에만 설정
         if (allMenuItems.length > 0) {
           setCurrentMenuItems(allMenuItems);
+        } else if (dayData.holiday && dayData.holiday.length > 0) {
+          // 메뉴는 없지만 공휴일이 있는 경우
+          setCurrentMenuItems([`오늘은 ${dayData.holiday[0]} 공휴일입니다.`]);
         } else {
           setCurrentMenuItems(defaultMenu);
         }
