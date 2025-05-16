@@ -69,6 +69,7 @@ public enum BaperangErrorCode {
     AI_SERVER_RESPONSE_ERROR(500, "AI004", "AI 서버 응답 처리 중 오류가 발생했습니다.");
 
 
+
     private final int status;
     private final String code;
     private final String message;
