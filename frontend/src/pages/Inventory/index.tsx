@@ -10,7 +10,12 @@ import {
 } from 'react-icons/fi';
 import { inventoryData, InventoryItem } from '../../data/inventoryData';
 import { exportInventoryToExcel } from './excelExporter';
-
+import {
+  showErrorAlert,
+  showSuccessAlert,
+  showToast,
+  showConfirmAlert,
+} from '../../utils/sweetalert';
 // 공통 스타일 상수 정의
 const STYLES = {
   headerCell:
@@ -123,6 +128,22 @@ const InventoryPage: React.FC = () => {
 
     setInventory((prev) => prev.filter((item) => item.id !== deleteConfirmId));
     setDeleteConfirmId(null);
+    showSuccessAlert('삭제 완료', '항목이 성공적으로 삭제되었습니다.');
+  };
+
+  // SweetAlert를 사용한 삭제 확인
+  const confirmDelete = (id: number) => {
+    showConfirmAlert(
+      '정말로 삭제하시겠습니까?',
+      '이 작업은 되돌릴 수 없습니다.',
+      '네, 삭제합니다',
+      '취소'
+    ).then((result) => {
+      if (result.isConfirmed) {
+        setDeleteConfirmId(id);
+        handleDeleteItem();
+      }
+    });
   };
 
   // diff 계산 및 색상 결정
@@ -174,7 +195,7 @@ const InventoryPage: React.FC = () => {
         {isEditMode && (
           <td className="w-15 text-center border-b border-r border-gray-300">
             <button
-              onClick={() => setDeleteConfirmId(item.id)}
+              onClick={() => confirmDelete(item.id)}
               className="text-red-500 hover:text-red-700"
             >
               <FiMinus size={18} />
@@ -232,12 +253,22 @@ const InventoryPage: React.FC = () => {
   const saveNewRow = () => {
     // 유효성 검사
     if (
+      !newItem.productName &&
+      !newItem.supplier &&
+      (newItem.price === undefined || newItem.price === 0) &&
+      (newItem.orderedQuantity === undefined || newItem.orderedQuantity === 0)
+    ) {
+      // 모든 필드가 비어있는 경우 더 강조된 오류 메시지
+      showErrorAlert('입력 오류', '모든 필드를 입력해주세요.');
+      return;
+    } else if (
       !newItem.productName ||
       !newItem.supplier ||
       newItem.price === undefined ||
       newItem.orderedQuantity === undefined
     ) {
-      alert('모든 필드를 입력해주세요');
+      // 일부 필드만 비어있는 경우 토스트 알림
+      showToast('모든 필드를 입력해주세요', 'error');
       return;
     }
 
@@ -250,6 +281,9 @@ const InventoryPage: React.FC = () => {
 
     // 인벤토리에 추가
     setInventory((prev) => [...prev, newItemWithId]);
+
+    // 성공 토스트 메시지 표시
+    showToast('항목이 추가되었습니다');
 
     // 새 행 추가 모드 종료
     setIsAddingNewRow(false);
@@ -270,10 +304,10 @@ const InventoryPage: React.FC = () => {
             {/* 헤더 */}
             <div className="grid grid-cols-3 items-center p-4">
               {/* 왼쪽 - 항목 추가 버튼과 편집 버튼 */}
-              <div className="flex items-center space-x-8 ml-4">
+              <div className="flex items-center justify-start space-x-6">
                 <button
                   onClick={startAddingNewRow}
-                  className="flex items-center space-x-1 text-blue-500 hover:text-blue-700"
+                  className="flex items-center space-x-1 text-blue-500 hover:text-blue-700 ml-6"
                 >
                   <FiPlus size={20} />
                   <span>항목 추가</span>
@@ -301,29 +335,29 @@ const InventoryPage: React.FC = () => {
               </div>
 
               {/* 중앙 - 이전/다음 버튼과 제목 */}
-              <div className="flex items-center justify-center relative">
+              <div className="flex items-center justify-center">
                 <button
                   onClick={prevMonth}
-                  className="text-gray-600 hover:text-gray-900 focus:outline-none absolute left-0"
+                  className="text-gray-600 hover:text-gray-900 focus:outline-none"
                 >
                   <FiChevronLeft size={30} />
                 </button>
-                <h1 className="text-xl font-bold text-center">{currentMonth}월 재고관리</h1>
+                <h1 className="text-xl font-bold text-center w-[50%]">{currentMonth}월 재고관리</h1>
                 <button
                   onClick={nextMonth}
-                  className="text-gray-600 hover:text-gray-900 focus:outline-none absolute right-0"
+                  className="text-gray-600 hover:text-gray-900 focus:outline-none"
                 >
                   <FiChevronRight size={30} />
                 </button>
               </div>
 
               {/* 오른쪽 - Excel 버튼 */}
-              <div className="flex justify-end mr-6">
+              <div className="flex justify-end">
                 <button
                   onClick={() =>
                     exportInventoryToExcel(filteredData, `재고관리_${currentMonth}월.xlsx`)
                   }
-                  className="flex items-center space-x-2 text-green-600 hover:text-green-800"
+                  className="flex items-center space-x-2 text-green-600 hover:text-green-800 mr-6"
                 >
                   <FiDownload size={20} />
                   <span>엑셀로 다운받기</span>
@@ -519,31 +553,6 @@ const InventoryPage: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* 삭제 확인 모달 */}
-      {deleteConfirmId !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-2xl p-6 w-[400px] max-w-[90%]">
-            <h2 className="text-xl font-bold mb-4">항목 삭제</h2>
-            <p className="mb-6">정말로 이 항목을 삭제하시겠습니까?</p>
-
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setDeleteConfirmId(null)}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800"
-              >
-                취소
-              </button>
-              <button
-                onClick={handleDeleteItem}
-                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-              >
-                삭제
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

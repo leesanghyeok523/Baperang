@@ -42,13 +42,13 @@ const DishWasteRates = ({ selectedDayWaste, selectedDate }: DishWasteRatesProps)
         <div className="text-base font-semibold text-center mb-3">
           {formattedDate} ({dayOfWeek}) 잔반률
         </div>
-        <div className="overflow-y-auto h-[380px]">
+        <div className="overflow-y-auto h-[380px] flex flex-col items-center">
           {selectedDayWaste.length > 0 ? (
             selectedDayWaste.map((dish, index) => (
               <div
                 key={index}
-                className="bg-white w-[95%] px-3 py-2 rounded-2xl text-base shadow-sm mb-2"
-                style={{ width: '100%', maxWidth: '100%' }}
+                className="bg-white/40 w-[95%] px-3 py-2 rounded-xl text-base shadow-sm mb-3"
+                style={{ width: '95%', maxWidth: '95%' }}
               >
                 <div className="flex flex-col w-full overflow-hidden">
                   <div className="truncate font-medium text-center">{dish.name}</div>
