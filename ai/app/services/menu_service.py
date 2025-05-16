@@ -334,12 +334,17 @@ class MenuService:
         Returns:
             Dict: 날짜별, 메뉴별 대체 메뉴 목록
         """
-        print("[MENU][generate_alternatives] menu_data : ", {menu_data})
+
+        print("[MENU][generate_alternatives] Received menu_data with keys:", menu_data.keys())
 
         # 메뉴별 카테고리 매핑
         menu_categories = menu_data.get("menu_categories", {})
         categorized_menus = menu_data.get("categorized_menus", {})
         menu_preference = menu_data.get("menu_preference", {})
+
+        # 디버깅 출력
+        print(f"[MENU][generate_alternatives] categorized_menus keys: {categorized_menus.keys() if categorized_menus else 'None'}")
+        print(f"[MENU][generate_alternatives] menu_preference keys count: {len(menu_preference) if menu_preference else 'None'}")
 
         alternatives = {}
 
@@ -349,7 +354,8 @@ class MenuService:
             # 역방향 매핑 생성
             for category, menus in menu_data["categorized_menus"].items():
                 for menu in menus:
-                    menu_categories[menu] = category
+                    if isinstance(menu, str):  # 문자열인 경우만 처리
+                        menu_categories[menu] = category
 
         # 날짜별 대체 메뉴 생성
         for date, menus in plan.items():
@@ -369,12 +375,18 @@ class MenuService:
                     # 선호도 기준으로 정렬
                     sorted_menus = sorted(
                         same_category_menus,
-                        key=lambda m: menu_preference.get(m,0),
+                        key=lambda m: menu_preference.get(m, 0) if isinstance(m, str) else 0,
                         reverse=True
                     )
 
-                    # 최대 3개 선택
-                    alt_menus = sorted_menus[:3]
+                    top_menus = sorted_menus[:min(15, len(sorted_menus))]
+
+                    # 상위 15개 중에서 랜덤하게 3개 선택 (메뉴가 3개 미만이면 모두 선택)
+                    if len(top_menus) > 3:
+                        alt_menus = random.sample(top_menus, 3)
+                    else:
+                        alt_menus = top_menus
+                    
                 # 대체 메뉴 저장
                 date_alternatives[menu] = alt_menus
 

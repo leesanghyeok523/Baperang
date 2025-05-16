@@ -7,6 +7,7 @@ class PlanRequest(BaseModel):
     """Spring에서 전달받는 식단 생성 요청"""
     menuData: Dict[str, Dict[str, Dict[str, Any]]]  # {날짜: {메뉴명: {잔반율, 선호도, 영양소:{}}}}
     menuPool: Optional[Dict[str, Any]] = None # 사용 가능한 메뉴 목록
+    holidays: Dict[str, Any] # {날짜: 공휴일}
 
 class MenuOption(BaseModel):
     """카테고리별 메뉴 옵션"""

@@ -37,7 +37,6 @@ public class NfcServiceImpl implements NfcService {
     @Value("${AI_SERVER_BASE_URL}")
     private String aiServerBaseUrl;
 
-    // 엔드포인트 경로 상수 정의
     private static final String ANALYZE_LEFTOVER_ENDPOINT = "/ai/analyze-leftover";
 
     @Override
@@ -164,6 +163,18 @@ public class NfcServiceImpl implements NfcService {
 
             Student student = studentOpt.get();
 
+            LocalDate today = LocalDate.now();
+
+            LocalDate studentDate = student.getImageDate();
+            boolean dateMatches = (studentDate != null && studentDate.equals(today));
+
+            if (dateMatches) {
+                log.warn("이미 오늘({}) 식전 이미지가 저장되어 있습니다. 학생={}", today, student.getStudentName());
+                return;
+            }
+
+            log.info("날짜 검증: DB 날짜={}, 오늘 날짜={}, 일치 여부={}", studentDate, today, dateMatches);
+
             // json 형식으로 url 변환
             String jsonUrls;
             try {
@@ -179,15 +190,6 @@ public class NfcServiceImpl implements NfcService {
                 log.info("URL {}: {}", key, url);
             });
 
-            // 현재 날짜
-            LocalDate today = LocalDate.now();
-
-            // 날짜 검증 - DB 날짜와 오늘 날짜 비교
-            LocalDate studentDate = student.getImageDate();
-            boolean dateMatches = (studentDate != null && studentDate.equals(today));
-
-            log.info("날짜 검증: DB 날짜={}, 오늘 날짜={}, 일치 여부={}",
-                    studentDate, today, dateMatches);
 
             // student 엔티티의 updateImage 메서드 사용
             student.updateImageDirectly(jsonUrls);
@@ -259,7 +261,6 @@ public class NfcServiceImpl implements NfcService {
             // AI 서버로 url 전송
             try {
 
-//                String aiServerUrl = "http://127.0.0.1:8001/ai/analyze-leftover";
 
                 String aiServerUrl = aiServerBaseUrl + ANALYZE_LEFTOVER_ENDPOINT;
 
