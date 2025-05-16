@@ -2,6 +2,7 @@ package com.ssafy.baperang.domain.menu.controller;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -46,6 +47,7 @@ public class MenuController {
             log.info("getMenuCalendar 컨트롤러 함수 에러 응답");
             return ResponseEntity.status(errorResponse.getStatus()).body(result);
         }
+
 
         log.info("getMenuCalendar 컨트롤러 함수 정상 응답");
         return ResponseEntity.ok(result);
@@ -126,10 +128,23 @@ public class MenuController {
         }
     }
 
-    // @PostMapping("/month_menu")
-    // public ResponseEntity<?> getmonthlymenu(
-    //         @RequestHeader("Authorization") String authorizationHeader) {
+    @PostMapping("/make_month_menu")
+    public ResponseEntity<?> makeMonthMenu(
+            @RequestHeader("Authorization") String authorizationHeader) {
 
-    // }
+        log.info("makeMonthMenu 컨트롤러 함수 호출");
 
+        String token = authorizationHeader.substring(7);
+
+        Object result = menuService.makeMonthMenu(token);
+
+        if (result instanceof ErrorResponseDto) {
+            ErrorResponseDto errorResponse = (ErrorResponseDto) result;
+            log.info("makeMonthMenu 컨트롤러 함수 에러 응답");
+            return ResponseEntity.status(errorResponse.getStatus()).body(result);
+        }
+
+        log.info("makeMonthMenu 컨트롤러 함수 정상 응답");
+        return ResponseEntity.ok(result);
+    }
 }

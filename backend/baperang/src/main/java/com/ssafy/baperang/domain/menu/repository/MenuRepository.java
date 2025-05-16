@@ -1,19 +1,23 @@
 package com.ssafy.baperang.domain.menu.repository;
 
-import com.ssafy.baperang.domain.menu.entity.Menu;
-import com.ssafy.baperang.domain.school.entity.School;
+import java.time.LocalDate;
+import java.util.Collection;
+import java.util.List;
+
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDate;
-import java.util.Collection;
-import java.util.List;
+import com.ssafy.baperang.domain.menu.entity.Menu;
+import com.ssafy.baperang.domain.school.entity.School;
 
 @Repository
 public interface MenuRepository {
 
     Menu saveAndFlush(Menu menu);
+    
+    List<Menu> saveAll(List<Menu> menus);
+    
     // 날짜로 잔반율 조회
     List<Menu> findByMenuDate(LocalDate menuDate);
 

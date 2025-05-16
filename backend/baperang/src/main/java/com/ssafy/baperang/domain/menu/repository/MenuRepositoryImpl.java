@@ -22,6 +22,10 @@ public class MenuRepositoryImpl implements MenuRepository {
         return menuJpaRepository.saveAndFlush(menu);
     }
 
+    @Override
+    public List<Menu> saveAll(List<Menu> menus) {
+        return menuJpaRepository.saveAll(menus);
+    }
 
     @Override
     public List<Menu> findByMenuDate(LocalDate menuDate) {
@@ -62,5 +66,4 @@ public class MenuRepositoryImpl implements MenuRepository {
     public List<Menu> findAllByIdIn(Collection<Long> menuIds) {
         return menuJpaRepository.findAllByIdIn(menuIds);
     }
-
 }

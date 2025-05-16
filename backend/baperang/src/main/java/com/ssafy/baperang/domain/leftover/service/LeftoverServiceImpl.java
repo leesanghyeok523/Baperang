@@ -200,7 +200,6 @@ public class LeftoverServiceImpl implements LeftoverService {
 
             Student student = studentOpt.get();
             LocalDate today = LocalDate.now();
-            School schoolEntity = student.getSchool();
 
             // AI 서버 응답 검증
             if (!aiResponse.containsKey("leftoverRate")) {
@@ -210,6 +209,23 @@ public class LeftoverServiceImpl implements LeftoverService {
 
             Map<String, Object> leftoverData = (Map<String, Object>) aiResponse.get("leftoverRate");
 
+            List<Leftover> existingLeftovers = leftoverRepository.findByStudentAndLeftoverDate(student, today);
+
+            if (!existingLeftovers.isEmpty()) {
+                for (Leftover leftover : existingLeftovers) {
+                    log.info("이미 저장된 잔반데이터가 있음:: 학생={}, 메뉴={}, 날자={}", student.getStudentName(), leftover.getLeftMenuName(), today);
+                }
+
+                Map<String, Object> result = new HashMap<>();
+                result.put("message", "이미 저장된 잔반 데이터가 있음");
+                result.put("leftoverCount", 0);
+                result.put("skip", existingLeftovers.size());
+                result.put("isDuplicate", true);
+
+                return result;
+            }
+
+            School schoolEntity = student.getSchool();
             List<Menu> todayMenus = menuRepository.findBySchoolAndMenuDate(schoolEntity, today);
 
             if (todayMenus.isEmpty()) {
@@ -260,17 +276,6 @@ public class LeftoverServiceImpl implements LeftoverService {
                 if (leftoverData.containsKey(position) && positionMenuMap.containsKey(position)) {
                     Menu menu = positionMenuMap.get(position);
 
-                    Optional<Leftover> existingLeftover = leftoverRepository.findByStudentAndMenuAndLeftoverDate(
-                            student, menu, today
-                    );
-
-                    if (existingLeftover.isPresent()) {
-                        log.info("이미 저장된 잔반 데이터가 있음. 학생={}, 메뉴={}, 날짜={}", student.getStudentName(), menu.getMenuName(), today);
-                        skip++;
-                        continue;
-                    }
-
-
                     float rawLeftoverRate = ((Number) leftoverData.get(position)).floatValue();
                     // 소수점 둘째 자리까지 포맷팅
                     float leftoverRate = Float.parseFloat(df.format(rawLeftoverRate));
@@ -303,5 +308,4 @@ public class LeftoverServiceImpl implements LeftoverService {
             return ErrorResponseDto.of(BaperangErrorCode.INTERNAL_SERVER_ERROR);
         }
     }
-
 }

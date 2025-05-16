@@ -10,4 +10,6 @@ public interface MenuService {
     Object getTodayMenu(String token);
 
     Object getMenuNutrient(String token, String menu, String date);
+
+    Object makeMonthMenu(String token);
 }

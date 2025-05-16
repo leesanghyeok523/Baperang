@@ -51,7 +51,6 @@ public class HealthReportServiceImpl implements HealthReportService{
 
     // private static final String HEALTH_REPORT_ENDPOINT = "/ai/health-report";
 
-//    private static final String AI_SERVER_URL = "http://127.0.0.1:8001/ai/health-report";
 
     // nutrient 테이블의 PK 매핑
     private static final Long CARBO_NUTRIENT_ID = 2L;     // 탄수화물 (g)
@@ -79,12 +78,15 @@ public class HealthReportServiceImpl implements HealthReportService{
                 return ErrorResponseDto.of(BaperangErrorCode.STUDENT_NOT_FOUND);
             }
 
-            // bmi 지수 구하기
             Student student = studentOpt.get();
+            LocalDate today = LocalDate.now();
+
+            // BMI 계산
             Float height = student.getHeight() / 100f;
             Float weight = student.getWeight();
             Float bmi = weight / (height * height);
-            log.info("학생 BMI 계산: {}", df.format(bmi));
+            String formattedBmi = df.format(bmi);
+            log.info("학생 BMI 계산: {}", formattedBmi);
 
             // 보고서 분석 기간 설정
             LocalDate endDate = LocalDate.now();
@@ -138,29 +140,85 @@ public class HealthReportServiceImpl implements HealthReportService{
                             (existing, replacement) -> replacement
                     ));
 
-            // 일주일간 섭취한 영양소 계산 - 최적화된 메소드 사용
-            Map<String, Map<String, Integer>> nutrientData = calcOptimizedNutrients(
+            // 일주일간 섭취한 영양소 계산 (AI 요청용)
+            Map<String, Map<String, Integer>> dailyNutrientData = calcOptimizedNutrients(
                     leftoversByDate,
                     nutrientMap,
                     allDates);
 
-            // ai로 보낼 요청 데이터
+            // 한 주간 영양소 합계 계산
+            int weeklyCarbo = 0;
+            int weeklyProtein = 0;
+            int weeklyFat = 0;
+
+            for (Map<String, Integer> dailyNutrient : dailyNutrientData.values()) {
+                weeklyCarbo += dailyNutrient.getOrDefault("carbo", 0);
+                weeklyProtein += dailyNutrient.getOrDefault("protein", 0);
+                weeklyFat += dailyNutrient.getOrDefault("fat", 0);
+            }
+
+            // 주간 영양소 데이터 - 이것만 응답에 포함
+            Map<String, Integer> weeklyNutrient = new HashMap<>();
+            weeklyNutrient.put("carbo", weeklyCarbo);
+            weeklyNutrient.put("protein", weeklyProtein);
+            weeklyNutrient.put("fat", weeklyFat);
+
+            Map<String, Map<String, Integer>> newNutrientFormat = new TreeMap<>(dailyNutrientData);
+
+            // 최종 응답을 위한 맵 생성
+            Map<String, Object> responseMap = new HashMap<>();
+
+            // 요청 데이터 추가 (주간 영양소 합계만 포함)
+            responseMap.put("bmi", Float.parseFloat(formattedBmi));
+            responseMap.put("leftoverMost", leftoverRankingMap.get("most"));
+            responseMap.put("leftoverLeast", leftoverRankingMap.get("least"));
+            responseMap.put("nutrient", newNutrientFormat);
+
+            // 중복 체크
+            if (student.getContentDate() != null && student.getContentDate().equals(today)) {
+                log.warn("학생 ID: {}의 건강리포트가 오늘({}) 이미 생성되었습니다.", studentId, today);
+
+                try {
+                    // 저장된 리포트 내용을 파싱하여 응답에 추가
+                    HealthReportResponseDto responseDto = objectMapper.readValue(student.getContent(), HealthReportResponseDto.class);
+
+                    responseMap.put("analyzeReport", responseDto.getAnalyzeReport());
+                    responseMap.put("plan", responseDto.getPlan());
+                    responseMap.put("opinion", responseDto.getOpinion());
+                    responseMap.put("isDuplicate", true);
+
+                    return responseMap;
+                } catch (Exception e) {
+                    log.error("저장된 리포트 파싱 중 오류: {}", e.getMessage(), e);
+                    return ErrorResponseDto.of(BaperangErrorCode.INTERNAL_SERVER_ERROR);
+                }
+            }
+
+            // ai로 보낼 요청 데이터 (AI에게는 일별 데이터를 보냄)
             HealthReportRequestDto requestDto = HealthReportRequestDto.builder()
-                    .bmi(Float.parseFloat(df.format(bmi)))
+                    .bmi(Float.parseFloat(formattedBmi))
                     .leftover(categoryLeftoverMap)
                     .leftoverMost(leftoverRankingMap.get("most"))
                     .leftoverLeast(leftoverRankingMap.get("least"))
-                    .nutrient(nutrientData)
+                    .nutrient(dailyNutrientData) // AI에게는 날짜별 영양소 데이터 제공
                     .build();
 
             // AI 서버에 요청 보내기
             HealthReportResponseDto responseDto = getAiAnalysis(requestDto);
 
+            // AI 응답을 응답 맵에 추가
+            responseMap.put("analyzeReport", responseDto.getAnalyzeReport());
+            responseMap.put("plan", responseDto.getPlan());
+            responseMap.put("opinion", responseDto.getOpinion());
+
             // JSON 형태로 변환하여 저장
             String reportContent = objectMapper.writeValueAsString(responseDto);
 
             // 학생 엔티티에 리포트 내용 저장
-            return saveReport(studentId, reportContent);
+            student.updateContent(reportContent, today);
+            studentRepository.saveAndFlush(student);
+
+            return responseMap;
 
         } catch (Exception e) {
             log.error("건강 리포트 생성 중 오류 발생: {}", e.getMessage(), e);
@@ -174,6 +232,7 @@ public class HealthReportServiceImpl implements HealthReportService{
         log.info("건강 리포트 저장 시작 - 학생 ID: {}", studentId);
 
         try {
+
             Optional<Student> studentOpt = studentRepository.findById(studentId);
             if (studentOpt.isEmpty()) {
                 log.error("학생을 찾을 수 없음 - 학생 ID: {}", studentId);
@@ -468,9 +527,9 @@ public class HealthReportServiceImpl implements HealthReportService{
         String requestBody = objectMapper.writeValueAsString(requestDto);
         HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
 
-        // String aiServerUrl = aiServerBaseUrl + HEALTH_REPORT_ENDPOINT;
-        // 로컬 테스트를 위한 하드코딩 URL 사용 (주석 해제)
-        String aiServerUrl = "http://127.0.0.1:8001/ai/health-report";
+
+        String aiServerUrl = aiServerBaseUrl + HEALTH_REPORT_ENDPOINT;
+
         log.info("AI 서버 URL: {}", aiServerUrl);
 
         // RestTemplate 인스턴스를 필요할 때 생성
