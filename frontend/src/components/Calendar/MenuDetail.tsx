@@ -45,11 +45,11 @@ const MenuDetail = ({ selectedDate, menuData }: MenuDetailProps) => {
         <div className="flex-grow flex flex-col h-[380px]">
           {!hasNoMenu ? (
             // 메뉴가 있는 경우 메뉴 목록 표시
-            <div className="flex-grow flex flex-col gap-3 items-center overflow-y-auto">
+            <div className="flex-grow flex flex-col gap-1 items-center overflow-y-auto">
               {menuData[selectedDate].menu.map((item: string, index: number) => (
                 <div
                   key={index}
-                  className="bg-white w-[95%] px-4 py-3 rounded-3xl text-base shadow-sm text-center mb-2"
+                  className="bg-white/40 w-[95%] px-3 py-3 rounded-xl text-base shadow-sm text-center mb-2"
                 >
                   <div className="truncate">{item}</div>
                 </div>
