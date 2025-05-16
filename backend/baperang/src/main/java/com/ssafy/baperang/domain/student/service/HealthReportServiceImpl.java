@@ -528,6 +528,7 @@ public class HealthReportServiceImpl implements HealthReportService{
 
 
         String aiServerUrl = aiServerBaseUrl + HEALTH_REPORT_ENDPOINT;
+
         log.info("AI 서버 URL: {}", aiServerUrl);
 
         // RestTemplate 인스턴스를 필요할 때 생성

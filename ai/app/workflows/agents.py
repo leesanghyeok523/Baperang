@@ -12,7 +12,7 @@ class WastePlanAgent:
         """에이전트 초기화"""
         self.llm_service = LLMService()
 
-    async def process(self, state: Dict[str, Any]) -> Dict[str, Any]:
+    async def process(self, state: Dict[str, Any], holidays: Dict[str, Any]) -> Dict[str, Any]:
         """
         상태를 처리하여 잔반율 기반 식단 생성
         
@@ -37,7 +37,8 @@ class WastePlanAgent:
         # print(leftover_data)
         prompt = PromptTemplates.waste_based_templates(
             leftover_data=leftover_data,
-            menu_pool=menu_pool
+            menu_pool=menu_pool,
+            holidays=holidays
         )
 
         if settings.DEBUG:
@@ -61,7 +62,7 @@ class NutritionPlanAgent:
         """에이전트 초기화"""
         self.llm_service = LLMService()
 
-    async def process(self, state: Dict[str, Any]) -> Dict[str, Any]:
+    async def process(self, state: Dict[str, Any], holidays: Dict[str, Any]) -> Dict[str, Any]:
         """
         상태를 처리하여 영양소 기반 식단 생성
 
@@ -77,7 +78,8 @@ class NutritionPlanAgent:
         # 프롬프트 생성
         prompt = PromptTemplates.nutrition_based_template(
             preference_data=preference_data,
-            menu_pool=menu_pool
+            menu_pool=menu_pool,
+            holidays=holidays
         )
 
         # LLM 호출
@@ -95,7 +97,7 @@ class IntegrationAgent:
         """에이전트 초기화"""
         self.llm_service = LLMService()
 
-    async def process(self, state: Dict[str, Any]) -> Dict[str, Any]:
+    async def process(self, state: Dict[str, Any], holidays: Dict[str, Any]) -> Dict[str, Any]:
         """
         잔반율 식단과 영양소 기반 식단을 통합
 
@@ -112,7 +114,8 @@ class IntegrationAgent:
         # 프롬프트 생성
         prompt = PromptTemplates.integration_template(
             waste_plan=waste_plan,
-            nutrition_plan=nutrition_plan
+            nutrition_plan=nutrition_plan,
+            holidays=holidays
         )
 
         # LLM 호출
