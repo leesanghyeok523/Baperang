@@ -20,15 +20,6 @@ public class MenuPlanResponseDto {
     @Builder
     public static class DayMenu {
         private String date;
-        private List<MenuInfo> menus;
-    }
-
-    @Getter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-    public static class MenuInfo {
-        private String menuName;
-        private List<String> alternatives; // 대체 가능 메뉴 목록
+        private List<String> menus;
     }
 }
