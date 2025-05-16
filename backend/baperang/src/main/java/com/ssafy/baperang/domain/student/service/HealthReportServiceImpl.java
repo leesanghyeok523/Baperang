@@ -163,15 +163,16 @@ public class HealthReportServiceImpl implements HealthReportService{
             weeklyNutrient.put("protein", weeklyProtein);
             weeklyNutrient.put("fat", weeklyFat);
 
+            Map<String, Map<String, Integer>> newNutrientFormat = new TreeMap<>(dailyNutrientData);
+
             // 최종 응답을 위한 맵 생성
             Map<String, Object> responseMap = new HashMap<>();
 
             // 요청 데이터 추가 (주간 영양소 합계만 포함)
             responseMap.put("bmi", Float.parseFloat(formattedBmi));
-            responseMap.put("leftover", categoryLeftoverMap);
             responseMap.put("leftoverMost", leftoverRankingMap.get("most"));
             responseMap.put("leftoverLeast", leftoverRankingMap.get("least"));
-            responseMap.put("nutrient", weeklyNutrient);
+            responseMap.put("nutrient", newNutrientFormat);
 
             // 중복 체크
             if (student.getContentDate() != null && student.getContentDate().equals(today)) {
