@@ -158,7 +158,18 @@ public class MenuServiceImpl implements MenuService {
                     .build();
 
             log.info("getMenuCalendar 함수 성공 종료 - 일수: {}", daysList.size());
-            log.info("getMenuCalendar 함수 성공 종료 - 응답: {}", responseDto);
+            
+            // 객체 내용 로깅을 위해 JSON으로 변환
+            try {
+                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+                mapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+                String jsonResponse = mapper.writeValueAsString(responseDto);
+                log.info("getMenuCalendar 응답 데이터: {}", jsonResponse);
+            } catch (Exception e) {
+                log.error("응답 데이터 변환 중 오류: {}", e.getMessage());
+            }
+            
             return responseDto;
         } catch (Exception e) {
             log.error("메뉴 조회 중 오류 발생: {}", e.getMessage(), e);
