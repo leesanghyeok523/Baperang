@@ -42,7 +42,31 @@ export const useAuthStore = create<AuthState>()(
             credentials: 'include', // 쿠키 포함
           });
 
-          if (!response.ok) throw new Error('로그인 실패');
+          // 응답이 성공적이지 않은 경우
+          if (!response.ok) {
+            // 실패 시 로딩 상태 해제
+            set({ isLoading: false });
+
+            let errorMessage = '로그인에 실패했습니다.';
+
+            try {
+              const errorData = await response.json();
+              errorMessage = errorData.message || '아이디 또는 비밀번호가 올바르지 않습니다.';
+            } catch {
+              // JSON 파싱 실패 시 HTTP 상태 코드에 따른 메시지 설정
+              if (response.status === 400) {
+                errorMessage = '아이디 또는 비밀번호가 올바르지 않습니다.';
+              } else if (response.status === 401) {
+                errorMessage = '인증에 실패했습니다. 다시 로그인해주세요.';
+              } else if (response.status === 404) {
+                errorMessage = '계정을 찾을 수 없습니다.';
+              } else if (response.status >= 500) {
+                errorMessage = '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+              }
+            }
+
+            throw new Error(errorMessage);
+          }
 
           const accessToken = response.headers.get('Authorization');
           const userData = await response.json();

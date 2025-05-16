@@ -110,6 +110,8 @@ const Calendar = () => {
   // 월간 잔반률 데이터 상태 추가
   const [monthlyWasteData, setMonthlyWasteData] = useState<DailyWasteRate[]>([]);
 
+  const { accessToken } = useAuthStore();
+
   // 화면에 표시할 년월 문자열
   const displayYearMonth = `${selectedYear}년 ${selectedMonth + 1}월`;
 
@@ -149,13 +151,23 @@ const Calendar = () => {
     setSelectedDayWaste(null);
   };
 
+  // 식단 생성 후 강제로 데이터를 새로고침하기 위한 상태
+  const [isForceUpdate, setIsForceUpdate] = useState(false);
+
   // API에서 메뉴 데이터 가져오기
   const fetchMenuData = async () => {
     try {
       setLoading(true);
-      const { accessToken } = useAuthStore.getState();
 
       console.log('fetchMenuData 호출됨', { year: selectedYear, month: selectedMonth + 1 });
+
+      // 미래 달인 경우 API 호출하지 않고 빈 데이터 설정 (식단 생성 전)
+      if (isFutureMonth() && !isForceUpdate) {
+        console.log('미래 달이므로 식단 데이터를 조회하지 않습니다.');
+        setMenuData({});
+        setLoading(false);
+        return;
+      }
 
       if (!accessToken) {
         console.error('인증 토큰이 없습니다. 로그인이 필요합니다.');
@@ -226,6 +238,8 @@ const Calendar = () => {
       console.log('메뉴 데이터 키:', Object.keys(newMenuData));
 
       setMenuData(newMenuData);
+      // 강제 업데이트 후 플래그 초기화
+      setIsForceUpdate(false);
     } catch (error) {
       console.error('메뉴 데이터 가져오기 오류:', error);
       // 에러 상세 정보 출력
@@ -236,6 +250,8 @@ const Calendar = () => {
           data: error.response?.data,
         });
       }
+      // 강제 업데이트 후 플래그 초기화
+      setIsForceUpdate(false);
     } finally {
       setLoading(false);
     }
@@ -244,8 +260,6 @@ const Calendar = () => {
   // API에서 월간 잔반률 데이터 가져오기
   const fetchMonthlyWasteData = async (): Promise<DailyWasteRate[]> => {
     try {
-      const { accessToken } = useAuthStore.getState();
-
       if (!accessToken) {
         console.error('인증 토큰이 없습니다. 로그인이 필요합니다.');
         return [];
@@ -344,8 +358,6 @@ const Calendar = () => {
   // 반찬별 잔반률 데이터 조회
   const getDishWasteData = async (dateString: string): Promise<DishWasteRate[]> => {
     try {
-      const { accessToken } = useAuthStore.getState();
-
       if (!accessToken) {
         console.error('인증 토큰이 없습니다. 로그인이 필요합니다.');
         return [{ name: '로그인이 필요합니다', 잔반률: 0 }];
@@ -429,6 +441,20 @@ const Calendar = () => {
     }
   };
 
+  // 메뉴 데이터 새로고침 (식단 생성 후 호출될 콜백)
+  const refreshMenuData = () => {
+    // 다음 달로 이동
+    goToNextMonth();
+
+    // 강제 업데이트 플래그 설정
+    setIsForceUpdate(true);
+
+    // 약간의 지연 후 데이터 다시 가져오기 (상태 업데이트 후)
+    setTimeout(() => {
+      fetchMenuData();
+    }, 300);
+  };
+
   return (
     <div className="min-h-screen w-full overflow-hidden relative">
       {/* 배경 이미지 */}
@@ -453,6 +479,8 @@ const Calendar = () => {
               toggleView={toggleView}
               handleExcelDownload={handleExcelDownload}
               isFutureMonth={isFutureMonth()}
+              token={accessToken || undefined}
+              onMenuGenerated={refreshMenuData}
             />
 
             {loading ? (
