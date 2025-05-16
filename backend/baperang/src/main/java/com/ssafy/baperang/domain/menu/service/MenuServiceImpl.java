@@ -21,9 +21,10 @@ import org.springframework.web.client.RestTemplate;
 
 import com.ssafy.baperang.domain.holiday.entity.Holiday;
 import com.ssafy.baperang.domain.holiday.repository.HolidayRepository;
-import com.ssafy.baperang.domain.menu.dto.request.MenuRequestDto;
 import com.ssafy.baperang.domain.menu.dto.request.MenuPlanRequestDto;
+import com.ssafy.baperang.domain.menu.dto.request.MenuRequestDto;
 import com.ssafy.baperang.domain.menu.dto.response.ErrorResponseDto;
+import com.ssafy.baperang.domain.menu.dto.response.MenuPlanResponseDto;
 import com.ssafy.baperang.domain.menu.dto.response.MenuResponseDto;
 import com.ssafy.baperang.domain.menu.entity.Menu;
 import com.ssafy.baperang.domain.menu.repository.MenuRepository;
@@ -275,10 +276,7 @@ public class MenuServiceImpl implements MenuService {
                 return ErrorResponseDto.of(BaperangErrorCode.INTERNAL_SERVER_ERROR);
             }
 
-            log.info("getMenuNutrient - DB 조회 시도 - 학교ID: {}, 날짜: {}, 메뉴명: '{}'", 
-                    school.getId(), parsedDate, menu);
-            
-            // 직접 메뉴 조회 먼저 시도 (디버깅용)
+            // 해당 학교, 날짜에 맞는 모든 메뉴 조회
             List<Menu> allMenus = menuRepository.findBySchoolAndMenuDate(school, parsedDate);
             if (allMenus.isEmpty()) {
                 log.info("getMenuNutrient - 해당 날짜에 메뉴가 없음");
@@ -289,6 +287,7 @@ public class MenuServiceImpl implements MenuService {
                 }
             }
             
+            // 먼저 날짜와 학교에 맞는 메뉴 조회 (기존 코드 유지)
             Menu db_menu = menuRepository.findBySchoolAndMenuDateAndMenuName(school, parsedDate, menu);
 
             if (db_menu == null) {
@@ -321,6 +320,7 @@ public class MenuServiceImpl implements MenuService {
     }
 
     @Override
+    @Transactional
     public Object makeMonthMenu(String token) {
         try {
             // 토큰 유효성
@@ -351,6 +351,21 @@ public class MenuServiceImpl implements MenuService {
             LocalDate startDate = nextYearMonth.atDay(1);
             LocalDate endDate = nextYearMonth.atEndOfMonth();
             
+            // 다음 달에 이미 메뉴가 있는지 확인
+            List<Menu> nextMonthMenus = menuRepository.findBySchoolAndMenuDateBetweenOrderByMenuDate(
+                school, startDate, endDate);
+            
+            if (!nextMonthMenus.isEmpty()) {
+                log.info("makeMonthMenu - 다음 달({}/{})에 이미 생성된 메뉴가 있습니다. 메뉴 개수: {}", 
+                    year, month, nextMonthMenus.size());
+                
+                // 이미 메뉴가 있다는 메시지만 반환
+                Map<String, String> messageResponse = new HashMap<>();
+                messageResponse.put("message", "이미 다음 달 메뉴가 생성되어 있습니다.");
+                
+                return messageResponse;
+            }
+            
             // 다음 달의 공휴일 조회
             List<Holiday> holidays = holidayRepository.findByHolidayDateBetween(startDate, endDate);
             log.info("다음 달 공휴일 정보 조회 완료 - 개수: {}", holidays.size());
@@ -366,24 +381,45 @@ public class MenuServiceImpl implements MenuService {
             
             // 메뉴 풀 데이터를 카테고리별로 구성
             Map<String, String> menuPool = new HashMap<>();
+            // 메뉴별 양 정보를 저장하는 맵
+            Map<String, Integer> menuAmountMap = new HashMap<>();
             
             // 모든 메뉴 데이터 조회 (전체 데이터)
             List<Menu> allMenus = menuRepository.findBySchool(school);
-            
             log.info("기존 메뉴 데이터 조회 완료 - 개수: {}", allMenus.size());
+            
+            // 메뉴 ID 목록 추출
+            List<Long> menuIds = allMenus.stream()
+                    .map(Menu::getId)
+                    .collect(Collectors.toList());
+            
+            // 영양소 정보 일괄 조회 및 메뉴 ID별로 그룹화
+            Map<Long, List<MenuNutrient>> nutrientsByMenuId = new HashMap<>();
+            if (!menuIds.isEmpty()) {
+                List<MenuNutrient> allNutrients = menuNutrientRepository.findByMenuIdIn(menuIds);
+                log.info("모든 메뉴의 영양소 정보 일괄 조회 완료 - 개수: {}", allNutrients.size());
+                
+                // 메뉴 ID별로 영양소 정보 그룹화
+                nutrientsByMenuId = allNutrients.stream()
+                        .collect(Collectors.groupingBy(nutrient -> nutrient.getMenu().getId()));
+            }
             
             // menuData 구조 생성 및 기존 메뉴 데이터로 채우기
             Map<String, Map<String, MenuPlanRequestDto.MenuDetailDto>> menuData = new HashMap<>();
             
-            // 카테고리별 메뉴 풀 구성
+            // 카테고리별 메뉴 풀 구성 및 메뉴별 양 정보 저장
             for (Menu menu : allMenus) {
+                String menuName = menu.getMenuName();
+                
                 // 메뉴 풀에 추가 (메뉴이름 -> 카테고리)
-                if (!menuPool.containsKey(menu.getMenuName())) {
-                    menuPool.put(menu.getMenuName(), menu.getCategory());
+                if (!menuPool.containsKey(menuName)) {
+                    menuPool.put(menuName, menu.getCategory());
                 }
                 
-                // 영양소 정보 조회
-                List<MenuNutrient> nutrients = menuNutrientRepository.findByMenu(menu);
+                // 메뉴별 양 정보 저장 (이미 있는 경우 업데이트하지 않음)
+                if (!menuAmountMap.containsKey(menuName) && menu.getAmount() != null) {
+                    menuAmountMap.put(menuName, menu.getAmount());
+                }
                 
                 // 메뉴 데이터 구성
                 String dateStr = menu.getMenuDate().format(formatter);
@@ -393,8 +429,9 @@ public class MenuServiceImpl implements MenuService {
                 
                 Map<String, MenuPlanRequestDto.MenuDetailDto> dayMenus = menuData.get(dateStr);
                 
-                // 영양소 정보 맵 구성
+                // 영양소 정보 맵 구성 (미리 조회한 데이터 활용)
                 Map<String, Double> nutritionMap = new HashMap<>();
+                List<MenuNutrient> nutrients = nutrientsByMenuId.getOrDefault(menu.getId(), Collections.emptyList());
                 for (MenuNutrient nutrient : nutrients) {
                     nutritionMap.put(
                         nutrient.getNutrient().getNutrientName(),
@@ -413,7 +450,7 @@ public class MenuServiceImpl implements MenuService {
                     : 3.0; // 기본 선호도 (5점 만점)
                 
                 // 메뉴 데이터에 추가
-                dayMenus.put(menu.getMenuName(), MenuPlanRequestDto.MenuDetailDto.builder()
+                dayMenus.put(menuName, MenuPlanRequestDto.MenuDetailDto.builder()
                         .leftover(leftover)
                         .preference(preference)
                         .nutrition(nutritionMap)
@@ -428,26 +465,155 @@ public class MenuServiceImpl implements MenuService {
                 }
             }
             
-            // MenuPlanRequestDto 생성 (필드는 예시이며, 실제 DTO에 맞게 조정 필요)
+            // MenuPlanRequestDto 생성
             Map<String, Object> requestMap = new HashMap<>();
             requestMap.put("menuData", menuData);
             requestMap.put("menuPool", menuPool);
             requestMap.put("holidays", holidayMap);
             
-            log.info("makeMonthMenu - 요청 데이터: {}", requestMap);
+            log.info("makeMonthMenu - 요청 데이터 준비 완료");
             
             String aiServerUrl = aiServerBaseUrl + MENU_PLAN_ENDPOINT;
 
             RestTemplate restTemplate = new RestTemplate();
-            ResponseEntity<String> response = restTemplate.postForEntity(aiServerUrl, requestMap, String.class);
+            ResponseEntity<Map> response = restTemplate.postForEntity(aiServerUrl, requestMap, Map.class);
             
-            if (response.getStatusCode().is2xxSuccessful()) {
-                log.info("makeMonthMenu - AI 서버 응답 성공");
-                return response.getBody();
-            } else {
+            if (!response.getStatusCode().is2xxSuccessful()) {
                 log.error("makeMonthMenu - AI 서버 응답 실패: {}", response.getStatusCode());
                 return ErrorResponseDto.of(BaperangErrorCode.INTERNAL_SERVER_ERROR);
             }
+            
+            log.info("makeMonthMenu - AI 서버 응답 성공");
+            
+            // AI 서버 응답 처리
+            Map<String, Object> responseBody = response.getBody();
+            if (responseBody == null) {
+                log.error("makeMonthMenu - AI 서버 응답 내용 없음");
+                return ErrorResponseDto.of(BaperangErrorCode.INTERNAL_SERVER_ERROR);
+            }
+            
+            // 응답 DTO 생성
+            List<MenuPlanResponseDto.DayMenu> dayMenusList = new ArrayList<>();
+            
+            @SuppressWarnings("unchecked")
+            Map<String, Object> plan = (Map<String, Object>) responseBody.get("plan");
+            if (plan == null) {
+                log.error("makeMonthMenu - 메뉴 계획 정보 없음");
+                return ErrorResponseDto.of(BaperangErrorCode.INTERNAL_SERVER_ERROR);
+            }
+            
+            // 각 날짜별 메뉴 처리 (메뉴 일괄 저장을 위한 리스트)
+            List<Menu> menusToSave = new ArrayList<>();
+            
+            // 각 날짜별 메뉴 처리
+            for (Map.Entry<String, Object> entry : plan.entrySet()) {
+                String dateStr = entry.getKey();
+                
+                // 공휴일인 경우 스킵
+                if (holidayMap.containsKey(dateStr)) {
+                    continue;
+                }
+                
+                LocalDate menuDate = LocalDate.parse(dateStr);
+                
+                // 주말인 경우 스킵
+                DayOfWeek dayOfWeek = menuDate.getDayOfWeek();
+                if (dayOfWeek == DayOfWeek.SATURDAY || dayOfWeek == DayOfWeek.SUNDAY) {
+                    continue;
+                }
+                
+                @SuppressWarnings("unchecked")
+                Map<String, Object> dayMenus = (Map<String, Object>) entry.getValue();
+                if (dayMenus == null || dayMenus.isEmpty()) {
+                    continue;
+                }
+                
+                List<MenuPlanResponseDto.MenuInfo> menuInfoList = new ArrayList<>();
+                
+                // 해당 날짜의 각 메뉴 처리
+                for (Map.Entry<String, Object> menuEntry : dayMenus.entrySet()) {
+                    String menuName = menuEntry.getKey();
+                    
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> menuDetail = (Map<String, Object>) menuEntry.getValue();
+                    
+                    // 카테고리 가져오기 (AI 응답에서 제공하거나, 없으면 풀에서 가져오기)
+                    String category = (menuDetail != null && menuDetail.containsKey("category")) 
+                        ? (String) menuDetail.get("category") 
+                        : menuPool.getOrDefault(menuName, "기타");
+                    
+                    // 메뉴 양 조회 (기존 데이터에서 가져오거나 없으면 0)
+                    Integer amount = menuAmountMap.getOrDefault(menuName, 0);
+                    
+                    // 모든 메뉴에서 해당 이름의 메뉴를 찾아 amount 값이 있는지 확인
+                    if (amount == 0) {
+                        for (Menu existingMenu : allMenus) {
+                            if (existingMenu.getMenuName().equals(menuName) && 
+                                existingMenu.getAmount() != null && 
+                                existingMenu.getAmount() > 0) {
+                                amount = existingMenu.getAmount();
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // 대체 메뉴 정보 추출
+                    List<String> alternatives = new ArrayList<>();
+                    if (menuDetail != null && menuDetail.containsKey("alternatives")) {
+                        @SuppressWarnings("unchecked")
+                        List<String> alts = (List<String>) menuDetail.get("alternatives");
+                        if (alts != null) {
+                            alternatives.addAll(alts);
+                        }
+                    }
+                    
+                    // 메뉴 생성 (아직 저장하지 않음)
+                    Menu menu = Menu.builder()
+                            .school(school)
+                            .menuDate(menuDate)
+                            .menuName(menuName)
+                            .category(category)
+                            .amount(amount)
+                            .favorite(0.0f)
+                            .votes(0)
+                            .alternatives(alternatives)
+                            .build();
+                    
+                    // 저장할 메뉴 리스트에 추가
+                    menusToSave.add(menu);
+                    
+                    // 응답 DTO에 메뉴 정보 추가
+                    MenuPlanResponseDto.MenuInfo menuInfo = MenuPlanResponseDto.MenuInfo.builder()
+                            .menuName(menuName)
+                            .alternatives(alternatives)
+                            .build();
+                    
+                    menuInfoList.add(menuInfo);
+                }
+                
+                // 응답 DTO에 날짜별 메뉴 추가
+                MenuPlanResponseDto.DayMenu dayMenu = MenuPlanResponseDto.DayMenu.builder()
+                        .date(dateStr)
+                        .menus(menuInfoList)
+                        .build();
+                
+                dayMenusList.add(dayMenu);
+            }
+            
+            // 메뉴 일괄 저장 (한 번의 트랜잭션으로 처리)
+            if (!menusToSave.isEmpty()) {
+                menuRepository.saveAll(menusToSave);
+                log.info("makeMonthMenu - 메뉴 일괄 저장 완료: {} 개", menusToSave.size());
+            }
+            
+            // 최종 응답 DTO 생성
+            MenuPlanResponseDto responseDto = MenuPlanResponseDto.builder()
+                    .dayMenus(dayMenusList)
+                    .build();
+            
+            log.info("makeMonthMenu - 메뉴 생성 및 저장 완료: {} 일치 처리됨", dayMenusList.size());
+            return responseDto;
+            
         } catch (Exception e) {
             log.error("메뉴 생성 중 오류 발생: {}", e.getMessage(), e);
             return ErrorResponseDto.of(BaperangErrorCode.INTERNAL_SERVER_ERROR);
