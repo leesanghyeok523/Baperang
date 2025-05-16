@@ -541,7 +541,7 @@ public class MenuServiceImpl implements MenuService {
                     continue;
                 }
                 
-                List<MenuPlanResponseDto.MenuInfo> menuInfoList = new ArrayList<>();
+                List<String> menuInfoList = new ArrayList<>();
                 
                 // 해당 날짜의 각 메뉴 처리
                 for (Map.Entry<String, Object> menuEntry : dayMenus.entrySet()) {
@@ -595,12 +595,8 @@ public class MenuServiceImpl implements MenuService {
                     // 저장할 메뉴 리스트에 추가
                     menusToSave.add(menu);
                     
-                    // 응답 DTO에 메뉴 정보 추가
-                    MenuPlanResponseDto.MenuInfo menuInfo = MenuPlanResponseDto.MenuInfo.builder()
-                            .menuName(menuName)
-                            .build();
-                    
-                    menuInfoList.add(menuInfo);
+                    // 응답 DTO에 메뉴 이름 추가
+                    menuInfoList.add(menuName);
                 }
                 
                 // 응답 DTO에 날짜별 메뉴 추가
