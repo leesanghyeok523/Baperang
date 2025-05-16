@@ -14,4 +14,5 @@ public interface UserService {
     public Object refreshAccessToken(String refreshToken, HttpServletResponse response);
     public Object updateUser(String token, UpdateUserRequestDto requestDto);
     public Object getUserDetail(String token);
+    public Object validateToken(String token);
 }

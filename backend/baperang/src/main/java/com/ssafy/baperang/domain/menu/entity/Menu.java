@@ -9,8 +9,10 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import com.ssafy.baperang.domain.menunutrient.entity.MenuNutrient;
 import com.ssafy.baperang.domain.school.entity.School;
+import com.ssafy.baperang.global.converter.StringListConverter;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.FetchType;
@@ -59,7 +61,8 @@ public class Menu {
     @Column(name = "votes")
     private Integer votes;
 
-    @Column(name = "alternatives")
+    @Column(name = "alternatives", columnDefinition = "json")
+    @Convert(converter = StringListConverter.class)
     private List<String> alternatives;
 
     @Builder
