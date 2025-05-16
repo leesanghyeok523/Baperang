@@ -632,4 +632,92 @@ public class MenuServiceImpl implements MenuService {
             return ErrorResponseDto.of(BaperangErrorCode.INTERNAL_SERVER_ERROR);
         }
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Object getAlternatives(String token, String menu, String date) {
+        try {
+            // 토큰 유효성
+            if (!jwtService.validateToken(token)) {
+                log.info("getAlternatives - 토큰 유효하지 않음");
+                return ErrorResponseDto.of(BaperangErrorCode.INVALID_TOKEN);
+            }
+
+            Long userPk = jwtService.getUserId(token);
+            User user = userRepository.findById(userPk)
+                    .orElse(null);
+
+            if (user == null) {
+                log.info("getAlternatives - 사용자 정보 없음");
+                return ErrorResponseDto.of(BaperangErrorCode.USER_NOT_FOUND);
+            }
+
+            School school = user.getSchool();
+
+            LocalDate menuDate = LocalDate.parse(date);
+
+            // 해당 메뉴 찾기
+            Menu menuItem = menuRepository.findBySchoolAndMenuDateAndMenuName(school, menuDate, menu);
+            
+            if (menuItem == null) {
+                log.info("getAlternatives - 해당 메뉴를 찾을 수 없음: {}", menu);
+                return ErrorResponseDto.of(BaperangErrorCode.MENU_NOT_FOUND);
+            }
+
+            // 대체 메뉴 리스트 가져오기
+            List<String> alternatives = menuItem.getAlternatives();
+            
+            if (alternatives == null || alternatives.isEmpty()) {
+                log.info("getAlternatives - 대체 메뉴가 없음");
+                Map<String, Object> response = new HashMap<>();
+                response.put("message", "대체 메뉴가 없습니다.");
+                response.put("alternatives", Collections.emptyList());
+                return response;
+            }
+            
+            log.info("getAlternatives - 대체 메뉴 조회 성공: {} 개", alternatives.size());
+            Map<String, Object> response = new HashMap<>();
+            response.put("alternatives", alternatives);
+            return response;
+            
+        } catch (Exception e) {
+            log.error("대체 메뉴 조회 중 오류 발생: {}", e.getMessage(), e);
+            return ErrorResponseDto.of(BaperangErrorCode.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @Override
+    @Transactional
+    public Object updateMenu(String token, String menu, String date) {
+        try {
+            // 토큰 유효성
+            if (!jwtService.validateToken(token)) {
+                log.info("updateMenu - 토큰 유효하지 않음");
+                return ErrorResponseDto.of(BaperangErrorCode.INVALID_TOKEN);
+            }
+
+            Long userPk = jwtService.getUserId(token);
+            User user = userRepository.findById(userPk)
+                    .orElse(null);
+
+            if (user == null) {
+                log.info("updateMenu - 사용자 정보 없음");
+                return ErrorResponseDto.of(BaperangErrorCode.USER_NOT_FOUND);
+            }
+
+            School school = user.getSchool();
+            
+            LocalDate menuDate = LocalDate.parse(date);
+            
+            // 메뉴 수정 로직 구현 필요 (아직 미구현)
+            log.info("updateMenu - 메뉴 수정 로직 미구현");
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "메뉴 수정 기능이 아직 구현되지 않았습니다.");
+            return response;
+                
+        } catch (Exception e) {
+            log.error("메뉴 수정 중 오류 발생: {}", e.getMessage(), e);
+            return ErrorResponseDto.of(BaperangErrorCode.INTERNAL_SERVER_ERROR);
+        }
+    }
 }
