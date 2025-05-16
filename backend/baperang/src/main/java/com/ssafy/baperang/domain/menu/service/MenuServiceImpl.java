@@ -158,6 +158,7 @@ public class MenuServiceImpl implements MenuService {
                     .build();
 
             log.info("getMenuCalendar 함수 성공 종료 - 일수: {}", daysList.size());
+            log.info("getMenuCalendar 함수 성공 종료 - 응답: {}", responseDto);
             return responseDto;
         } catch (Exception e) {
             log.error("메뉴 조회 중 오류 발생: {}", e.getMessage(), e);
