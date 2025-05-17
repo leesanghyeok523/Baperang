@@ -1,15 +1,7 @@
 import { FiChevronLeft, FiChevronRight, FiCalendar } from 'react-icons/fi';
 import Card, { CardHeader, CardBody } from './ui/Card';
 import { useNavigate } from 'react-router-dom';
-
-export interface MenuCardProps {
-  menuItems: string[];
-  currentDate: Date;
-  onPrevDay: () => void;
-  onNextDay: () => void;
-  loading?: boolean;
-  onMenuSelect?: (menuItem: string) => void;
-}
+import { MenuCardProps } from '../types/types';
 
 const MenuCard: React.FC<MenuCardProps> = ({
   menuItems,

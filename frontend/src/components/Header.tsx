@@ -1,9 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-
-interface HeaderProps {
-  isLoggedIn: boolean;
-}
+import { HeaderProps } from '../types/types';
 
 const Header = ({ isLoggedIn }: HeaderProps) => {
   const [isOpen, setIsOpen] = useState(false);

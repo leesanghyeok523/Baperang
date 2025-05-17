@@ -1,8 +1,5 @@
 import React, { useState, useEffect } from 'react';
-
-interface MealCompletionRateProps {
-  completionRate: number; // 0-100 사이의 값
-}
+import { MealCompletionRateProps } from '../types/types';
 
 const MealCompletionRate: React.FC<MealCompletionRateProps> = ({ completionRate }) => {
   // 완료율이 범위를 벗어나지 않도록 보정
