@@ -356,7 +356,6 @@ class MenuService:
             menu_ids: 조회할 메뉴 ID 목록 (None이면 전체)
         Returns:
             List[Dict]: 메뉴 정보 목록
-
         """
 
         menu_data = [

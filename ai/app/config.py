@@ -20,8 +20,7 @@ class Settings(BaseSettings):
     API_VERSION: str = "0.0.1"
 
     # 로깅 설정
-    # DEBUG: bool = os.getenv("DEBUG", "False")
-    DEBUG: bool = False
+    DEBUG: bool = os.getenv("DEBUG", "False")
 
     class Config:
         env_file = ".env"
