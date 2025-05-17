@@ -312,7 +312,6 @@ class MenuService:
                     # 같은 카테고리의 다른 메뉴들
                     same_category_menus = [m for m in categorized_menus[category] if m != menu]
 
-                    # 선호도 기준으로 정렬
                     sorted_menus = sorted(
                         same_category_menus,
                         key=lambda m: menu_preference.get(m, 0) if isinstance(m, str) else 0,
