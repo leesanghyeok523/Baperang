@@ -7,8 +7,9 @@ import {
   FiEdit,
   FiCheck,
   FiMinus,
+  FiArrowUp,
+  FiArrowDown,
 } from 'react-icons/fi';
-import { inventoryData, InventoryItem } from '../../data/inventoryData';
 import { exportInventoryToExcel } from './excelExporter';
 import {
   showErrorAlert,
@@ -16,6 +17,40 @@ import {
   showToast,
   showConfirmAlert,
 } from '../../utils/sweetalert';
+import axios from 'axios';
+import API_CONFIG from '../../config/api';
+import { useAuthStore } from '../../store/authStore';
+
+// API 응답 타입 정의
+interface InventoryApiResponse {
+  year: number;
+  month: number;
+  totalCount: number;
+  inventories: InventoryApiItem[];
+}
+
+interface InventoryApiItem {
+  id: number;
+  inventoryDate: string;
+  productName: string;
+  vendor: string;
+  price: number;
+  orderQuantity: number;
+  useQuantity: number;
+}
+
+// 프론트엔드에서 사용할 인벤토리 아이템 타입
+export interface InventoryItem {
+  id: number;
+  date: string;
+  productName: string;
+  supplier: string;
+  price: number;
+  orderedQuantity: number;
+  usedQuantity: number;
+  unit: string;
+}
+
 // 공통 스타일 상수 정의
 const STYLES = {
   headerCell:
@@ -33,11 +68,15 @@ const STYLES = {
 
 const InventoryPage: React.FC = () => {
   // 상태 관리
-  const [inventory, setInventory] = useState<InventoryItem[]>(inventoryData);
-  const [currentMonth, setCurrentMonth] = useState<number>(5);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [currentMonth, setCurrentMonth] = useState<number>(new Date().getMonth() + 1);
+  const [currentYear, setCurrentYear] = useState<number>(new Date().getFullYear());
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(1);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
   const itemsPerPage = 8;
+  const { accessToken } = useAuthStore();
 
   // 수정 중인 아이템의 ID와 수정 값
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -45,10 +84,9 @@ const InventoryPage: React.FC = () => {
 
   // 항목 추가/삭제 상태
   const [isAddingNewRow, setIsAddingNewRow] = useState<boolean>(false);
-  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
   const [newItem, setNewItem] = useState<Partial<InventoryItem>>({
-    date: new Date().toLocaleDateString('ko-KR').replace(/\. /g, '.').replace('.', ''),
+    date: new Date().toISOString().split('T')[0],
     productName: '',
     supplier: '',
     price: 0,
@@ -60,36 +98,146 @@ const InventoryPage: React.FC = () => {
   // 필터링된 데이터 (현재 월에 해당하는 데이터만)
   const [filteredData, setFilteredData] = useState<InventoryItem[]>([]);
 
-  // 월별 데이터 필터링
-  useEffect(() => {
-    const filtered = inventory.filter((item) => {
-      const itemMonth = parseInt(item.date.split('.')[1]);
-      return itemMonth === currentMonth;
-    });
+  // 정렬 상태 - 날짜 기준으로 초기 정렬 설정
+  const [sortField, setSortField] = useState<string>('date');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
-    setFilteredData(filtered);
-    setTotalPages(Math.ceil(filtered.length / itemsPerPage));
-    setCurrentPage(1); // 월 변경 시 첫 페이지로 이동
-  }, [inventory, currentMonth]);
+  // API로부터 데이터 가져오기
+  const fetchInventoryData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // 토큰 확인
+      if (!accessToken) {
+        showErrorAlert('인증 오류', '로그인이 필요합니다.');
+        return;
+      }
+
+      const authHeaderValue = accessToken?.startsWith('Bearer ')
+        ? accessToken
+        : `Bearer ${accessToken}`;
+
+      // 경로 변수 형식에 맞게 URL 수정
+      const response = await axios.get<InventoryApiResponse>(
+        `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.INVENTORY.GET_BY_MONTH}=${currentYear}&month=${currentMonth}`,
+        {
+          headers: {
+            Authorization: authHeaderValue,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      console.log('API 응답 데이터:', response.data); // 응답 데이터 로깅
+
+      // API 응답 데이터를 프론트엔드 형식으로 변환
+      const inventories = response.data?.inventories || [];
+      const transformedData: InventoryItem[] = inventories.map((item) => ({
+        id: item.id,
+        date: formatDateString(item.inventoryDate),
+        productName: item.productName,
+        supplier: item.vendor,
+        price: item.price,
+        orderedQuantity: item.orderQuantity,
+        usedQuantity: item.useQuantity,
+        unit: '개', // API에서 제공하지 않으므로 기본값 설정
+      }));
+
+      setInventory(transformedData);
+      setFilteredData(transformedData);
+      setTotalPages(Math.ceil(transformedData.length / itemsPerPage));
+    } catch (err) {
+      console.error('재고 데이터 로드 중 오류 발생:', err);
+      setError('재고 데이터를 불러오는 중 오류가 발생했습니다.');
+      showErrorAlert('데이터 로드 실패', '재고 데이터를 불러오는 중 오류가 발생했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 날짜 형식 변환 함수 (YYYY-MM-DD -> YYYY.MM.DD)
+  const formatDateString = (dateStr: string): string => {
+    if (!dateStr) return '';
+    return dateStr.replace(/-/g, '.');
+  };
+
+  // 날짜 형식 변환 함수 (YYYY.MM.DD -> YYYY-MM-DD)
+  const formatDateForApi = (dateStr: string): string => {
+    if (!dateStr) return '';
+    return dateStr.replace(/\./g, '-');
+  };
+
+  // 컴포넌트 마운트 시 및 월/년 변경 시 데이터 가져오기
+  useEffect(() => {
+    fetchInventoryData();
+  }, [currentMonth, currentYear]);
+
+  // 정렬 토글 함수
+  const toggleSort = (field: string) => {
+    if (sortField === field) {
+      // 같은 필드를 다시 클릭한 경우, 정렬 방향 전환
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // 다른 필드를 클릭한 경우, 필드 변경 및 오름차순으로 설정
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  // 필터링 및 정렬된 데이터
+  const processedData = useMemo(() => {
+    const result = [...filteredData];
+
+    // 정렬 적용
+    if (sortField) {
+      result.sort((a, b) => {
+        if (sortField === 'date') {
+          // 날짜 정렬 (YYYY.MM.DD 형식)
+          const dateA = a.date.split('.').map(Number).join('');
+          const dateB = b.date.split('.').map(Number).join('');
+          return sortDirection === 'asc' ? dateA.localeCompare(dateB) : dateB.localeCompare(dateA);
+        } else if (sortField === 'diff') {
+          // diff 정렬
+          const diffA = a.orderedQuantity - a.usedQuantity;
+          const diffB = b.orderedQuantity - b.usedQuantity;
+          return sortDirection === 'asc' ? diffA - diffB : diffB - diffA;
+        }
+        return 0;
+      });
+    }
+
+    return result;
+  }, [filteredData, sortField, sortDirection]);
 
   // 현재 페이지에 표시할 데이터
   const currentData = useMemo(() => {
     // 추가 행이 있으면 한 개 적게 표시
     const effectiveItemsPerPage = isAddingNewRow ? itemsPerPage - 1 : itemsPerPage;
 
-    return filteredData.slice(
+    return processedData.slice(
       (currentPage - 1) * itemsPerPage,
       (currentPage - 1) * itemsPerPage + effectiveItemsPerPage
     );
-  }, [filteredData, currentPage, itemsPerPage, isAddingNewRow]);
+  }, [processedData, currentPage, itemsPerPage, isAddingNewRow]);
 
   // 월 변경 함수
   const prevMonth = () => {
-    setCurrentMonth((prev) => (prev === 1 ? 12 : prev - 1));
+    if (currentMonth === 1) {
+      setCurrentMonth(12);
+      setCurrentYear((prev) => prev - 1);
+    } else {
+      setCurrentMonth((prev) => prev - 1);
+    }
   };
 
   const nextMonth = () => {
-    setCurrentMonth((prev) => (prev === 12 ? 1 : prev + 1));
+    if (currentMonth === 12) {
+      setCurrentMonth(1);
+      setCurrentYear((prev) => prev + 1);
+    } else {
+      setCurrentMonth((prev) => prev + 1);
+    }
   };
 
   // 페이지 변경 함수
@@ -104,31 +252,102 @@ const InventoryPage: React.FC = () => {
   };
 
   // 사용 수량 수정 저장
-  const saveEdit = () => {
+  const saveEdit = async () => {
     if (editingId === null) return;
 
-    const updatedInventory = inventory.map((item) => {
-      if (item.id === editingId) {
-        const newValue = parseInt(editValue) || 0;
-        return {
-          ...item,
-          usedQuantity: newValue,
-        };
-      }
-      return item;
-    });
+    try {
+      const item = inventory.find((i) => i.id === editingId);
+      if (!item) return;
 
-    setInventory(updatedInventory);
-    setEditingId(null);
+      const newValue = parseInt(editValue) || 0;
+
+      console.log('수정 요청 - ID:', editingId, '새 사용량:', newValue); // 요청 정보 로깅
+
+      // 토큰 확인
+      if (!accessToken) {
+        showErrorAlert('인증 오류', '로그인이 필요합니다.');
+        return;
+      }
+
+      const authHeaderValue = accessToken?.startsWith('Bearer ')
+        ? accessToken
+        : `Bearer ${accessToken}`;
+
+      // API 호출로 사용량 업데이트
+      await axios.patch(
+        `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.INVENTORY.UPDATE}/${editingId}`,
+        {
+          useQuantity: newValue,
+        },
+        {
+          headers: {
+            Authorization: authHeaderValue,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      // 성공 시 로컬 상태 업데이트
+      const updatedInventory = inventory.map((item) => {
+        if (item.id === editingId) {
+          return {
+            ...item,
+            usedQuantity: newValue,
+          };
+        }
+        return item;
+      });
+
+      setInventory(updatedInventory);
+      setFilteredData(updatedInventory);
+      setEditingId(null);
+      showToast('수정이 완료되었습니다');
+    } catch (err) {
+      console.error('재고 수정 중 오류 발생:', err);
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
+        showErrorAlert('인증 오류', '인증에 실패했습니다. 다시 로그인해주세요.');
+      } else {
+        showErrorAlert('수정 실패', '재고 정보를 수정하는 중 오류가 발생했습니다.');
+      }
+    }
   };
 
-  // 항목 삭제 처리
-  const handleDeleteItem = () => {
-    if (deleteConfirmId === null) return;
+  // ID를 직접 받아 삭제 처리하는 함수
+  const deleteInventoryItem = async (id: number) => {
+    try {
+      console.log('삭제 요청 - ID:', id); // 요청 정보 로깅
 
-    setInventory((prev) => prev.filter((item) => item.id !== deleteConfirmId));
-    setDeleteConfirmId(null);
-    showSuccessAlert('삭제 완료', '항목이 성공적으로 삭제되었습니다.');
+      // 토큰 확인
+      if (!accessToken) {
+        showErrorAlert('인증 오류', '로그인이 필요합니다.');
+        return;
+      }
+
+      const authHeaderValue = accessToken?.startsWith('Bearer ')
+        ? accessToken
+        : `Bearer ${accessToken}`;
+
+      // API 호출로 항목 삭제
+      await axios.delete(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.INVENTORY.DELETE}/${id}`, {
+        headers: {
+          Authorization: authHeaderValue,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      // 성공 시 로컬 상태 업데이트
+      const updatedInventory = inventory.filter((item) => item.id !== id);
+      setInventory(updatedInventory);
+      setFilteredData(updatedInventory);
+      showSuccessAlert('삭제 완료', '항목이 성공적으로 삭제되었습니다.');
+    } catch (err) {
+      console.error('재고 삭제 중 오류 발생:', err);
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
+        showErrorAlert('인증 오류', '인증에 실패했습니다. 다시 로그인해주세요.');
+      } else {
+        showErrorAlert('삭제 실패', '재고 항목을 삭제하는 중 오류가 발생했습니다.');
+      }
+    }
   };
 
   // SweetAlert를 사용한 삭제 확인
@@ -140,8 +359,8 @@ const InventoryPage: React.FC = () => {
       '취소'
     ).then((result) => {
       if (result.isConfirmed) {
-        setDeleteConfirmId(id);
-        handleDeleteItem();
+        // 상태 업데이트 없이 ID를 직접 전달하여 삭제 처리
+        deleteInventoryItem(id);
       }
     });
   };
@@ -222,10 +441,6 @@ const InventoryPage: React.FC = () => {
   // 편집 모드 토글 함수
   const toggleEditMode = () => {
     setIsEditMode(!isEditMode);
-    if (isEditMode) {
-      // 편집 모드 종료 시 삭제 확인 모달 닫기
-      setDeleteConfirmId(null);
-    }
   };
 
   // 새 행 추가 관련 함수
@@ -233,7 +448,7 @@ const InventoryPage: React.FC = () => {
   // 새 행 추가 시작
   const startAddingNewRow = () => {
     setNewItem({
-      date: new Date().toLocaleDateString('ko-KR').replace(/\. /g, '.').replace('.', ''),
+      date: new Date().toISOString().split('T')[0].replace(/-/g, '.'),
       productName: '',
       supplier: '',
       price: 0,
@@ -250,7 +465,7 @@ const InventoryPage: React.FC = () => {
   };
 
   // 새 행 추가 저장
-  const saveNewRow = () => {
+  const saveNewRow = async () => {
     // 유효성 검사
     if (
       !newItem.productName &&
@@ -272,21 +487,89 @@ const InventoryPage: React.FC = () => {
       return;
     }
 
-    // 새 ID 생성 (가장 큰 ID + 1)
-    const maxId = inventory.length > 0 ? Math.max(...inventory.map((item) => item.id)) : 0;
-    const newItemWithId: InventoryItem = {
-      ...(newItem as InventoryItem),
-      id: maxId + 1,
-    };
+    try {
+      // API 요청 데이터 준비
+      const requestData = {
+        inventoryDate: formatDateForApi(newItem.date || ''),
+        productName: newItem.productName,
+        vendor: newItem.supplier,
+        price: newItem.price,
+        orderQuantity: newItem.orderedQuantity,
+        useQuantity: newItem.usedQuantity || 0,
+      };
 
-    // 인벤토리에 추가
-    setInventory((prev) => [...prev, newItemWithId]);
+      console.log('추가 요청 데이터:', requestData); // 요청 데이터 로깅
 
-    // 성공 토스트 메시지 표시
-    showToast('항목이 추가되었습니다');
+      // 토큰 확인
+      if (!accessToken) {
+        showErrorAlert('인증 오류', '로그인이 필요합니다.');
+        return;
+      }
 
-    // 새 행 추가 모드 종료
-    setIsAddingNewRow(false);
+      const authHeaderValue = accessToken?.startsWith('Bearer ')
+        ? accessToken
+        : `Bearer ${accessToken}`;
+
+      // API 호출로 새 항목 추가
+      const response = await axios.post(
+        `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.INVENTORY.CREATE}`,
+        requestData,
+        {
+          headers: {
+            Authorization: authHeaderValue,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      console.log('추가 응답 데이터:', response.data); // 응답 데이터 로깅
+
+      // API 응답에서 ID를 가져오거나, 없으면 임시 ID 생성
+      const newItemId = response.data?.id || Math.max(...inventory.map((item) => item.id), 0) + 1;
+
+      // 새 항목 생성
+      const newItemWithId: InventoryItem = {
+        id: newItemId,
+        date: newItem.date || '',
+        productName: newItem.productName || '',
+        supplier: newItem.supplier || '',
+        price: newItem.price || 0,
+        orderedQuantity: newItem.orderedQuantity || 0,
+        usedQuantity: newItem.usedQuantity || 0,
+        unit: newItem.unit || '개',
+      };
+
+      // 인벤토리에 추가
+      const updatedInventory = [...inventory, newItemWithId];
+      setInventory(updatedInventory);
+      setFilteredData(updatedInventory);
+
+      // 성공 토스트 메시지 표시
+      showToast('항목이 추가되었습니다');
+
+      // 새 행 추가 모드 종료
+      setIsAddingNewRow(false);
+    } catch (err) {
+      console.error('재고 추가 중 오류 발생:', err);
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
+        showErrorAlert('인증 오류', '인증에 실패했습니다. 다시 로그인해주세요.');
+      } else {
+        showErrorAlert('추가 실패', '재고 항목을 추가하는 중 오류가 발생했습니다.');
+      }
+    }
+  };
+
+  // 정렬 아이콘 렌더링 함수
+  const renderSortIcon = (field: string) => {
+    if (sortField !== field) {
+      // 정렬되지 않은 컬럼은 흐린 아이콘 표시
+      return <FiArrowUp size={14} className="text-gray-300" />;
+    }
+    return sortDirection === 'asc' ? (
+      <FiArrowUp size={14} className="text-gray-800" />
+    ) : (
+      <FiArrowDown size={14} className="text-gray-800" />
+    );
   };
 
   return (
@@ -369,165 +652,204 @@ const InventoryPage: React.FC = () => {
             <div className="flex-grow flex flex-col overflow-hidden w-full h-full">
               <div className="flex-grow overflow-auto flex flex-col h-full relative">
                 <div className="absolute inset-0 overflow-auto">
-                  <table className="w-full bg-[#FCF8F3] border-t border-b border-gray-300 border-collapse table-fixed mb-0">
-                    <thead className="sticky top-0 z-10">
-                      <tr className="bg-[#FCF8F3]">
-                        {isEditMode && (
-                          <th className="w-10 pl-2 py-[1%] text-center border-t border-b border-r border-gray-300 font-semibold">
-                            <FiMinus size={18} className="opacity-0" />
-                          </th>
-                        )}
-                        <th className={STYLES.headerCell}>날짜</th>
-                        <th className={STYLES.headerCell}>상품명</th>
-                        <th className={STYLES.headerCell}>거래처</th>
-                        <th className={STYLES.headerCell}>가격</th>
-                        <th className={STYLES.headerCell}>주문수량</th>
-                        <th className={STYLES.headerCell}>실제사용수량</th>
-                        <th className={STYLES.headerCellLast}>diff</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {/* 새 행 추가 행 */}
-                      {isAddingNewRow && (
-                        <tr className="hover:bg-[#E7E3DE] bg-white/10">
+                  {loading ? (
+                    <div className="flex justify-center items-center h-full">
+                      <p className="text-lg">로딩 중...</p>
+                    </div>
+                  ) : error ? (
+                    <div className="flex justify-center items-center h-full">
+                      <p className="text-lg text-red-500">{error}</p>
+                    </div>
+                  ) : (
+                    <table className="w-full bg-[#FCF8F3] border-t border-b border-gray-300 border-collapse table-fixed mb-0">
+                      <thead className="sticky top-0 z-10">
+                        <tr className="bg-[#FCF8F3]">
                           {isEditMode && (
-                            <td className="w-10 pl-2 text-center border-b border-r border-l border-gray-300 p-[1%]">
-                              <button className="text-red-500 opacity-0">
-                                <FiMinus size={18} />
-                              </button>
-                            </td>
+                            <th className="w-10 pl-2 py-[1%] text-center border-t border-b border-r border-gray-300 font-semibold">
+                              <FiMinus size={18} className="opacity-0" />
+                            </th>
                           )}
-                          <td className="text-center border-b border-r border-gray-300 p-[0.7%]">
-                            <input
-                              type="date"
-                              value={
-                                newItem.date
-                                  ? (() => {
-                                      try {
-                                        const parts = newItem.date.split('.');
-                                        if (parts.length === 3) {
-                                          return `${parts[0]}-${parts[1].padStart(
-                                            2,
-                                            '0'
-                                          )}-${parts[2].padStart(2, '0')}`;
+                          <th
+                            className={`${STYLES.headerCell} cursor-pointer hover:bg-gray-100`}
+                            onClick={() => toggleSort('date')}
+                          >
+                            <div className="flex items-center justify-center space-x-1">
+                              <span>날짜</span>
+                              {renderSortIcon('date')}
+                            </div>
+                          </th>
+                          <th className={STYLES.headerCell}>상품명</th>
+                          <th className={STYLES.headerCell}>거래처</th>
+                          <th className={STYLES.headerCell}>가격</th>
+                          <th className={STYLES.headerCell}>주문수량</th>
+                          <th className={STYLES.headerCell}>실제사용수량</th>
+                          <th
+                            className={`${STYLES.headerCellLast} cursor-pointer hover:bg-gray-100`}
+                            onClick={() => toggleSort('diff')}
+                          >
+                            <div className="flex items-center justify-center space-x-1">
+                              <span>diff</span>
+                              {renderSortIcon('diff')}
+                            </div>
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {/* 새 행 추가 행 */}
+                        {isAddingNewRow && (
+                          <tr className="hover:bg-[#E7E3DE] bg-white/10">
+                            {isEditMode && (
+                              <td className="w-10 pl-2 text-center border-b border-r border-l border-gray-300 p-[1%]">
+                                <button className="text-red-500 opacity-0">
+                                  <FiMinus size={18} />
+                                </button>
+                              </td>
+                            )}
+                            <td className="text-center border-b border-r border-gray-300 p-[0.7%]">
+                              <input
+                                type="date"
+                                value={
+                                  newItem.date
+                                    ? (() => {
+                                        try {
+                                          const parts = newItem.date.split('.');
+                                          if (parts.length === 3) {
+                                            return `${parts[0]}-${parts[1].padStart(
+                                              2,
+                                              '0'
+                                            )}-${parts[2].padStart(2, '0')}`;
+                                          }
+                                          return '';
+                                        } catch {
+                                          return '';
                                         }
-                                        return '';
-                                      } catch {
-                                        return '';
-                                      }
-                                    })()
-                                  : ''
-                              }
-                              onChange={(e) => {
-                                const dateValue = e.target.value;
-                                if (dateValue) {
-                                  const [year, month, day] = dateValue.split('-');
-                                  setNewItem({
-                                    ...newItem,
-                                    date: `${year}.${month}.${day}`,
-                                  });
+                                      })()
+                                    : ''
                                 }
-                              }}
-                              className="w-[83%] bg-white/70 p-2 border rounded-xl h-[40px]"
-                            />
-                          </td>
-                          <td className="text-center border-b border-r border-gray-300 p-[0.7%]">
-                            <input
-                              type="text"
-                              value={newItem.productName || ''}
-                              onChange={(e) =>
-                                setNewItem({ ...newItem, productName: e.target.value })
-                              }
-                              placeholder="상품명"
-                              className="w-[80%] bg-white/70 p-2 border rounded-xl h-[40px]"
-                            />
-                          </td>
-                          <td className="text-center border-b border-r border-gray-300 p-[0.7%] ">
-                            <input
-                              type="text"
-                              value={newItem.supplier || ''}
-                              onChange={(e) => setNewItem({ ...newItem, supplier: e.target.value })}
-                              placeholder="거래처"
-                              className="w-[80%] bg-white/70 p-2 border rounded-xl h-[40px]"
-                            />
-                          </td>
-                          <td className="text-center border-b border-r border-gray-300 p-[0.7%]">
-                            <div className="relative">
+                                onChange={(e) => {
+                                  const dateValue = e.target.value;
+                                  if (dateValue) {
+                                    const [year, month, day] = dateValue.split('-');
+                                    setNewItem({
+                                      ...newItem,
+                                      date: `${year}.${month}.${day}`,
+                                    });
+                                  }
+                                }}
+                                className="w-[90%] bg-white/70 p-2 rounded-xl h-[40px] text-center hover:bg-white"
+                              />
+                            </td>
+                            <td className="text-center border-b border-r border-gray-300 p-[0.7%]">
                               <input
                                 type="text"
-                                value={newItem.price || 0}
-                                onChange={(e) => {
-                                  const value = e.target.value.replace(/[^0-9]/g, '');
-                                  setNewItem({ ...newItem, price: value ? parseInt(value) : 0 });
-                                }}
-                                className="w-[80%] bg-white/70 p-2 border rounded-xl h-[40px] pr-8"
+                                value={newItem.productName || ''}
+                                onChange={(e) =>
+                                  setNewItem({ ...newItem, productName: e.target.value })
+                                }
+                                placeholder="상품명"
+                                className="w-[90%] bg-white/70 p-2 rounded-xl h-[40px] hover:bg-white"
                               />
-                              <span className="absolute right-8 top-1/2 transform -translate-y-1/2 text-gray-500">
-                                원
-                              </span>
-                            </div>
-                          </td>
-                          <td className="text-center border-b border-r border-gray-300 p-[0.7%]">
-                            <div className="flex items-center justify-center">
+                            </td>
+                            <td className="text-center border-b border-r border-gray-300 p-[0.7%] ">
+                              <input
+                                type="text"
+                                value={newItem.supplier || ''}
+                                onChange={(e) =>
+                                  setNewItem({ ...newItem, supplier: e.target.value })
+                                }
+                                placeholder="거래처"
+                                className="w-[90%] bg-white/70 p-2 rounded-xl h-[40px] hover:bg-white"
+                              />
+                            </td>
+                            <td className="text-center border-b border-r border-gray-300 p-[0.7%]">
+                              <div className="relative">
+                                <input
+                                  type="text"
+                                  value={newItem.price || 0}
+                                  onChange={(e) => {
+                                    const value = e.target.value.replace(/[^0-9]/g, '');
+                                    setNewItem({ ...newItem, price: value ? parseInt(value) : 0 });
+                                  }}
+                                  className="w-[90%] bg-white/70 p-2 rounded-xl h-[40px] pr-8 hover:bg-white"
+                                />
+                                <span className="absolute right-6 top-1/2 transform -translate-y-1/2 text-gray-500">
+                                  원
+                                </span>
+                              </div>
+                            </td>
+                            <td className="text-center border-b border-r border-gray-300 p-[0.7%]">
+                              <div className="flex items-center justify-center">
+                                <input
+                                  type="number"
+                                  value={newItem.orderedQuantity || 0}
+                                  onChange={(e) =>
+                                    setNewItem({
+                                      ...newItem,
+                                      orderedQuantity: parseInt(e.target.value) || 0,
+                                    })
+                                  }
+                                  className="w-[60%] bg-white/70 p-2 rounded-xl h-[40px] hover:bg-white"
+                                />
+                                <select
+                                  value={newItem.unit || '개'}
+                                  onChange={(e) => setNewItem({ ...newItem, unit: e.target.value })}
+                                  className="w-[35%] bg-white/70 p-2 rounded-xl h-[40px] ml-1 hover:bg-white"
+                                >
+                                  <option value="개">개</option>
+                                  <option value="kg">kg</option>
+                                  <option value="g">g</option>
+                                  <option value="L">L</option>
+                                  <option value="ml">ml</option>
+                                  <option value="박스">박스</option>
+                                </select>
+                              </div>
+                            </td>
+                            <td className="text-center border-b border-r border-gray-300 p-[0.7%]">
                               <input
                                 type="number"
-                                value={newItem.orderedQuantity || 0}
+                                value={newItem.usedQuantity || 0}
                                 onChange={(e) =>
                                   setNewItem({
                                     ...newItem,
-                                    orderedQuantity: parseInt(e.target.value) || 0,
+                                    usedQuantity: parseInt(e.target.value) || 0,
                                   })
                                 }
-                                className="w-[50%] bg-white/70 p-2 border rounded-xl h-[40px]"
+                                className="w-[90%] bg-white/70 p-2 rounded-xl h-[40px] hover:bg-white"
                               />
-                              <select
-                                value={newItem.unit || '개'}
-                                onChange={(e) => setNewItem({ ...newItem, unit: e.target.value })}
-                                className="w-[30%] bg-white/70 p-2 border rounded-xl h-[40px] ml-1"
-                              >
-                                <option value="개">개</option>
-                                <option value="kg">kg</option>
-                                <option value="g">g</option>
-                                <option value="L">L</option>
-                                <option value="ml">ml</option>
-                                <option value="박스">박스</option>
-                              </select>
-                            </div>
-                          </td>
-                          <td className="text-center border-b border-r border-gray-300 p-[0.7%]">
-                            <input
-                              type="number"
-                              value={newItem.usedQuantity || 0}
-                              onChange={(e) =>
-                                setNewItem({
-                                  ...newItem,
-                                  usedQuantity: parseInt(e.target.value) || 0,
-                                })
-                              }
-                              className="w-[80%] bg-white/70 p-2 border rounded-xl h-[40px]"
-                            />
-                          </td>
-                          <td className="text-center border-b border-gray-300 font-medium p-[0.7%]">
-                            <div className="flex justify-center space-x-2">
-                              <button
-                                onClick={saveNewRow}
-                                className="bg-green-500 text-white px-4 py-2 text-sm rounded-lg hover:bg-green-600"
-                              >
-                                저장
-                              </button>
-                              <button
-                                onClick={cancelAddingNewRow}
-                                className="bg-red-500 text-white px-4 py-2 text-sm rounded-lg hover:bg-red-600"
-                              >
-                                취소
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                      {currentData.map(renderTableRow)}
-                    </tbody>
-                  </table>
+                            </td>
+                            <td className="text-center border-b border-gray-300 font-medium p-[0.7%]">
+                              <div className="flex justify-center space-x-2">
+                                <button
+                                  onClick={saveNewRow}
+                                  className="bg-green-500 text-white px-4 py-2 text-sm rounded-lg hover:bg-green-600"
+                                >
+                                  저장
+                                </button>
+                                <button
+                                  onClick={cancelAddingNewRow}
+                                  className="bg-red-500 text-white px-4 py-2 text-sm rounded-lg hover:bg-red-600"
+                                >
+                                  취소
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                        {currentData.length > 0 ? (
+                          currentData.map(renderTableRow)
+                        ) : (
+                          <tr>
+                            <td
+                              colSpan={isEditMode ? 8 : 7}
+                              className="text-center py-4 border-b border-gray-300"
+                            >
+                              데이터가 없습니다.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  )}
                 </div>
               </div>
 
@@ -535,17 +857,54 @@ const InventoryPage: React.FC = () => {
               <div className="flex justify-center items-center h-[7vh] min-h-[60px] mt-0">
                 {totalPages > 1 && (
                   <div className="flex justify-center space-x-2 md:space-x-4">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    {/* 이전 페이지 버튼 또는 빈 공간 */}
+                    {currentPage > 1 ? (
                       <button
-                        key={page}
-                        onClick={() => goToPage(page)}
-                        className={`mx-1 md:mx-2 px-3 md:px-4 py-1 md:py-2 font-semibold ${
-                          currentPage === page ? 'text-orange-500' : 'text-gray-700'
-                        }`}
+                        onClick={() => goToPage(currentPage - 1)}
+                        className="mx-3 px-3 py-2 font-semibold text-gray-700 flex items-center justify-center w-10 h-10"
                       >
-                        {page}
+                        &lt;
                       </button>
-                    ))}
+                    ) : (
+                      <div className="mx-3 px-3 py-2 w-10 h-10"></div>
+                    )}
+
+                    {/* 5개 페이지만 표시 */}
+                    {(() => {
+                      let startPage = Math.max(1, Math.min(currentPage - 2, totalPages - 4));
+                      const endPage = Math.min(startPage + 4, totalPages);
+
+                      if (endPage - startPage < 4) {
+                        startPage = Math.max(1, endPage - 4);
+                      }
+
+                      return Array.from(
+                        { length: endPage - startPage + 1 },
+                        (_, i) => startPage + i
+                      ).map((page) => (
+                        <button
+                          key={page}
+                          onClick={() => goToPage(page)}
+                          className={`mx-3 px-3 py-2 font-semibold flex items-center justify-center w-10 h-10 rounded-lg ${
+                            currentPage === page ? 'text-orange-500 bg-orange-50' : 'text-gray-700'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      ));
+                    })()}
+
+                    {/* 다음 페이지 버튼 또는 빈 공간 */}
+                    {currentPage < totalPages ? (
+                      <button
+                        onClick={() => goToPage(currentPage + 1)}
+                        className="mx-3 px-3 py-2 font-semibold text-gray-700 flex items-center justify-center w-10 h-10"
+                      >
+                        &gt;
+                      </button>
+                    ) : (
+                      <div className="mx-3 px-3 py-2 w-10 h-10"></div>
+                    )}
                   </div>
                 )}
               </div>
