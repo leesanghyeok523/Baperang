@@ -17,7 +17,9 @@ public class UpdateInventoryRequestDto {
     private String vendor;
     private Integer price;
     private Integer orderQuantity;
+    private String orderUnit;
     private Integer useQuantity;
+    private String useUnit;
 
     public boolean NotNullField() {
         return inventoryDate != null ||
@@ -25,6 +27,8 @@ public class UpdateInventoryRequestDto {
                 vendor != null ||
                 price != null||
                 orderQuantity != null||
-                useQuantity != null;
+                orderUnit != null ||
+                useQuantity != null ||
+                useUnit != null;
     }
 }

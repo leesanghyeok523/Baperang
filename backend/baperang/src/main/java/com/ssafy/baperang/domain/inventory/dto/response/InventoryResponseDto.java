@@ -18,5 +18,7 @@ public class InventoryResponseDto {
     private String vendor;
     private Integer price;
     private Integer orderQuantity;
+    private String orderUnit;
     private Integer useQuantity;
+    private String useUnit;
 }
