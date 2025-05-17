@@ -97,12 +97,7 @@ export interface MenuResponse {
 }
 
 export interface MenuDataType {
-  [key: string]: {
-    date: string;
-    menu: string[];
-    wasteData?: DishWasteRate[];
-    holiday?: string[];
-  };
+  [key: string]: MenuItem;
 }
 
 export interface DayData {
@@ -195,4 +190,103 @@ export interface SatisfactionUpdate {
   totalVotes: number;
   averageSatisfaction: string;
   updatedAt: string;
+}
+
+// 헤더 관련 타입
+export interface HeaderProps {
+  isLoggedIn: boolean;
+}
+
+// 메뉴카드 관련 타입
+export interface MenuCardProps {
+  menuItems: string[];
+  currentDate: Date;
+  onPrevDay: () => void;
+  onNextDay: () => void;
+  loading?: boolean;
+  onMenuSelect?: (menuItem: string) => void;
+}
+
+// 영양정보 관련 타입
+export interface NutritionInfoProps {
+  selectedMenu: string | null;
+  currentDate: Date;
+}
+
+export interface NutrientResponse {
+  영양소: Record<string, string>;
+  메뉴: string;
+}
+
+// 선호도 차트 관련 타입
+export interface PreferenceChartProps {
+  data: WasteData[];
+}
+
+export interface PreferenceData {
+  name: string;
+  선호도: number;
+}
+
+export interface WasteData {
+  name: string;
+  잔반률: number;
+  선호도?: number;
+}
+
+// 잔반률 관련 타입
+export interface WasteRateCardProps {
+  data: WasteData[];
+}
+
+// 식사 완료율 관련 타입
+export interface MealCompletionRateProps {
+  completionRate: number; // 0-100 사이의 값
+}
+
+// 비율 토글 관련 타입
+export interface RateToggleCardProps {
+  data: WasteData[];
+}
+
+// 엑셀 내보내기 관련 타입
+export interface ExcelExportProps {
+  data: InventoryItem[];
+  filename?: string;
+}
+
+export interface InventoryItem {
+  id?: number;
+  date: string;
+  productName: string;
+  supplier: string;
+  price: number;
+  orderedQuantity: number;
+  usedQuantity: number;
+  unit: string;
+}
+
+// 로그인 관련 타입
+export interface LoginPageFormData {
+  loginId: string;
+  password: string;
+}
+
+// SSE 메시지 이벤트 타입
+export interface SSEMessageEvent extends Event {
+  data: string;
+}
+
+// 기타
+export const parseMenuName = (menuName: string): string[] => {
+  // <br/>, <br>, <BR/>, <BR> 등 다양한 형태의 br 태그 처리
+  const regex = /<br\s*\/?>/gi;
+  return menuName.split(regex).filter((item) => item.trim() !== '');
+};
+
+// 날짜별 식단 데이터 타입 정의
+export interface MenuItem {
+  date: string;
+  menu: string[];
+  wasteData?: WasteData[]; // 해당 날짜의 잔반률 데이터
 }

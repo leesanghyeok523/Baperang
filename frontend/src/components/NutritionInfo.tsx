@@ -4,16 +4,7 @@ import { useAuthStore } from '../store/authStore';
 import axios from 'axios';
 import API_CONFIG from '../config/api';
 import { useState, useEffect } from 'react';
-
-interface NutritionInfoProps {
-  selectedMenu: string | null;
-  currentDate: Date;
-}
-
-interface NutrientResponse {
-  영양소: Record<string, string>;
-  메뉴: string;
-}
+import { NutritionInfoProps, NutrientResponse } from '../types/types';
 
 const NutritionInfo: React.FC<NutritionInfoProps> = ({ selectedMenu, currentDate }) => {
   const [loading, setLoading] = useState<boolean>(false);

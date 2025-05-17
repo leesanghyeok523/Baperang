@@ -1,14 +1,10 @@
 import { useState } from 'react';
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
-import { WasteData } from '../data/menuData';
 import Card, { CardHeader, CardBody } from './ui/Card';
 import WasteRateCard from './WasteRateCard';
 import PreferenceChart from './PreferenceChart';
 import MealCompletionRate from './MealCompletionRate';
-
-interface RateToggleCardProps {
-  data: WasteData[];
-}
+import { RateToggleCardProps } from '../types/types';
 
 const RateToggleCard: React.FC<RateToggleCardProps> = ({ data }) => {
   // 0: 실시간 잔반률, 1: 실시간 선호도, 2: 실시간 식사 완료율

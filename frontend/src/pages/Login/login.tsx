@@ -5,9 +5,10 @@ import Button from '../../components/ui/button';
 import InputCard from '../../components/ui/inputcard';
 import useAuth from '../../hooks/useAuth';
 import { showErrorAlert } from '../../utils/sweetalert';
+import { LoginPageFormData } from '../../types/types';
 
 const LoginPage: React.FC = () => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<LoginPageFormData>({
     loginId: '',
     password: '',
   });
