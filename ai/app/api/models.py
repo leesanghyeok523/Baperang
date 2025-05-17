@@ -53,8 +53,11 @@ class AnalyzeRequest(BaseModel):
 
 # 잔반 데이터 응답
 class AnalyzeResponse(BaseModel):
-    """메뉴별 잔반율을 반환합니다."""
+    """메뉴별 잔반율과 상세 결과를 반환합니다."""
     leftoverRate: Dict[str, float]
+    # leftoverDetails: Dict[str, dict]
+    # beforeDetails: Dict[str, dict]
+    # afterDetails: Dict[str, dict]
     studentInfo: StudentInfo
 
 # 리포트 데이터 요청
