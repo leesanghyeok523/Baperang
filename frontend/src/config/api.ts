@@ -40,6 +40,14 @@ const API_CONFIG = {
       MENU_NUTRIENT: '/api/v1/menu/menu_nutrient', // 특정 메뉴의 영양소 정보 조회
     },
 
+    // 재고 관리
+    INVENTORY: {
+      GET_BY_MONTH: '/api/v1/inventory/year', // ={year}&month={month} 형식으로 사용됨
+      CREATE: '/api/v1/inventory/create-inventory',
+      UPDATE: '/api/v1/inventory/inventory-update', // /{inventoryId} 파라미터 필요
+      DELETE: '/api/v1/inventory/inventory-delete', // /{inventoryId} 파라미터 필요
+    },
+
     // 학생 관리
     STUDENT: {
       GET_ALL: '/api/v1/student/studentname/all',
