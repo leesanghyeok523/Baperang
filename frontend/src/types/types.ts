@@ -233,6 +233,7 @@ export interface PreferenceData {
   선호도: number;
 }
 
+// 여기에서 WasteData를 export로 명시적으로 정의합니다
 export interface WasteData {
   name: string;
   잔반률: number;
@@ -260,6 +261,7 @@ export interface ExcelExportProps {
   filename?: string;
 }
 
+// InventoryItem 타입을 export로 명시적으로 정의합니다
 export interface InventoryItem {
   id?: number;
   date: string;

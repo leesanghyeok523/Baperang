@@ -1,6 +1,5 @@
 # FAST API 진입점, router 등록
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import datetime
 from .config import settings
