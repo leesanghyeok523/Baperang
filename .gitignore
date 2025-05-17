@@ -16,6 +16,9 @@
 # /ai/test/school_food_data - 복사본.xls
 # /ai/test/preprocess_food.csv
 # /ai/test/preprocess_school_food.csv
+/ai/**/*.jpg
+/ai/**/*.jpeg
+/ai/**/*.png
 
 .ipynb_checkpoints
 */.ipynb_checkpoints/*
