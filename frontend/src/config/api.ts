@@ -35,6 +35,8 @@ const API_CONFIG = {
       MONTHLY_WASTE: '/api/v1/menu/leftover/month', // /{year}/{month} 파라미터 필요
       DAILY_DISH_WASTE: '/api/v1/menu/leftover/date', // /{date} 파라미터 필요
       MAKE_MONTH_MENU: '/api/v1/menu/make_month_menu', // 다음 달 식단 생성
+      MENU_ALTERNATIVES: '/api/v1/menu/alternatives', // 특정 메뉴의 대체재 조회
+      UPDATE_MENU: '/api/v1/menu/update_menu', // 특정 메뉴 업데이트
     },
 
     // 학생 관리
