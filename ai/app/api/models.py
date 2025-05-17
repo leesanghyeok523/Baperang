@@ -1,6 +1,5 @@
 from pydantic import BaseModel, Field, RootModel
 from typing import List, Dict, Any, Optional
-from datetime import date
 
 # 식단 생성 요청 To LLM
 class PlanRequest(BaseModel):
@@ -32,7 +31,6 @@ class PlanResponse(BaseModel):
     """FastAPI에서 Spring으로 보내는 응답"""
     # 날짜별 메뉴 리스트
     plan: Dict[str, Dict[str, MenuInfo]] # {날짜: {메뉴명: 카테고리, 대체 메뉴}}
-    # metrics: Optional[Dict[str, Any]] = None # 평균 선호도, 평균 잔반율, 영양 균형, 메뉴 다양성 등 참고 자료
 
 # 학생 정보 모델
 class StudentInfo(BaseModel):
@@ -40,7 +38,6 @@ class StudentInfo(BaseModel):
     id: int
     name: str
     grade: int
-    
     class_num: int = Field(..., alias="class")
     number: int
 
@@ -56,8 +53,11 @@ class AnalyzeRequest(BaseModel):
 
 # 잔반 데이터 응답
 class AnalyzeResponse(BaseModel):
-    """메뉴별 잔반율을 반환합니다."""
+    """메뉴별 잔반율과 상세 결과를 반환합니다."""
     leftoverRate: Dict[str, float]
+    # leftoverDetails: Dict[str, dict]
+    # beforeDetails: Dict[str, dict]
+    # afterDetails: Dict[str, dict]
     studentInfo: StudentInfo
 
 # 리포트 데이터 요청

@@ -53,9 +53,16 @@ public class HealthReportServiceImpl implements HealthReportService{
 
 
     // nutrient 테이블의 PK 매핑
-    private static final Long CARBO_NUTRIENT_ID = 2L;     // 탄수화물 (g)
-    private static final Long PROTEIN_NUTRIENT_ID = 5L;   // 단백질 (g)
-    private static final Long FAT_NUTRIENT_ID = 4L;       // 지방 (g)
+    private static final String CARBO_NUTRIENT_NAME = "탄수화물";     // 탄수화물 (g)
+    private static final String PROTEIN_NUTRIENT_NAME = "단백질";   // 단백질 (g)
+    private static final String FAT_NUTRIENT_NAME = "지방";       // 지방 (g)
+
+    private static final Map<String, String> NUTRIENT_NAME_TO_FIELD = new HashMap<>();
+    static {
+        NUTRIENT_NAME_TO_FIELD.put(CARBO_NUTRIENT_NAME, "carbo");
+        NUTRIENT_NAME_TO_FIELD.put(PROTEIN_NUTRIENT_NAME, "protein");
+        NUTRIENT_NAME_TO_FIELD.put(FAT_NUTRIENT_NAME, "fat");
+    }
 
     @Override
     @Transactional
@@ -89,8 +96,8 @@ public class HealthReportServiceImpl implements HealthReportService{
             log.info("학생 BMI 계산: {}", formattedBmi);
 
             // 보고서 분석 기간 설정
-            LocalDate endDate = LocalDate.now();
-            LocalDate startDate = endDate.minusDays(7);
+            LocalDate endDate = LocalDate.now().minusDays(1);
+            LocalDate startDate = endDate.minusDays(6);
 
             // 기간 내 모든 날짜 생성
             List<LocalDate> allDates = new ArrayList<>();
@@ -128,14 +135,14 @@ public class HealthReportServiceImpl implements HealthReportService{
             Map<String, Map<String, String>> leftoverRankingMap = getRankings(allLeftovers);
 
             // 영양소 정보 한 번에 조회
-            List<MenuNutrient> allNutrients = menuNutrientRepository.findByMenuIdInAndNutrientIdIn(
+            List<MenuNutrient> allNutrients = menuNutrientRepository.findByMenuIdInAndNutrient_NutrientNameIn(
                     new ArrayList<>(menuIds),
-                    Arrays.asList(CARBO_NUTRIENT_ID, PROTEIN_NUTRIENT_ID, FAT_NUTRIENT_ID));
+                    Arrays.asList(CARBO_NUTRIENT_NAME, PROTEIN_NUTRIENT_NAME, FAT_NUTRIENT_NAME));
 
             // 영양소 정보 맵 생성
             Map<String, MenuNutrient> nutrientMap = allNutrients.stream()
                     .collect(Collectors.toMap(
-                            menuNutrient -> menuNutrient.getMenu().getId() + "-" + menuNutrient.getNutrient().getId(),
+                            menuNutrient -> menuNutrient.getMenu().getId() + "-" + menuNutrient.getNutrient().getNutrientName(),
                             menuNutrient -> menuNutrient,
                             (existing, replacement) -> replacement
                     ));
@@ -407,14 +414,14 @@ public class HealthReportServiceImpl implements HealthReportService{
                     .collect(Collectors.toList());
 
             // 필요한 영양소 한번에 조회
-            List<MenuNutrient> allNutrients = menuNutrientRepository.findByMenuIdInAndNutrientIdIn(
-                    menuIds, Arrays.asList(CARBO_NUTRIENT_ID, PROTEIN_NUTRIENT_ID, FAT_NUTRIENT_ID));
+            List<MenuNutrient> allNutrients = menuNutrientRepository.findByMenuIdInAndNutrient_NutrientNameIn(
+                    menuIds, Arrays.asList(CARBO_NUTRIENT_NAME, PROTEIN_NUTRIENT_NAME, FAT_NUTRIENT_NAME));
 
             // 조회한 영양소 정보를 맵으로 변환
             // 키: "메뉴ID-영양소ID". 값: MenuNutrient
             Map<String, MenuNutrient> nutrientMap = allNutrients.stream()
                     .collect(Collectors.toMap(
-                            menuNutrient -> menuNutrient.getMenu().getId() + "-" + menuNutrient.getNutrient().getId(),
+                            menuNutrient -> menuNutrient.getMenu().getId() + "-" + menuNutrient.getNutrient().getNutrientName(),
                             menuNutrient -> menuNutrient,
                             (existing, replacement) -> replacement
                     ));
@@ -426,9 +433,9 @@ public class HealthReportServiceImpl implements HealthReportService{
                 float consumptionRate = 1 - leftoverRate; // 실제 섭취율 (1 - 0.3 = 0.7 즉 70%)
 
                 // 맵에서 각 영양소 정보 조회
-                String carboKey = menuId + "-" + CARBO_NUTRIENT_ID;
-                String proteinKey = menuId + "-" + PROTEIN_NUTRIENT_ID;
-                String fatKey = menuId + "-" + FAT_NUTRIENT_ID;
+                String carboKey = menuId + "-" + CARBO_NUTRIENT_NAME;
+                String proteinKey = menuId + "-" + PROTEIN_NUTRIENT_NAME;
+                String fatKey = menuId + "-" + FAT_NUTRIENT_NAME;
 
                 // 탄수화물 계산
                 MenuNutrient carbo = nutrientMap.get(carboKey);
@@ -483,9 +490,9 @@ public class HealthReportServiceImpl implements HealthReportService{
                 float consumptionRate = 1 - leftoverRate;
 
                 // 맵에서 영양소 정보 조회
-                String carboKey = menuId + "-" + CARBO_NUTRIENT_ID;
-                String proteinKey = menuId + "-" + PROTEIN_NUTRIENT_ID;
-                String fatKey = menuId + "-" + FAT_NUTRIENT_ID;
+                String carboKey = menuId + "-" + CARBO_NUTRIENT_NAME;
+                String proteinKey = menuId + "-" + PROTEIN_NUTRIENT_NAME;
+                String fatKey = menuId + "-" + FAT_NUTRIENT_NAME;
 
                 MenuNutrient carbo = nutrientMap.get(carboKey);
                 if (carbo != null) {
