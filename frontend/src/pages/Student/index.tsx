@@ -7,6 +7,8 @@ import API_CONFIG from '../../config/api';
 import axios from 'axios';
 import { useAuthStore } from '../../store/authStore';
 import { StudentListResponse, StudentDetailResponse, StudentType } from '../../types/types';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
 const StudentManagement = () => {
   const [selectedGrade, setSelectedGrade] = useState<number | ''>('');
@@ -219,6 +221,9 @@ const StudentManagement = () => {
 
   // AI 건강 리포트 생성 함수
   const generateAIReport = async () => {
+
+
+
     if (!selectedStudent) return;
 
     try {
@@ -248,6 +253,97 @@ const StudentManagement = () => {
 
       // API 응답 데이터
       const reportData = response.data;
+      console.log(reportData)
+
+      interface LeftoverDatum {
+        food: string;
+        amount: number;
+      }
+      
+      // 잔반 TOP3
+      const leftoverMostData: LeftoverDatum[] =
+        (Object.values(reportData.leftoverMost) as string[])
+          .map((food, i) => ({ food, amount: 3 - i }));
+
+      const leftoverLeastData: LeftoverDatum[] =
+        (Object.values(reportData.leftoverLeast) as string[])
+          .map((food, i) => ({ food, amount: 3 - i }));
+
+      const medal = ['🥇', '🥈', '🥉'];
+      const makeRanking = (arr: string[]) =>
+        `<ol style="margin:0;padding:0 0 0 1.2em;list-style:none;font-size:14px;line-height:1.8;">
+           ${arr.map((food, i) =>
+             `<li style="display:flex;align-items:center;gap:6px;">
+                <span style="font-size:18px;">${medal[i] ?? i + 1}</span>${food}
+              </li>`).join('')}
+         </ol>`;
+
+      /* 잔반 TOP3 문자열 준비 */
+      const leastRankingHTML = makeRanking(leftoverLeastData.map(d => d.food));
+      const mostRankingHTML  = makeRanking(leftoverMostData .map(d => d.food));
+
+      // 7일 영양소
+      interface NutrientDay { carbo: number; protein: number; fat: number; }
+      interface NutrientChartDatum extends NutrientDay { date: string; }
+      
+      const nutrientData: NutrientChartDatum[] =
+        (Object.entries(reportData.nutrient) as [string, NutrientDay][])
+          .map(([date, v]) => ({
+          date: date.slice(5),       // "05-11"
+          ...(v as NutrientDay),     // 타입 단언
+        }));
+      
+      const lineW = 700, lineH = 250;
+
+      const makeLineSVG = (key: keyof NutrientDay, color: string, label: string) =>
+        renderToStaticMarkup(
+          <LineChart 
+            width={lineW} 
+            height={lineH} 
+            data={nutrientData}
+            margin={{ top: 50, right: 40, left: 40, bottom: 20 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis 
+              dataKey="date" 
+              tickFormatter={(value) => value.replace("-", "/")} 
+              tick={{ fontSize: 12 }} // 글자 크기 증가
+              height={35} // 높이 증가
+            />
+            <YAxis 
+              label={{ 
+                value: "섭취량(g)", 
+                angle: -90, 
+                position: "insideLeft", 
+                style: { fontSize: 12 }, // 글자 크기 증가
+                offset: -10
+              }}
+              tick={{ fontSize: 12 }} // 글자 크기 증가
+              width={50} // 너비 증가
+              domain={[0, 'auto']} 
+            />
+            <Tooltip formatter={(value) => [`${value}g`, label]} />
+            <Line 
+              name={label}
+              type="monotone" 
+              dataKey={key} 
+              stroke={color}
+              strokeWidth={3} // 선 두께 증가
+              dot={{ r: 6, strokeWidth: 2, fill: "white" }} // 점 크기 증가
+              label={{ 
+                position: "top", 
+                formatter: (value) => value > 0 ? value : "", 
+                style: { fontSize: 12, fill: color, fontWeight: "bold" }, // 글자 크기 증가
+                offset: 10
+              }}
+              activeDot={{ r: 8 }} // 활성 점 크기 증가
+            />
+          </LineChart>
+        );
+    
+      const carboSVG   = makeLineSVG('carbo',   '#8884d8', '탄수화물');
+      const proteinSVG = makeLineSVG('protein', '#ff7300', '단백질');
+      const fatSVG     = makeLineSVG('fat',     '#82ca9d', '지방');
 
       // 현재 날짜
       const today = new Date();
@@ -289,10 +385,55 @@ const StudentManagement = () => {
           </div>
 
           <!-- 건강 분석 결과 -->
-          <div style="margin-bottom: 20px;">
+          <div style="margin-bottom: 23px;">
             <h2 style="font-size: 18px; margin: 0 0 10px; padding: 5px 10px; background-color: #2c5282; color: white;">건강 분석 결과</h2>
             <div style="border: 1px solid #ddd; padding: 15px; background-color: #f9f9f9;">
               <p style="margin: 0;">${reportData.analyzeReport}</p>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 20px; margin-bottom: 20px;">
+            <!-- 가장 적게 남긴 TOP3 -->
+            <div style="flex: 1;">
+              <h2 style="font-size: 18px; margin: 0 0 10px; padding: 5px 10px; background-color: #2c5282; color: white;">가장 적게 남긴 TOP3</h2>
+              <div style="border: 1px solid #ddd; padding: 15px; background-color: #f9f9f9;">
+                ${leastRankingHTML}
+              </div>
+            </div>
+
+            <!-- 가장 많이 남긴 TOP3 -->
+            <div style="flex: 1;">
+              <h2 style="font-size: 18px; margin: 0 0 10px; padding: 5px 10px; background-color: #2c5282; color: white;">가장 많이 남긴 TOP3</h2>
+              <div style="border: 1px solid #ddd; padding: 15px; background-color: #f9f9f9;">
+                ${mostRankingHTML}
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 20px;">
+            <h2 style="font-size: 18px; margin: 0 0 10px; padding: 5px 10px; background-color: #2c5282; color: white;">7일간 섭취량</h2>
+            <div style="border: 1px solid #ddd; padding: 15px; background-color: #f9f9f9;">
+              <div style="margin-bottom: 20px;">
+                <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                  <span style="width: 12px; height: 12px; background-color: #8884d8; display: inline-block; margin-right: 5px;"></span>
+                  <span style="font-size: 14px; font-weight: bold;">탄수화물</span>
+                </div>
+                <div style="overflow: visible; display: flex; justify-content: center; width: 100%;">${carboSVG}</div>
+              </div>
+              <div style="margin-bottom: 20px;">
+                <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                  <span style="width: 12px; height: 12px; background-color: #ff7300; display: inline-block; margin-right: 5px;"></span>
+                  <span style="font-size: 14px; font-weight: bold;">단백질</span>
+                </div>
+                <div style="overflow: visible; display: flex; justify-content: center; width: 100%;">${proteinSVG}</div>
+              </div>
+              <div>
+                <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                  <span style="width: 12px; height: 12px; background-color: #82ca9d; display: inline-block; margin-right: 5px;"></span>
+                  <span style="font-size: 14px; font-weight: bold;">지방</span>
+                </div>
+                <div style="overflow: visible; display: flex; justify-content: center; width: 100%;">${fatSVG}</div>
+              </div>
             </div>
           </div>
 
@@ -395,7 +536,18 @@ const StudentManagement = () => {
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
       // 이미지를 PDF에 추가
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      let heightLeft = imgHeight;
+      let position   = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pdf.internal.pageSize.getHeight();
+
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pdf.internal.pageSize.getHeight();
+      }
 
       // 파일명 생성
       const fileName = `${selectedStudent.name}_건강기록부.pdf`;
@@ -562,7 +714,7 @@ const StudentManagement = () => {
                               <div className="w-10 h-10 flex-shrink-0 mr-3">
                                 <img
                                   src={`/images/student/${
-                                    student.gender === '여자자'
+                                    student.gender === '여자'
                                       ? 'girl.png'
                                       : student.gender === '남자'
                                       ? 'boy.png'
@@ -620,6 +772,7 @@ const StudentManagement = () => {
                             }`}
                             alt={selectedStudent.name}
                             className="w-full h-full object-cover rounded-full"
+              
                             onError={(e) => {
                               // 이미지 로드 실패시 기본 이미지로 대체
                               e.currentTarget.src = '/images/student/blank.png';
