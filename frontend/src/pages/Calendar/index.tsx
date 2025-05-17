@@ -6,6 +6,7 @@ import CalendarGrid from '../../components/Calendar/CalendarGrid';
 import MonthlyWasteChart from '../../components/Calendar/MonthlyWasteChart';
 import DishWasteRates from '../../components/Calendar/DishWasteRates';
 import MenuDetail from '../../components/Calendar/MenuDetail';
+import LoadingAnimation from '../../components/LoadingAnimation';
 import API_CONFIG from '../../config/api';
 import axios from 'axios';
 import { useAuthStore } from '../../store/authStore';
@@ -106,6 +107,7 @@ const Calendar = () => {
   const [selectedDayWaste, setSelectedDayWaste] = useState<DishWasteRate[] | null>(null); // 선택된 날짜의 반찬별 잔반률
   const [menuData, setMenuData] = useState<MenuDataType>({});
   const [loading, setLoading] = useState(false);
+  const [generatingMenu, setGeneratingMenu] = useState(false);
 
   // 월간 잔반률 데이터 상태 추가
   const [monthlyWasteData, setMonthlyWasteData] = useState<DailyWasteRate[]>([]);
@@ -473,6 +475,9 @@ const Calendar = () => {
 
     // 바로 데이터 다시 가져오기 (지연 없이)
     fetchMenuData();
+
+    // 로딩 상태 해제
+    setGeneratingMenu(false);
   };
 
   return (
@@ -533,9 +538,15 @@ const Calendar = () => {
                 console.log('메뉴 데이터 업데이트됨:', processedData);
               }}
               onMenuGenerated={refreshMenuData}
+              setGeneratingMenu={setGeneratingMenu}
+              generatingMenu={generatingMenu}
             />
 
-            {loading ? (
+            {generatingMenu ? (
+              <div className="flex-grow flex items-center justify-center">
+                <LoadingAnimation message="식단 생성중입니다..." />
+              </div>
+            ) : loading ? (
               <div className="flex-grow flex items-center justify-center">
                 <p className="text-sm">데이터를 불러오는 중입니다...</p>
               </div>

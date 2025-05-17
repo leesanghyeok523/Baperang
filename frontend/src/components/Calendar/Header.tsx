@@ -102,6 +102,8 @@ interface CalendarHeaderProps {
   selectedMonth: number;
   updateMenuData?: (data: CalendarMenuData) => void;
   onMenuGenerated?: () => void; // 메뉴 생성 완료 후 호출될 콜백 추가
+  generatingMenu?: boolean; // 식단 생성 중인지 상태
+  setGeneratingMenu?: (state: boolean) => void; // 식단 생성 상태 설정 함수
 }
 
 // 에러 응답 타입 정의
@@ -125,6 +127,8 @@ const CalendarHeader = ({
   selectedMonth,
   updateMenuData,
   onMenuGenerated,
+  generatingMenu,
+  setGeneratingMenu,
 }: CalendarHeaderProps) => {
   // 메뉴 데이터 조회 함수
   const fetchMenuData = async (year: number, month: number) => {
@@ -324,6 +328,11 @@ const CalendarHeader = ({
     } catch (error: unknown) {
       console.error('월간 식단 생성 실패:', error);
 
+      // 로딩 상태 해제
+      if (setGeneratingMenu) {
+        setGeneratingMenu(false);
+      }
+
       // 에러 응답 처리
       const axiosError = error as AxiosError;
       if (axiosError.response) {
@@ -371,6 +380,11 @@ const CalendarHeader = ({
       // 다음 달일 때만 식단 생성 버튼 처리
       console.log('다음 달 확인:', { isFutureMonth, isNextMonth, hasMenu });
 
+      // 로딩 상태 설정
+      if (setGeneratingMenu) {
+        setGeneratingMenu(true);
+      }
+
       // 메뉴 생성 기능 호출
       console.log('메뉴 생성 기능 호출 시작');
       makeMonthMenu()
@@ -385,6 +399,10 @@ const CalendarHeader = ({
         })
         .catch((error) => {
           console.error('메뉴 생성 중 오류 발생:', error);
+          // 오류 발생 시 로딩 상태 해제
+          if (setGeneratingMenu) {
+            setGeneratingMenu(false);
+          }
         });
       // 캘린더 뷰 유지 (토글하지 않음)
     } else if (!isFutureMonth) {
