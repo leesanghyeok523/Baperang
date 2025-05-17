@@ -38,4 +38,19 @@ public class InventoryRepositoryImpl implements InventoryRepository{
         inventoryJpaRepository.deleteById(id);
     }
 
+    @Override
+    public List<Inventory> findByProductNameAndOrderUnit(String productName, String orderUnit) {
+        return inventoryJpaRepository.findByProductNameAndOrderUnit(productName, orderUnit);
+    }
+
+    @Override
+    public List<Inventory> findByOrderUnit(String orderUnit) {
+        return inventoryJpaRepository.findByOrderUnit(orderUnit);
+    }
+
+    @Override
+    public List<Inventory> findByYearMonthAndUnit(int year, int month, String unit) {
+        return inventoryJpaRepository.findByMonthAndUnit(year, month, unit);
+    }
+
 }
