@@ -1,12 +1,7 @@
 import React from 'react';
 import * as XLSX from 'xlsx';
-import { InventoryItem } from '../data/inventoryData';
+import { ExcelExportProps } from '../types/types';
 import { FiFileText } from 'react-icons/fi';
-
-interface ExcelExportProps {
-  data: InventoryItem[];
-  filename?: string;
-}
 
 const ExcelExport: React.FC<ExcelExportProps> = ({ data, filename = '재고관리_데이터.xlsx' }) => {
   const exportToExcel = () => {

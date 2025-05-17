@@ -23,6 +23,11 @@ interface PopupPosition {
   left: number;
 }
 
+// 영양소 정보 응답 타입
+interface NutrientResponse {
+  영양소: Record<string, string>;
+}
+
 const MenuDetail = ({ selectedDate, menuData, onMenuUpdate }: MenuDetailProps) => {
   const [alternatives, setAlternatives] = useState<string[]>([]);
   const [selectedMenu, setSelectedMenu] = useState<{ name: string; index: number } | null>(null);
@@ -30,6 +35,8 @@ const MenuDetail = ({ selectedDate, menuData, onMenuUpdate }: MenuDetailProps) =
   const [loading, setLoading] = useState(false);
   const [popupPosition, setPopupPosition] = useState<PopupPosition>({ top: 0, left: 0 });
   const [localMenuData, setLocalMenuData] = useState<MenuDataType>(menuData); // 로컬 상태로 menuData 관리
+  const [isNextMonth, setIsNextMonth] = useState(false); // 다음 달 여부
+  const [nutritionData, setNutritionData] = useState<Record<string, string>>({}); // 영양소 정보
   const { accessToken } = useAuthStore();
   const menuRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -38,7 +45,30 @@ const MenuDetail = ({ selectedDate, menuData, onMenuUpdate }: MenuDetailProps) =
     setLocalMenuData(menuData);
   }, [menuData]);
 
-  // 메뉴 항목 클릭 시 대체 메뉴 조회
+  // 선택한 날짜가 현재 기준 다음 달인지 확인하는 함수
+  const checkIfNextMonth = (dateString: string): boolean => {
+    if (!dateString) return false;
+
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth(); // 0-11
+
+    const selectedDate = new Date(dateString);
+    const selectedYear = selectedDate.getFullYear();
+    const selectedMonth = selectedDate.getMonth(); // 0-11
+
+    // 같은 해의 다음 달이거나, 다음 해의 경우
+    if (
+      (selectedYear === currentYear && selectedMonth > currentMonth) ||
+      selectedYear > currentYear
+    ) {
+      return true;
+    }
+
+    return false;
+  };
+
+  // 메뉴 항목 클릭 시 대체 메뉴 또는 영양소 정보 조회
   const handleMenuClick = async (menuName: string, index: number) => {
     if (!selectedDate || !accessToken) return;
 
@@ -52,6 +82,10 @@ const MenuDetail = ({ selectedDate, menuData, onMenuUpdate }: MenuDetailProps) =
       });
     }
 
+    // 현재 선택된 날짜가 다음 달인지 확인
+    const isNextMonthDate = checkIfNextMonth(selectedDate);
+    setIsNextMonth(isNextMonthDate);
+
     try {
       setLoading(true);
       setSelectedMenu({ name: menuName, index });
@@ -61,30 +95,55 @@ const MenuDetail = ({ selectedDate, menuData, onMenuUpdate }: MenuDetailProps) =
         ? accessToken
         : `Bearer ${accessToken}`;
 
-      // 메뉴 대체재 API 호출 (GET 요청)
-      const url = `${API_CONFIG.ENDPOINTS.MEAL.MENU_ALTERNATIVES}?menu=${encodeURIComponent(
-        menuName
-      )}&date=${selectedDate}`;
+      if (isNextMonthDate) {
+        // 다음 달인 경우 대체 메뉴 API 호출 (GET 요청)
+        const url = `${API_CONFIG.ENDPOINTS.MEAL.MENU_ALTERNATIVES}?menu=${encodeURIComponent(
+          menuName
+        )}&date=${selectedDate}`;
 
-      const response = await axios.get(url, {
-        headers: {
-          Authorization: authHeaderValue,
-          'Content-Type': 'application/json',
-        },
-      });
+        const response = await axios.get(url, {
+          headers: {
+            Authorization: authHeaderValue,
+            'Content-Type': 'application/json',
+          },
+        });
 
-      // 대체 메뉴 데이터 설정
-      if (response.data && Array.isArray(response.data.alternatives || response.data)) {
-        // API 응답 형식에 따라 alternatives 속성 또는 직접 배열이 올 수 있음
-        setAlternatives(response.data.alternatives || response.data);
-        setShowModal(true);
+        // 대체 메뉴 데이터 설정
+        if (response.data && Array.isArray(response.data.alternatives || response.data)) {
+          // API 응답 형식에 따라 alternatives 속성 또는 직접 배열이 올 수 있음
+          setAlternatives(response.data.alternatives || response.data);
+          setShowModal(true);
+        } else {
+          setAlternatives([]);
+          showToast('대체 메뉴가 없습니다.', 'info');
+        }
       } else {
-        setAlternatives([]);
-        showToast('대체 메뉴가 없습니다.', 'info');
+        // 현재 달이나 과거 달인 경우 영양소 정보 API 호출
+        const dateStr = selectedDate;
+
+        const url = API_CONFIG.getUrl(API_CONFIG.ENDPOINTS.MEAL.MENU_NUTRIENT, {
+          menu: menuName,
+          date: dateStr,
+        });
+
+        const response = await axios.get<NutrientResponse>(url, {
+          headers: {
+            Authorization: authHeaderValue,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (response.data && response.data.영양소) {
+          setNutritionData(response.data.영양소);
+          setShowModal(true);
+        } else {
+          setNutritionData({});
+          showToast('영양소 정보가 없습니다.', 'info');
+        }
       }
     } catch (error) {
-      console.error('대체 메뉴 조회 오류:', error);
-      showToast('대체 메뉴를 가져오는데 실패했습니다.', 'error');
+      console.error('정보 조회 오류:', error);
+      showToast('정보를 가져오는데 실패했습니다.', 'error');
     } finally {
       setLoading(false);
     }
@@ -160,6 +219,7 @@ const MenuDetail = ({ selectedDate, menuData, onMenuUpdate }: MenuDetailProps) =
   const closeModal = () => {
     setShowModal(false);
     setAlternatives([]);
+    setNutritionData({});
     setSelectedMenu(null);
   };
 
@@ -243,7 +303,7 @@ const MenuDetail = ({ selectedDate, menuData, onMenuUpdate }: MenuDetailProps) =
         </div>
       </div>
 
-      {/* 대체 메뉴 말풍선 팝업 */}
+      {/* 대체 메뉴 또는 영양소 정보 말풍선 팝업 */}
       {showModal && selectedMenu && (
         <div
           id="alternatives-popup"
@@ -266,12 +326,13 @@ const MenuDetail = ({ selectedDate, menuData, onMenuUpdate }: MenuDetailProps) =
             ></div>
 
             <div className="text-sm font-bold mb-2 text-center text-orange-500">
-              이런메뉴는 어때요?
+              {isNextMonth ? '이런 메뉴는 어때요?' : '영양소 정보'}
             </div>
 
             {loading ? (
               <div className="text-center py-2 text-xs">로딩 중...</div>
-            ) : (
+            ) : isNextMonth ? (
+              // 대체 메뉴 목록 - 다음 달인 경우
               <div
                 className="overflow-y-auto mb-2"
                 style={{ maxHeight: '180px', minHeight: '50px' }}
@@ -294,15 +355,61 @@ const MenuDetail = ({ selectedDate, menuData, onMenuUpdate }: MenuDetailProps) =
                   </div>
                 )}
               </div>
+            ) : (
+              // 영양소 정보 목록 - 현재/과거 달인 경우
+              <div
+                className="overflow-y-auto mb-2"
+                style={{ maxHeight: '83px', minHeight: '50px' }}
+              >
+                {Object.keys(nutritionData).length > 0 ? (
+                  <div className="grid gap-1">
+                    {Object.entries(nutritionData).map(([name, value], idx) => (
+                      <div
+                        key={idx}
+                        className="flex justify-between items-center py-1 px-2 bg-gray-100 rounded-lg text-xs"
+                      >
+                        <span className="text-gray-700 truncate mr-2">{name}</span>
+                        <span className="text-gray-700 whitespace-nowrap">{value}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-3 text-gray-500 text-xs">
+                    영양소 정보가 없습니다.
+                  </div>
+                )}
+              </div>
             )}
 
             <div className="flex justify-center">
-              <button
-                className="bg-transparent hover:bg-red-400 px-3 py-1 rounded-lg transition-colors text-xs"
-                onClick={closeModal}
-              >
-                취소
-              </button>
+              {isNextMonth ? (
+                <button
+                  className="bg-transparent hover:bg-red-400 px-3 py-1 rounded-lg transition-colors text-xs"
+                  onClick={closeModal}
+                >
+                  취소
+                </button>
+              ) : (
+                <button
+                  className="absolute top-4 right-4 text-gray-500 hover:text-red-500 transition-colors"
+                  onClick={closeModal}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              )}
             </div>
           </div>
         </div>

@@ -1,9 +1,6 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { WasteData } from '../data/menuData';
-
-interface WasteRateCardProps {
-  data: WasteData[];
-}
+import { WasteRateCardProps } from '../types/types';
 
 const WasteRateCard: React.FC<WasteRateCardProps> = ({ data }) => {
   // 최대 잔반률 값 찾기

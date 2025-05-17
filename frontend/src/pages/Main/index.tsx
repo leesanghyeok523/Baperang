@@ -6,15 +6,8 @@ import { defaultMenu, WasteData } from '../../data/menuData';
 import API_CONFIG from '../../config/api';
 import axios from 'axios';
 import { useAuthStore } from '../../store/authStore';
-import { ApiResponse, SatisfactionUpdate } from '../../types/types';
+import { ApiResponse, SatisfactionUpdate, parseMenuName, SSEMessageEvent } from '../../types/types';
 import { EventSourcePolyfill } from 'event-source-polyfill';
-
-// br 태그로 분리된 메뉴 이름을 배열로 분리하는 함수
-const parseMenuName = (menuName: string): string[] => {
-  // <br/>, <br>, <BR/>, <BR> 등 다양한 형태의 br 태그 처리
-  const regex = /<br\s*\/?>/gi;
-  return menuName.split(regex).filter((item) => item.trim() !== '');
-};
 
 const MainPage = () => {
   // 현재 날짜 기준으로 초기화
@@ -61,9 +54,6 @@ const MainPage = () => {
       },
       withCredentials: true,
     });
-
-    // 커스텀 이벤트 타입 (실제 이벤트 구조에 맞게 정의)
-    type SSEMessageEvent = Event & { data: string };
 
     // 초기 만족도 데이터 이벤트 처리 추가
     // @ts-expect-error EventSourcePolyfill 타입 정의 불일치

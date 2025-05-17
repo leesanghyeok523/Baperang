@@ -37,6 +37,7 @@ const API_CONFIG = {
       MAKE_MONTH_MENU: '/api/v1/menu/make_month_menu', // 다음 달 식단 생성
       MENU_ALTERNATIVES: '/api/v1/menu/alternatives', // 특정 메뉴의 대체재 조회
       UPDATE_MENU: '/api/v1/menu/update_menu', // 특정 메뉴 업데이트
+      MENU_NUTRIENT: '/api/v1/menu/menu_nutrient', // 특정 메뉴의 영양소 정보 조회
     },
 
     // 학생 관리

@@ -1,16 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { WasteData } from '../data/menuData';
-
-interface PreferenceChartProps {
-  data: WasteData[]; // 초기 데이터로 사용됨
-}
-
-// 선호도 데이터 형식
-interface PreferenceData {
-  name: string;
-  선호도: number;
-}
+import { PreferenceChartProps, PreferenceData } from '../types/types';
 
 const PreferenceChart: React.FC<PreferenceChartProps> = ({ data }) => {
   const [preferenceData, setPreferenceData] = useState<PreferenceData[]>([]);
