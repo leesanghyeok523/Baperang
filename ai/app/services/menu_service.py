@@ -1,6 +1,5 @@
 from typing import Dict, List, Any, Optional
-import aiohttp
-import json, time
+import time
 import random
 from ..config import settings
 from collections import defaultdict
@@ -263,66 +262,6 @@ class MenuService:
             if len(menu) >= 3 and menu[:3] in valid_menu:
                 return valid_menu
         return None
-    
-    def calculate_nutrition_metrics(self, plan: Dict[str, List[str]], menu_data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        생성된 식단의 영양소 정보 계산
-
-        Args:
-            plan: 검증된 식단 계획
-            menu_data: 메뉴 데이터 (영양소 정보 포함)
-        
-        Returns:
-            Dict: 영양소 지표
-        """
-        # 영양소 정보
-        menu_nutrition = menu_data["menu_nutrition"]
-        nutrition_keys = menu_data.get("nutrition_keys", ['kcal', 'protein', 'fat', 'carbo'])
-
-        # 일별 영양소 합계
-        daily_nutrition = {}
-
-        # 각 날짜별 영양소 합계 계산
-        for date, menus in plan.items():
-            daily_total = {key: 0 for key in nutrition_keys}
-
-            # 각 메뉴의 영양소 합산
-            for menu in menus:
-                if menu in menu_nutrition:
-                    for key in nutrition_keys:
-                        if key in menu_nutrition[menu]:
-                            daily_total[key] += menu_nutrition[menu][key]
-        
-            daily_nutrition[date] = daily_total
-        
-        # 전체 기간 평균 계산
-        avg_nutrition = {key: 0 for key in nutrition_keys}
-        for daily_total in daily_nutrition.values():
-            for key in nutrition_keys:
-                avg_nutrition[key] += daily_total[key]
-        
-        # 평균 계산
-        days_count = len(daily_nutrition)
-        if days_count > 0:
-            for key in avg_nutrition:
-                avg_nutrition[key] /= days_count
-        
-        # 영양소 비율 계산 (탄수화물, 단백질, 지방)
-        nutrition_ratio = {}
-        if ('carbo' in avg_nutrition and 'protein' in avg_nutrition and 'fat' in avg_nutrition):
-            total_macros = avg_nutrition['carbo'] + avg_nutrition['protein'] + avg_nutrition['fat']
-            if total_macros > 0:
-                nutrition_ratio = {
-                    'carbo': round(avg_nutrition['carbo'] / total_macros * 100, 1),
-                    'protein': round(avg_nutrition['protein'] / total_macros * 100, 1),
-                    'fat': round(avg_nutrition['fat'] / total_macros * 100, 1)
-                }
-        
-        return {
-            "daily_nutrition": daily_nutrition,
-            "avg_nutrition": avg_nutrition,
-            "nutrition_ratio": nutrition_ratio
-        }
 
     def generate_alternatives(self, plan: Dict[str,List[str]], menu_data:Dict[str,Any]) -> Dict[str, Dict[str, List[str]]]:
         """
@@ -335,16 +274,15 @@ class MenuService:
             Dict: 날짜별, 메뉴별 대체 메뉴 목록
         """
 
-        print("[MENU][generate_alternatives] Received menu_data with keys:", menu_data.keys())
-
         # 메뉴별 카테고리 매핑
         menu_categories = menu_data.get("menu_categories", {})
         categorized_menus = menu_data.get("categorized_menus", {})
         menu_preference = menu_data.get("menu_preference", {})
 
         # 디버깅 출력
-        print(f"[MENU][generate_alternatives] categorized_menus keys: {categorized_menus.keys() if categorized_menus else 'None'}")
-        print(f"[MENU][generate_alternatives] menu_preference keys count: {len(menu_preference) if menu_preference else 'None'}")
+        if settings.DEBUG:
+            print(f"[MENU][generate_alternatives] categorized_menus keys: {categorized_menus.keys() if categorized_menus else 'None'}")
+            print(f"[MENU][generate_alternatives] menu_preference keys count: {len(menu_preference) if menu_preference else 'None'}")
 
         alternatives = {}
 
@@ -354,6 +292,8 @@ class MenuService:
             # 역방향 매핑 생성
             for category, menus in menu_data["categorized_menus"].items():
                 for menu in menus:
+                    if isinstance(menu, str):  # 문자열인 경우만 처리
+                        menu_categories[menu] = category
                     if isinstance(menu, str):  # 문자열인 경우만 처리
                         menu_categories[menu] = category
 
@@ -372,13 +312,20 @@ class MenuService:
                     # 같은 카테고리의 다른 메뉴들
                     same_category_menus = [m for m in categorized_menus[category] if m != menu]
 
-                    # 선호도 기준으로 정렬
                     sorted_menus = sorted(
                         same_category_menus,
                         key=lambda m: menu_preference.get(m, 0) if isinstance(m, str) else 0,
                         reverse=True
                     )
 
+                    top_menus = sorted_menus[:min(15, len(sorted_menus))]
+
+                    # 상위 15개 중에서 랜덤하게 3개 선택 (메뉴가 3개 미만이면 모두 선택)
+                    if len(top_menus) > 3:
+                        alt_menus = random.sample(top_menus, 3)
+                    else:
+                        alt_menus = top_menus
+                    
                     top_menus = sorted_menus[:min(15, len(sorted_menus))]
 
                     # 상위 15개 중에서 랜덤하게 3개 선택 (메뉴가 3개 미만이면 모두 선택)
@@ -418,7 +365,6 @@ class MenuService:
             menu_ids: 조회할 메뉴 ID 목록 (None이면 전체)
         Returns:
             List[Dict]: 메뉴 정보 목록
-
         """
 
         menu_data = [
