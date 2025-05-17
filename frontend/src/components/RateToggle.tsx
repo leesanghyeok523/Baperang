@@ -1,14 +1,10 @@
 import { useState } from 'react';
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
-import { WasteData } from '../data/menuData';
 import Card, { CardHeader, CardBody } from './ui/Card';
 import WasteRateCard from './WasteRateCard';
 import PreferenceChart from './PreferenceChart';
 import MealCompletionRate from './MealCompletionRate';
-
-interface RateToggleCardProps {
-  data: WasteData[];
-}
+import { RateToggleCardProps } from '../types/types';
 
 const RateToggleCard: React.FC<RateToggleCardProps> = ({ data }) => {
   // 0: 실시간 잔반률, 1: 실시간 선호도, 2: 실시간 식사 완료율
@@ -57,7 +53,7 @@ const RateToggleCard: React.FC<RateToggleCardProps> = ({ data }) => {
   };
 
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader>
         <button
           className="text-gray-600 hover:text-gray-900 focus:outline-none"
@@ -73,10 +69,8 @@ const RateToggleCard: React.FC<RateToggleCardProps> = ({ data }) => {
           <FiChevronRight size={30} />
         </button>
       </CardHeader>
-      <CardBody className="flex items-center justify-center">
-        <div className="w-full h-full" style={{ maxHeight: 'calc(70vh - 100px)' }}>
-          {renderContent()}
-        </div>
+      <CardBody className="flex items-center justify-center flex-grow">
+        <div className="w-full h-full">{renderContent()}</div>
       </CardBody>
     </Card>
   );

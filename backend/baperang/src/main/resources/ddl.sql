@@ -75,6 +75,8 @@ CREATE TABLE menu (
                       category   VARCHAR(20)  NOT NULL ,
                       amount INT,
                       favorite   FLOAT,
+                      votes      INT,
+                      alternatives JSON,
                       FOREIGN KEY (school_pk)
                           REFERENCES school(school_pk)
                           ON DELETE CASCADE

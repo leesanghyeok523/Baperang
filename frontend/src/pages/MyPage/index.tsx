@@ -5,6 +5,7 @@ import InputCard from '../../components/ui/inputcard';
 import { useAuthStore } from '../../store/authStore';
 import apiClient from '../../utils/apiClient';
 import API_CONFIG from '../../config/api';
+import { showErrorAlert, showSuccessAlert } from '../../utils/sweetalert';
 
 const MyPage: React.FC = () => {
   const { logout, accessToken } = useAuthStore();
@@ -223,13 +224,12 @@ const MyPage: React.FC = () => {
   const handleUpdate = async () => {
     // 비밀번호 확인
     if (formData.password && formData.password !== formData.confirmPassword) {
-      alert('비밀번호가 일치하지 않습니다.');
+      showErrorAlert('비밀번호가 일치하지 않습니다.');
       return;
     }
 
     // 토큰 확인
     if (!accessToken) {
-      alert('로그인이 필요합니다.');
       navigate('/login');
       return;
     }
@@ -252,9 +252,9 @@ const MyPage: React.FC = () => {
       // apiClient 사용
       await apiClient.put(API_CONFIG.ENDPOINTS.AUTH.MYPAGE, updateData);
 
-      alert('회원 정보가 수정되었습니다.');
+      showSuccessAlert('회원 정보가 수정되었습니다.');
     } catch {
-      alert('회원 정보 수정에 실패했습니다. 다시 시도해주세요.');
+      showErrorAlert('회원 정보 수정에 실패했습니다. 다시 시도해주세요.');
     } finally {
       setIsLoading(false);
     }
@@ -264,7 +264,7 @@ const MyPage: React.FC = () => {
     if (!accessToken) {
       // 토큰이 없는 경우 로컬 상태만 초기화
       logout();
-      navigate('/');
+      navigate('/login');
       return;
     }
 
@@ -301,7 +301,7 @@ const MyPage: React.FC = () => {
         bg-center
       "
     >
-      <div className="w-full mt-10 max-w-sm space-y-5 h-[65vh]">
+      <div className="w-full mt-10 max-w-sm space-y-5 h-[80%] mt-20">
         {isDataLoading ? (
           <div className="text-center py-8">정보를 불러오는 중...</div>
         ) : (

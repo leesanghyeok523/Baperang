@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Button from '../../components/ui/button';
 import InputCard from '../../components/ui/inputcard';
 import API_CONFIG from '../../config/api';
+import { showErrorAlert, showSuccessAlert, showToast } from '../../utils/sweetalert';
 
 const JoinPage: React.FC = () => {
   // 사용자 입력값 상태
@@ -130,14 +131,10 @@ const JoinPage: React.FC = () => {
         schoolName: formData.schoolName,
       };
 
-      console.log('학교 검색 요청 파라미터:', params);
-
       // 쿼리 파라미터를 사용한 GET 요청 (백엔드 컨트롤러 @RequestParam에 맞춤)
       const apiUrl = API_CONFIG.getUrl(API_CONFIG.ENDPOINTS.SCHOOL.SCHOOLS, params);
-      console.log('학교 검색 요청 URL:', apiUrl);
 
       const response = await fetch(apiUrl);
-      console.log('학교 검색 응답 상태:', response.status, response.statusText);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -167,8 +164,6 @@ const JoinPage: React.FC = () => {
         console.log('예상치 못한 응답 형식:', typeof data, data);
       }
 
-      console.log('처리된 학교 목록:', schoolsList);
-
       // 상태 업데이트
       setSchools(schoolsList);
       setShowSchoolDropdown(schoolsList.length > 0);
@@ -183,8 +178,6 @@ const JoinPage: React.FC = () => {
   // 입력 필드 변경 핸들러
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-
-    console.log(`입력 필드 변경: ${name} = ${value}`);
 
     // 아이디 필드가 변경되면 중복 확인 상태 초기화
     if (name === 'loginId' && idChecked) {
@@ -205,8 +198,6 @@ const JoinPage: React.FC = () => {
           city: newData.city,
           schoolName: value,
         });
-
-        // 여기서는 상태 업데이트를 하지 않고 useEffect에서 처리
       }
 
       return newData;
@@ -272,8 +263,6 @@ const JoinPage: React.FC = () => {
         throw new Error('서버가 유효한 JSON 응답을 반환하지 않습니다');
       }
 
-      console.log('중복 확인 응답 상태:', response.status, response.statusText);
-
       if (!response.ok) {
         const errorText = await response.text();
         console.error('서버 오류 응답:', errorText);
@@ -281,12 +270,11 @@ const JoinPage: React.FC = () => {
       }
 
       const data = await response.json();
-      console.log('중복 확인 응답 데이터:', data);
 
       // 백엔드 응답 형식에 맞게 처리
       if (data.valid) {
         setIdChecked(true);
-        alert('사용 가능한 아이디입니다.');
+        showToast('사용 가능한 아이디입니다.');
       } else {
         setErrors((prev) => ({
           ...prev,
@@ -391,14 +379,13 @@ const JoinPage: React.FC = () => {
       console.log('회원가입 응답 데이터:', data);
 
       // 성공 시 로그인 페이지로 이동
-      alert('회원가입이 완료되었습니다. 로그인 페이지로 이동합니다.');
+      showSuccessAlert('회원가입이 완료되었습니다.');
       navigate('/login');
     } catch (error) {
-      console.error('회원가입 중 오류:', error);
-      alert(
-        error instanceof Error
-          ? error.message
-          : '회원가입 중 오류가 발생했습니다. 다시 시도해주세요.'
+      console.error('회원가입 오류:', error);
+      showErrorAlert(
+        '회원가입 오류',
+        error instanceof Error ? error.message : '회원가입 중 오류가 발생했습니다.'
       );
     }
   };

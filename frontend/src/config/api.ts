@@ -17,8 +17,9 @@ const API_CONFIG = {
       NEW_PASSWORD: '/api/v1/user/new-password',
       USER_INFO: '/api/v1/user/users', // /{user-id} 파라미터 필요
       MYPAGE: '/api/v1/user/profile',
-      REFRESH_TOKEN: '/api/v1/user/refresh-token',
+      REFRESH_TOKEN: '/api/v1/user/refresh',
       DELETE_USER: '/api/v1/user/users',
+      VALIDATE_TOKEN: '/api/v1/user/validate-token',
     },
 
     // 식단 관리
@@ -33,12 +34,17 @@ const API_CONFIG = {
       MENU_FAVORITE: '/api/v1/menu/favorite',
       MONTHLY_WASTE: '/api/v1/menu/leftover/month', // /{year}/{month} 파라미터 필요
       DAILY_DISH_WASTE: '/api/v1/menu/leftover/date', // /{date} 파라미터 필요
+      MAKE_MONTH_MENU: '/api/v1/menu/make_month_menu', // 다음 달 식단 생성
+      MENU_ALTERNATIVES: '/api/v1/menu/alternatives', // 특정 메뉴의 대체재 조회
+      UPDATE_MENU: '/api/v1/menu/update_menu', // 특정 메뉴 업데이트
+      MENU_NUTRIENT: '/api/v1/menu/menu_nutrient', // 특정 메뉴의 영양소 정보 조회
     },
 
     // 학생 관리
     STUDENT: {
       GET_ALL: '/api/v1/student/studentname/all',
       GET_STUDENT_DETAIL: '/api/v1/student/studentname', // /{studentId} 파라미터 필요
+      HEALTH_REPORT: '/api/v1/student', // /{studentId}/health-report 파라미터 필요
     },
 
     // 학교 관련

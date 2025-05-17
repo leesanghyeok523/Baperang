@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import InputCard from '../../components/ui/inputcard';
 import { FiDownload } from 'react-icons/fi';
 import jsPDF from 'jspdf';
@@ -7,6 +7,8 @@ import API_CONFIG from '../../config/api';
 import axios from 'axios';
 import { useAuthStore } from '../../store/authStore';
 import { StudentListResponse, StudentDetailResponse, StudentType } from '../../types/types';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
 const StudentManagement = () => {
   const [selectedGrade, setSelectedGrade] = useState<number | ''>('');
@@ -112,54 +114,66 @@ const StudentManagement = () => {
   };
 
   // 특정 학생 정보 가져오기
-  const fetchStudentDetail = async (studentId: number) => {
-    try {
-      // 인증 여부 확인
-      if (!isAuthenticated || !accessToken) {
-        alert('로그인이 필요합니다. 다시 로그인해주세요.');
-        return;
-      }
-
-      const response = await axios.get<StudentDetailResponse>(
-        API_CONFIG.getUrlWithPathParams(API_CONFIG.ENDPOINTS.STUDENT.GET_STUDENT_DETAIL, [
-          studentId.toString(),
-        ]),
-        {
-          headers: {
-            Authorization: accessToken,
-          },
+  const fetchStudentDetail = useCallback(
+    async (studentId: number) => {
+      try {
+        // 인증 여부 확인
+        if (!isAuthenticated || !accessToken) {
+          alert('로그인이 필요합니다. 다시 로그인해주세요.');
+          return;
         }
-      );
 
-      const data = response.data;
+        const response = await axios.get<StudentDetailResponse>(
+          API_CONFIG.getUrlWithPathParams(API_CONFIG.ENDPOINTS.STUDENT.GET_STUDENT_DETAIL, [
+            studentId.toString(),
+          ]),
+          {
+            headers: {
+              Authorization: accessToken,
+            },
+          }
+        );
 
-      // BMI 계산 (키는 cm 단위로 m로 변환)
-      const heightInMeters = data.height / 100;
-      const bmi = data.weight / (heightInMeters * heightInMeters);
+        const data = response.data;
 
-      // 현재 학생 정보 업데이트
-      const updatedStudent: StudentType = {
-        id: data.studentId,
-        name: data.studentName,
-        grade: data.grade,
-        classNum: data.classNum,
-        studentNum: data.number,
-        gender: students.find((s) => s.id === data.studentId)?.gender || '남',
-        height: data.height,
-        weight: data.weight,
-        bmi: parseFloat(bmi.toFixed(1)),
-        date: data.date,
-        content: data.content,
-        schoolName: data.schoolName,
-        wasteRate: students.find((s) => s.id === data.studentId)?.wasteRate || 0,
-      };
+        // BMI 계산 (키는 cm 단위로 m로 변환)
+        const heightInMeters = data.height / 100;
+        const bmi = data.weight / (heightInMeters * heightInMeters);
 
-      setSelectedStudent(updatedStudent);
-    } catch (err) {
-      console.error('학생 상세 정보를 가져오는 중 오류 발생:', err);
-      alert('학생 상세 정보를 불러오는 데 실패했습니다.');
-    }
-  };
+        // 현재 학생 정보 업데이트
+        const updatedStudent: StudentType = {
+          id: data.studentId,
+          name: data.studentName,
+          grade: data.grade,
+          classNum: data.classNum,
+          studentNum: data.number,
+          gender: students.find((s) => s.id === data.studentId)?.gender || '남자',
+          height: data.height,
+          weight: data.weight,
+          bmi: parseFloat(bmi.toFixed(1)),
+          date: data.date,
+          content: data.content,
+          schoolName: data.schoolName,
+          wasteRate: students.find((s) => s.id === data.studentId)?.wasteRate || 0,
+        };
+
+        setSelectedStudent(updatedStudent);
+      } catch (err) {
+        console.error('학생 상세 정보를 가져오는 중 오류 발생:', err);
+        alert('학생 상세 정보를 불러오는 데 실패했습니다.');
+      }
+    },
+    [accessToken, isAuthenticated, students]
+  );
+
+  // 학생 선택 함수를 useCallback으로 메모이제이션
+  const handleSelectStudent = useCallback(
+    (student: StudentType) => {
+      fetchStudentDetail(student.id); // 상세 정보 가져오기
+      setAiReport(null); // 새 학생 선택시 리포트 초기화
+    },
+    [fetchStudentDetail]
+  );
 
   // 컴포넌트 마운트 시 학생 목록 가져오기
   useEffect(() => {
@@ -196,140 +210,268 @@ const StudentManagement = () => {
         handleSelectStudent(result[0]);
       }
     }
-  }, [selectedGrade, selectedClass, searchName, students]);
-
-  // 학생 선택 함수
-  const handleSelectStudent = (student: StudentType) => {
-    fetchStudentDetail(student.id); // 상세 정보 가져오기
-    setAiReport(null); // 새 학생 선택시 리포트 초기화
-  };
+  }, [
+    selectedGrade,
+    selectedClass,
+    searchName,
+    students,
+    selectedStudent?.id,
+    handleSelectStudent,
+  ]);
 
   // AI 건강 리포트 생성 함수
-  const generateAIReport = () => {
+  const generateAIReport = async () => {
+
+
+
     if (!selectedStudent) return;
 
-    const { name, grade, classNum, studentNum, bmi, wasteRate } = selectedStudent;
+    try {
+      setLoading(true);
 
-    // BMI 상태 평가
-    let bmiStatus = '';
-    if (!bmi) {
-      bmiStatus = '정보 없음';
-    } else if (bmi < 18.5) {
-      bmiStatus = '저체중';
-    } else if (bmi >= 18.5 && bmi < 23) {
-      bmiStatus = '정상';
-    } else if (bmi >= 23 && bmi < 25) {
-      bmiStatus = '과체중';
-    } else {
-      bmiStatus = '비만';
+      // 인증 여부 확인
+      if (!isAuthenticated || !accessToken) {
+        setError('로그인이 필요합니다. 다시 로그인해주세요.');
+        setLoading(false);
+        return;
+      }
+
+      // 학생 ID로 건강 리포트 API 호출
+      console.log('토큰 정보:', accessToken);
+      const response = await axios.get(
+        API_CONFIG.getUrlWithPathParams(API_CONFIG.ENDPOINTS.STUDENT.HEALTH_REPORT, [
+          selectedStudent.id.toString(),
+          'health-report',
+        ]),
+        {
+          headers: {
+            Authorization: accessToken,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      // API 응답 데이터
+      const reportData = response.data;
+      console.log(reportData)
+
+      interface LeftoverDatum {
+        food: string;
+        amount: number;
+      }
+      
+      // 잔반 TOP3
+      const leftoverMostData: LeftoverDatum[] =
+        (Object.values(reportData.leftoverMost) as string[])
+          .map((food, i) => ({ food, amount: 3 - i }));
+
+      const leftoverLeastData: LeftoverDatum[] =
+        (Object.values(reportData.leftoverLeast) as string[])
+          .map((food, i) => ({ food, amount: 3 - i }));
+
+      const medal = ['🥇', '🥈', '🥉'];
+      const makeRanking = (arr: string[]) =>
+        `<ol style="margin:0;padding:0 0 0 1.2em;list-style:none;font-size:14px;line-height:1.8;">
+           ${arr.map((food, i) =>
+             `<li style="display:flex;align-items:center;gap:6px;">
+                <span style="font-size:18px;">${medal[i] ?? i + 1}</span>${food}
+              </li>`).join('')}
+         </ol>`;
+
+      /* 잔반 TOP3 문자열 준비 */
+      const leastRankingHTML = makeRanking(leftoverLeastData.map(d => d.food));
+      const mostRankingHTML  = makeRanking(leftoverMostData .map(d => d.food));
+
+      // 7일 영양소
+      interface NutrientDay { carbo: number; protein: number; fat: number; }
+      interface NutrientChartDatum extends NutrientDay { date: string; }
+      
+      const nutrientData: NutrientChartDatum[] =
+        (Object.entries(reportData.nutrient) as [string, NutrientDay][])
+          .map(([date, v]) => ({
+          date: date.slice(5),       // "05-11"
+          ...(v as NutrientDay),     // 타입 단언
+        }));
+      
+      const lineW = 700, lineH = 250;
+
+      const makeLineSVG = (key: keyof NutrientDay, color: string, label: string) =>
+        renderToStaticMarkup(
+          <LineChart 
+            width={lineW} 
+            height={lineH} 
+            data={nutrientData}
+            margin={{ top: 50, right: 40, left: 40, bottom: 20 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis 
+              dataKey="date" 
+              tickFormatter={(value) => value.replace("-", "/")} 
+              tick={{ fontSize: 12 }} // 글자 크기 증가
+              height={35} // 높이 증가
+            />
+            <YAxis 
+              label={{ 
+                value: "섭취량(g)", 
+                angle: -90, 
+                position: "insideLeft", 
+                style: { fontSize: 12 }, // 글자 크기 증가
+                offset: -10
+              }}
+              tick={{ fontSize: 12 }} // 글자 크기 증가
+              width={50} // 너비 증가
+              domain={[0, 'auto']} 
+            />
+            <Tooltip formatter={(value) => [`${value}g`, label]} />
+            <Line 
+              name={label}
+              type="monotone" 
+              dataKey={key} 
+              stroke={color}
+              strokeWidth={3} // 선 두께 증가
+              dot={{ r: 6, strokeWidth: 2, fill: "white" }} // 점 크기 증가
+              label={{ 
+                position: "top", 
+                formatter: (value) => value > 0 ? value : "", 
+                style: { fontSize: 12, fill: color, fontWeight: "bold" }, // 글자 크기 증가
+                offset: 10
+              }}
+              activeDot={{ r: 8 }} // 활성 점 크기 증가
+            />
+          </LineChart>
+        );
+    
+      const carboSVG   = makeLineSVG('carbo',   '#8884d8', '탄수화물');
+      const proteinSVG = makeLineSVG('protein', '#ff7300', '단백질');
+      const fatSVG     = makeLineSVG('fat',     '#82ca9d', '지방');
+
+      // 현재 날짜
+      const today = new Date();
+      const dateString = `${today.getFullYear()}년 ${today.getMonth() + 1}월 ${today.getDate()}일`;
+
+      // HTML 리포트 생성
+      const report = `
+        <div style="font-family: 'Noto Sans KR', sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; color: #333; position: relative;">
+          <!-- 헤더 -->
+          <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #2c5282; padding-bottom: 10px;">
+            <h1 style="font-size: 24px; font-weight: bold; margin: 0; color: #2c5282;">학생 건강 관리 기록부</h1>
+            <p style="font-size: 14px; margin: 5px 0 0;">발행일: ${dateString}</p>
+          </div>
+
+          <!-- 학생 정보 섹션 -->
+          <div style="display: flex; margin-bottom: 20px;">
+            <div style="flex: 1;">
+              <table style="width: 100%; border-collapse: collapse; border: 1px solid #ddd;">
+                <tr>
+                  <th style="background-color: #f0f4f8; padding: 8px; border: 1px solid #ddd; text-align: center; width: 100px;">이름</th>
+                  <td style="padding: 8px; border: 1px solid #ddd;">${selectedStudent.name}</td>
+                  <th style="background-color: #f0f4f8; padding: 8px; border: 1px solid #ddd; text-align: center;">학년/반/번호</th>
+                  <td style="padding: 8px; border: 1px solid #ddd;">${selectedStudent.grade}학년 ${
+        selectedStudent.classNum
+      }반 ${selectedStudent.studentNum}번</td>
+                </tr>
+                <tr>
+                  <th style="background-color: #f0f4f8; padding: 8px; border: 1px solid #ddd; text-align: center;">BMI 지수</th>
+                  <td style="padding: 8px; border: 1px solid #ddd;">${
+                    selectedStudent.bmi || '정보 없음'
+                  }</td>
+                  <th style="background-color: #f0f4f8; padding: 8px; border: 1px solid #ddd; text-align: center;">잔반율</th>
+                  <td style="padding: 8px; border: 1px solid #ddd;">${
+                    selectedStudent.wasteRate || 0
+                  }%</td>
+                </tr>
+              </table>
+            </div>
+          </div>
+
+          <!-- 건강 분석 결과 -->
+          <div style="margin-bottom: 23px;">
+            <h2 style="font-size: 18px; margin: 0 0 10px; padding: 5px 10px; background-color: #2c5282; color: white;">건강 분석 결과</h2>
+            <div style="border: 1px solid #ddd; padding: 15px; background-color: #f9f9f9;">
+              <p style="margin: 0;">${reportData.analyzeReport}</p>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 20px; margin-bottom: 20px;">
+            <!-- 가장 적게 남긴 TOP3 -->
+            <div style="flex: 1;">
+              <h2 style="font-size: 18px; margin: 0 0 10px; padding: 5px 10px; background-color: #2c5282; color: white;">가장 적게 남긴 TOP3</h2>
+              <div style="border: 1px solid #ddd; padding: 15px; background-color: #f9f9f9;">
+                ${leastRankingHTML}
+              </div>
+            </div>
+
+            <!-- 가장 많이 남긴 TOP3 -->
+            <div style="flex: 1;">
+              <h2 style="font-size: 18px; margin: 0 0 10px; padding: 5px 10px; background-color: #2c5282; color: white;">가장 많이 남긴 TOP3</h2>
+              <div style="border: 1px solid #ddd; padding: 15px; background-color: #f9f9f9;">
+                ${mostRankingHTML}
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 20px;">
+            <h2 style="font-size: 18px; margin: 0 0 10px; padding: 5px 10px; background-color: #2c5282; color: white;">7일간 섭취량</h2>
+            <div style="border: 1px solid #ddd; padding: 15px; background-color: #f9f9f9;">
+              <div style="margin-bottom: 20px;">
+                <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                  <span style="width: 12px; height: 12px; background-color: #8884d8; display: inline-block; margin-right: 5px;"></span>
+                  <span style="font-size: 14px; font-weight: bold;">탄수화물</span>
+                </div>
+                <div style="overflow: visible; display: flex; justify-content: center; width: 100%;">${carboSVG}</div>
+              </div>
+              <div style="margin-bottom: 20px;">
+                <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                  <span style="width: 12px; height: 12px; background-color: #ff7300; display: inline-block; margin-right: 5px;"></span>
+                  <span style="font-size: 14px; font-weight: bold;">단백질</span>
+                </div>
+                <div style="overflow: visible; display: flex; justify-content: center; width: 100%;">${proteinSVG}</div>
+              </div>
+              <div>
+                <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                  <span style="width: 12px; height: 12px; background-color: #82ca9d; display: inline-block; margin-right: 5px;"></span>
+                  <span style="font-size: 14px; font-weight: bold;">지방</span>
+                </div>
+                <div style="overflow: visible; display: flex; justify-content: center; width: 100%;">${fatSVG}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 개선 방안 -->
+          <div style="margin-bottom: 20px;">
+            <h2 style="font-size: 18px; margin: 0 0 10px; padding: 5px 10px; background-color: #2c5282; color: white;">개선 방안</h2>
+            <div style="border: 1px solid #ddd; padding: 15px; background-color: #f9f9f9;">
+              <p style="margin: 0;">${reportData.plan}</p>
+            </div>
+          </div>
+
+          <!-- 영양사 소견 -->
+          <div style="margin-bottom: 20px;">
+            <h2 style="font-size: 18px; margin: 0 0 10px; padding: 5px 10px; background-color: #2c5282; color: white;">영양사 소견</h2>
+            <div style="border: 1px solid #ddd; padding: 15px; min-height: 80px; background-color: #f9f9f9;">
+              <p style="margin: 0;">${reportData.opinion}</p>
+            </div>
+          </div>
+
+          <!-- 바닥글/서명 -->
+          <div style="text-align: center; margin-top: 40px;">
+            <div style="font-size: 14px; margin-bottom: 30px;">
+              본 건강 기록부는 AI 분석을 기반으로 작성되었습니다.
+            </div>
+            <div style="font-weight: bold;">
+              영양사 : ________________ (인)
+            </div>
+          </div>
+        </div>
+      `;
+
+      setAiReport(report);
+      setLoading(false);
+    } catch (err) {
+      console.error('AI 건강 리포트 생성 중 오류 발생:', err);
+      setError('AI 건강 리포트를 생성하는 데 실패했습니다.');
+      setLoading(false);
     }
-
-    // 잔반율 평가
-    const wasteRateValue = wasteRate || 0;
-    let wasteComment = '';
-    if (wasteRateValue <= 10) wasteComment = '매우 좋습니다';
-    else if (wasteRateValue <= 20) wasteComment = '보통입니다';
-    else wasteComment = '개선이 필요합니다';
-
-    // 개선 방안 리스트 생성
-    const improvementList: string[] = [];
-    if (bmiStatus !== '정상') improvementList.push('규칙적인 운동 습관을 기르세요.');
-    if (bmiStatus === '저체중') improvementList.push('영양가 있는 음식을 충분히 섭취하세요.');
-    if (bmiStatus === '과체중' || bmiStatus === '비만')
-      improvementList.push('당분과 지방 섭취를 줄이세요.');
-    if (wasteRateValue > 20) improvementList.push('적정량의 음식을 선택해 잔반을 줄이세요.');
-
-    // 현재 날짜
-    const today = new Date();
-    const dateString = `${today.getFullYear()}년 ${today.getMonth() + 1}월 ${today.getDate()}일`;
-
-    // 리포트 생성 (생활기록부 스타일)
-    const report = `
-      <div style="font-family: 'Noto Sans KR', sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; color: #333; position: relative;">
-        <!-- 헤더 -->
-        <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #2c5282; padding-bottom: 10px;">
-          <h1 style="font-size: 24px; font-weight: bold; margin: 0; color: #2c5282;">학생 건강 관리 기록부</h1>
-          <p style="font-size: 14px; margin: 5px 0 0;">발행일: ${dateString}</p>
-        </div>
-
-        <!-- 학생 정보 섹션 -->
-        <div style="display: flex; margin-bottom: 20px;">
-          <div style="flex: 1;">
-            <table style="width: 100%; border-collapse: collapse; border: 1px solid #ddd;">
-              <tr>
-                <th style="background-color: #f0f4f8; padding: 8px; border: 1px solid #ddd; text-align: center; width: 100px;">이름</th>
-                <td style="padding: 8px; border: 1px solid #ddd;">${name}</td>
-                <th style="background-color: #f0f4f8; padding: 8px; border: 1px solid #ddd; text-align: center;">학년/반/번호</th>
-                <td style="padding: 8px; border: 1px solid #ddd;">${grade}학년 ${classNum}반 ${studentNum}번</td>
-              </tr>
-              <tr>
-                <th style="background-color: #f0f4f8; padding: 8px; border: 1px solid #ddd; text-align: center;">BMI 지수</th>
-                <td style="padding: 8px; border: 1px solid #ddd;">${bmi} (${bmiStatus})</td>
-                <th style="background-color: #f0f4f8; padding: 8px; border: 1px solid #ddd; text-align: center;">잔반율</th>
-                <td style="padding: 8px; border: 1px solid #ddd;">${wasteRateValue}%</td>
-              </tr>
-            </table>
-          </div>
-        </div>
-
-        <!-- 건강 분석 결과 -->
-        <div style="margin-bottom: 20px;">
-          <h2 style="font-size: 18px; margin: 0 0 10px; padding: 5px 10px; background-color: #2c5282; color: white;">건강 분석 결과</h2>
-          <div style="border: 1px solid #ddd; padding: 15px; background-color: #f9f9f9;">
-            <p style="margin: 0 0 10px;">BMI 지수 ${bmi}는 <strong>${bmiStatus}</strong> 상태입니다. ${
-      bmiStatus === '정상'
-        ? '현재 건강한 상태를 유지하고 있습니다.'
-        : '식습관 개선과 적절한 운동이 필요합니다.'
-    }</p>
-            <p style="margin: 0;">잔반율은 <strong>${wasteRateValue}%</strong>로, ${wasteComment}. ${
-      wasteRateValue > 20
-        ? '음식을 남기지 않고 적절히 섭취하는 습관을 기르는 것이 중요합니다.'
-        : '앞으로도 균형 잡힌 식사를 유지하세요.'
-    }</p>
-          </div>
-        </div>
-
-        <!-- 개선 방안 -->
-        <div style="margin-bottom: 20px;">
-          <h2 style="font-size: 18px; margin: 0 0 10px; padding: 5px 10px; background-color: #2c5282; color: white;">개선 방안</h2>
-          <div style="border: 1px solid #ddd; padding: 15px; background-color: #f9f9f9;">
-            ${
-              improvementList.length > 0
-                ? `<ul style="margin: 0; padding-left: 20px;">
-                  ${improvementList
-                    .map((item) => `<li style="margin-bottom: 5px;">${item}</li>`)
-                    .join('')}
-                </ul>`
-                : '<p style="margin: 0;">현재 상태를 유지하세요.</p>'
-            }
-          </div>
-        </div>
-
-        <!-- 영양사 소견 -->
-        <div style="margin-bottom: 20px;">
-          <h2 style="font-size: 18px; margin: 0 0 10px; padding: 5px 10px; background-color: #2c5282; color: white;">영양사 소견</h2>
-          <div style="border: 1px solid #ddd; padding: 15px; min-height: 80px; background-color: #f9f9f9;">
-            ${
-              bmiStatus === '정상' && wasteRateValue <= 20
-                ? '전반적으로 건강한 상태를 유지하고 있으며, 잔반율도 양호합니다. 앞으로도 균형 잡힌 식습관을 유지하시기 바랍니다.'
-                : '식습관 개선과 영양 균형에 주의가 필요합니다. 정기적인 운동과 균형 잡힌 식단 관리를 통해 건강 상태를 개선하시기 바랍니다.'
-            }
-          </div>
-        </div>
-
-        <!-- 바닥글/서명 -->
-        <div style="text-align: center; margin-top: 40px;">
-          <div style="font-size: 14px; margin-bottom: 30px;">
-            본 건강 기록부는 AI 분석을 기반으로 작성되었습니다.
-          </div>
-          <div style="font-weight: bold;">
-            영양사 : ________________ (인)
-          </div>
-        </div>
-      </div>
-    `;
-
-    setAiReport(report);
   };
 
   // PDF 다운로드 함수
@@ -394,7 +536,18 @@ const StudentManagement = () => {
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
       // 이미지를 PDF에 추가
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      let heightLeft = imgHeight;
+      let position   = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pdf.internal.pageSize.getHeight();
+
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pdf.internal.pageSize.getHeight();
+      }
 
       // 파일명 생성
       const fileName = `${selectedStudent.name}_건강기록부.pdf`;
@@ -417,7 +570,7 @@ const StudentManagement = () => {
         className="relative z-10 flex items-center justify-evenly"
         style={{ height: 'calc(100vh - 80px)', marginTop: '75px' }}
       >
-        <div className="w-[85%] mx-auto">
+        <div className="w-[90%] mx-auto">
           <div
             className="bg-[#F8F1E7] rounded-3xl shadow-lg p-0 flex flex-col overflow-hidden"
             style={{ height: '73vh' }}
@@ -425,7 +578,7 @@ const StudentManagement = () => {
             {/* 학생관리 컨텐츠 */}
             <div className="px-6 py-3 flex-grow flex flex-row gap-4 mb-1 h-full">
               {/* 좌측: 필터링 */}
-              <div className="w-full md:w-1/3 bg-transparent rounded-2xl p-6 flex flex-col">
+              <div className="w-full md:w-1/3 bg-transparent rounded-2xl p-6 flex flex-col h-full justify-between">
                 <div className="mb-2">
                   {/* 학년 선택 - 커스텀 드롭다운 */}
                   <div className="mb-4 relative" ref={gradeDropdownRef}>
@@ -534,9 +687,9 @@ const StudentManagement = () => {
                 </div>
 
                 {/* 학생 목록 - 스크롤 가능한 창 */}
-                <div className="flex-grow overflow-hidden bg-white/50 rounded-2xl px-4 py-2 h-full">
-                  <h3 className="text-base font-semibold mb-2 right-2 text-gray-700">학생 목록</h3>
-                  <div className="overflow-y-auto pr-2 h-[113px]">
+                <div className="flex-grow overflow-hidden bg-white/50 rounded-2xl px-4 py-2 flex flex-col">
+                  <h3 className="text-base font-semibold mb-3 pl-2 text-gray-700">학생 목록</h3>
+                  <div className="overflow-y-auto pr-2 flex-1">
                     {loading ? (
                       <div className="flex items-center justify-center h-full">
                         <p className="text-gray-500">데이터를 불러오는 중...</p>
@@ -561,9 +714,9 @@ const StudentManagement = () => {
                               <div className="w-10 h-10 flex-shrink-0 mr-3">
                                 <img
                                   src={`/images/student/${
-                                    student.gender === '여'
+                                    student.gender === '여자'
                                       ? 'girl.png'
-                                      : student.gender === '남'
+                                      : student.gender === '남자'
                                       ? 'boy.png'
                                       : 'blank.png'
                                   }`}
@@ -594,7 +747,7 @@ const StudentManagement = () => {
               </div>
 
               {/* 우측: 학생 상세 정보 및 AI 리포트 */}
-              <div className="flex flex-row w-full md:w-2/3 h-full items-center justify-center relative">
+              <div className="flex flex-row w-full md:w-2/3 h-full items-center justify-center">
                 {loading ? (
                   <div className="flex items-center justify-center h-full w-full">
                     <p className="text-gray-500">데이터를 불러오는 중...</p>
@@ -604,46 +757,49 @@ const StudentManagement = () => {
                     <p className="text-gray-500">학생을 선택해주세요</p>
                   </div>
                 ) : !aiReport ? (
-                  <div className="flex flex-col items-center justify-center w-full">
+                  <div className="flex flex-col items-center justify-center w-full h-full">
                     {/* 학생 정보 */}
-                    <div className="bg-white/50 rounded-2xl shadow-md p-6 text-center w-full h-[500px]">
-                      <div className="w-[180px] h-[180px] overflow-hidden mb-6 mt-2 mx-auto flex items-center justify-center">
-                        <img
-                          src={`/images/student/${
-                            selectedStudent.gender === '여'
-                              ? 'girl.png'
-                              : selectedStudent.gender === '남'
-                              ? 'boy.png'
-                              : 'blank.png'
-                          }`}
-                          alt={selectedStudent.name}
-                          className="w-full h-full object-cover rounded-full"
-                          onError={(e) => {
-                            // 이미지 로드 실패시 기본 이미지로 대체
-                            e.currentTarget.src = '/images/student/blank.png';
-                          }}
-                        />
-                      </div>
-                      <h2 className="text-2xl font-bold mb-4">이름 : {selectedStudent.name}</h2>
-                      <p className="text-xl mb-3">
-                        학번 : {selectedStudent.grade}
-                        {selectedStudent.classNum.toString().padStart(2, '0')}
-                        {selectedStudent.studentNum.toString().padStart(2, '0')}
-                      </p>
-                      <p className="text-xl mb-3">BMI : {selectedStudent.bmi || '정보 없음'}</p>
-                      <p className="text-xl mb-3">잔반율 : {selectedStudent.wasteRate || 0}%</p>
+                    <div className="bg-white/50 rounded-2xl shadow-md p-6 text-center w-full h-[95%] flex items-center justify-center">
+                      <div className="flex flex-col items-center">
+                        <div className="w-[180px] h-[180px] overflow-hidden mb-4 mx-auto flex items-center justify-center">
+                          <img
+                            src={`/images/student/${
+                              selectedStudent.gender === '여자'
+                                ? 'girl.png'
+                                : selectedStudent.gender === '남자'
+                                ? 'boy.png'
+                                : 'blank.png'
+                            }`}
+                            alt={selectedStudent.name}
+                            className="w-full h-full object-cover rounded-full"
+              
+                            onError={(e) => {
+                              // 이미지 로드 실패시 기본 이미지로 대체
+                              e.currentTarget.src = '/images/student/blank.png';
+                            }}
+                          />
+                        </div>
+                        <h2 className="text-2xl font-bold mb-4">이름 : {selectedStudent.name}</h2>
+                        <p className="text-xl mb-3">
+                          학번 : {selectedStudent.grade}
+                          {selectedStudent.classNum.toString().padStart(2, '0')}
+                          {selectedStudent.studentNum.toString().padStart(2, '0')}
+                        </p>
+                        <p className="text-xl mb-3">BMI : {selectedStudent.bmi || '정보 없음'}</p>
+                        <p className="text-xl mb-3">잔반율 : {selectedStudent.wasteRate || 0}%</p>
 
-                      <button
-                        className="mt-4 px-8 py-3 bg-[#96c059] text-white rounded-2xl hover:bg-[#7ba348] transition-colors text-base"
-                        onClick={generateAIReport}
-                      >
-                        AI 건강 리포트 생성
-                      </button>
+                        <button
+                          className="mt-4 px-8 py-3 bg-[#96c059] text-white rounded-2xl hover:bg-[#7ba348] transition-colors text-base"
+                          onClick={generateAIReport}
+                        >
+                          AI 건강 리포트 생성
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ) : (
                   /* AI 리포트 */
-                  <div className="bg-white/50 rounded-2xl shadow-md p-8 w-full h-[495px]">
+                  <div className="bg-white/50 rounded-2xl shadow-md p-8 w-full h-[95%]">
                     <div className="flex justify-between items-center mb-6">
                       <h2 className="text-2xl font-bold">AI 건강 리포트</h2>
                       <button

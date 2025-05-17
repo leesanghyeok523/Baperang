@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 import com.ssafy.baperang.global.jwt.JwtService;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -45,12 +46,23 @@ public class HealthReportServiceImpl implements HealthReportService{
 
     private final DecimalFormat df = new DecimalFormat("#.##", new DecimalFormatSymbols(Locale.US));
 
-    private static final String AI_SERVER_URL = "http://127.0.0.1:8001/ai/health-report";
+    @Value("${AI_SERVER_BASE_URL}")
+    private String aiServerBaseUrl;
+
+    private static final String HEALTH_REPORT_ENDPOINT = "/ai/health-report";
+
 
     // nutrient 테이블의 PK 매핑
-    private static final Long CARBO_NUTRIENT_ID = 2L;     // 탄수화물 (g)
-    private static final Long PROTEIN_NUTRIENT_ID = 5L;   // 단백질 (g)
-    private static final Long FAT_NUTRIENT_ID = 4L;       // 지방 (g)
+    private static final String CARBO_NUTRIENT_NAME = "탄수화물";     // 탄수화물 (g)
+    private static final String PROTEIN_NUTRIENT_NAME = "단백질";   // 단백질 (g)
+    private static final String FAT_NUTRIENT_NAME = "지방";       // 지방 (g)
+
+    private static final Map<String, String> NUTRIENT_NAME_TO_FIELD = new HashMap<>();
+    static {
+        NUTRIENT_NAME_TO_FIELD.put(CARBO_NUTRIENT_NAME, "carbo");
+        NUTRIENT_NAME_TO_FIELD.put(PROTEIN_NUTRIENT_NAME, "protein");
+        NUTRIENT_NAME_TO_FIELD.put(FAT_NUTRIENT_NAME, "fat");
+    }
 
     @Override
     @Transactional
@@ -73,16 +85,19 @@ public class HealthReportServiceImpl implements HealthReportService{
                 return ErrorResponseDto.of(BaperangErrorCode.STUDENT_NOT_FOUND);
             }
 
-            // bmi 지수 구하기
             Student student = studentOpt.get();
+            LocalDate today = LocalDate.now();
+
+            // BMI 계산
             Float height = student.getHeight() / 100f;
             Float weight = student.getWeight();
             Float bmi = weight / (height * height);
-            log.info("학생 BMI 계산: {}", df.format(bmi));
+            String formattedBmi = df.format(bmi);
+            log.info("학생 BMI 계산: {}", formattedBmi);
 
             // 보고서 분석 기간 설정
-            LocalDate endDate = LocalDate.now();
-            LocalDate startDate = endDate.minusDays(7);
+            LocalDate endDate = LocalDate.now().minusDays(1);
+            LocalDate startDate = endDate.minusDays(6);
 
             // 기간 내 모든 날짜 생성
             List<LocalDate> allDates = new ArrayList<>();
@@ -120,41 +135,97 @@ public class HealthReportServiceImpl implements HealthReportService{
             Map<String, Map<String, String>> leftoverRankingMap = getRankings(allLeftovers);
 
             // 영양소 정보 한 번에 조회
-            List<MenuNutrient> allNutrients = menuNutrientRepository.findByMenuIdInAndNutrientIdIn(
+            List<MenuNutrient> allNutrients = menuNutrientRepository.findByMenuIdInAndNutrient_NutrientNameIn(
                     new ArrayList<>(menuIds),
-                    Arrays.asList(CARBO_NUTRIENT_ID, PROTEIN_NUTRIENT_ID, FAT_NUTRIENT_ID));
+                    Arrays.asList(CARBO_NUTRIENT_NAME, PROTEIN_NUTRIENT_NAME, FAT_NUTRIENT_NAME));
 
             // 영양소 정보 맵 생성
             Map<String, MenuNutrient> nutrientMap = allNutrients.stream()
                     .collect(Collectors.toMap(
-                            menuNutrient -> menuNutrient.getMenu().getId() + "-" + menuNutrient.getNutrient().getId(),
+                            menuNutrient -> menuNutrient.getMenu().getId() + "-" + menuNutrient.getNutrient().getNutrientName(),
                             menuNutrient -> menuNutrient,
                             (existing, replacement) -> replacement
                     ));
 
-            // 일주일간 섭취한 영양소 계산 - 최적화된 메소드 사용
-            Map<String, Map<String, Integer>> nutrientData = calcOptimizedNutrients(
+            // 일주일간 섭취한 영양소 계산 (AI 요청용)
+            Map<String, Map<String, Integer>> dailyNutrientData = calcOptimizedNutrients(
                     leftoversByDate,
                     nutrientMap,
                     allDates);
 
-            // ai로 보낼 요청 데이터
+            // 한 주간 영양소 합계 계산
+            int weeklyCarbo = 0;
+            int weeklyProtein = 0;
+            int weeklyFat = 0;
+
+            for (Map<String, Integer> dailyNutrient : dailyNutrientData.values()) {
+                weeklyCarbo += dailyNutrient.getOrDefault("carbo", 0);
+                weeklyProtein += dailyNutrient.getOrDefault("protein", 0);
+                weeklyFat += dailyNutrient.getOrDefault("fat", 0);
+            }
+
+            // 주간 영양소 데이터 - 이것만 응답에 포함
+            Map<String, Integer> weeklyNutrient = new HashMap<>();
+            weeklyNutrient.put("carbo", weeklyCarbo);
+            weeklyNutrient.put("protein", weeklyProtein);
+            weeklyNutrient.put("fat", weeklyFat);
+
+            Map<String, Map<String, Integer>> newNutrientFormat = new TreeMap<>(dailyNutrientData);
+
+            // 최종 응답을 위한 맵 생성
+            Map<String, Object> responseMap = new HashMap<>();
+
+            // 요청 데이터 추가 (주간 영양소 합계만 포함)
+            responseMap.put("bmi", Float.parseFloat(formattedBmi));
+            responseMap.put("leftoverMost", leftoverRankingMap.get("most"));
+            responseMap.put("leftoverLeast", leftoverRankingMap.get("least"));
+            responseMap.put("nutrient", newNutrientFormat);
+
+            // 중복 체크
+            if (student.getContentDate() != null && student.getContentDate().equals(today)) {
+                log.warn("학생 ID: {}의 건강리포트가 오늘({}) 이미 생성되었습니다.", studentId, today);
+
+                try {
+                    // 저장된 리포트 내용을 파싱하여 응답에 추가
+                    HealthReportResponseDto responseDto = objectMapper.readValue(student.getContent(), HealthReportResponseDto.class);
+
+                    responseMap.put("analyzeReport", responseDto.getAnalyzeReport());
+                    responseMap.put("plan", responseDto.getPlan());
+                    responseMap.put("opinion", responseDto.getOpinion());
+                    responseMap.put("isDuplicate", true);
+
+                    return responseMap;
+                } catch (Exception e) {
+                    log.error("저장된 리포트 파싱 중 오류: {}", e.getMessage(), e);
+                    return ErrorResponseDto.of(BaperangErrorCode.INTERNAL_SERVER_ERROR);
+                }
+            }
+
+            // ai로 보낼 요청 데이터 (AI에게는 일별 데이터를 보냄)
             HealthReportRequestDto requestDto = HealthReportRequestDto.builder()
-                    .bmi(Float.parseFloat(df.format(bmi)))
+                    .bmi(Float.parseFloat(formattedBmi))
                     .leftover(categoryLeftoverMap)
                     .leftoverMost(leftoverRankingMap.get("most"))
                     .leftoverLeast(leftoverRankingMap.get("least"))
-                    .nutrient(nutrientData)
+                    .nutrient(dailyNutrientData) // AI에게는 날짜별 영양소 데이터 제공
                     .build();
 
             // AI 서버에 요청 보내기
             HealthReportResponseDto responseDto = getAiAnalysis(requestDto);
 
+            // AI 응답을 응답 맵에 추가
+            responseMap.put("analyzeReport", responseDto.getAnalyzeReport());
+            responseMap.put("plan", responseDto.getPlan());
+            responseMap.put("opinion", responseDto.getOpinion());
+
             // JSON 형태로 변환하여 저장
             String reportContent = objectMapper.writeValueAsString(responseDto);
 
             // 학생 엔티티에 리포트 내용 저장
-            return saveReport(studentId, reportContent);
+            student.updateContent(reportContent, today);
+            studentRepository.saveAndFlush(student);
+
+            return responseMap;
 
         } catch (Exception e) {
             log.error("건강 리포트 생성 중 오류 발생: {}", e.getMessage(), e);
@@ -168,6 +239,7 @@ public class HealthReportServiceImpl implements HealthReportService{
         log.info("건강 리포트 저장 시작 - 학생 ID: {}", studentId);
 
         try {
+
             Optional<Student> studentOpt = studentRepository.findById(studentId);
             if (studentOpt.isEmpty()) {
                 log.error("학생을 찾을 수 없음 - 학생 ID: {}", studentId);
@@ -342,14 +414,14 @@ public class HealthReportServiceImpl implements HealthReportService{
                     .collect(Collectors.toList());
 
             // 필요한 영양소 한번에 조회
-            List<MenuNutrient> allNutrients = menuNutrientRepository.findByMenuIdInAndNutrientIdIn(
-                    menuIds, Arrays.asList(CARBO_NUTRIENT_ID, PROTEIN_NUTRIENT_ID, FAT_NUTRIENT_ID));
+            List<MenuNutrient> allNutrients = menuNutrientRepository.findByMenuIdInAndNutrient_NutrientNameIn(
+                    menuIds, Arrays.asList(CARBO_NUTRIENT_NAME, PROTEIN_NUTRIENT_NAME, FAT_NUTRIENT_NAME));
 
             // 조회한 영양소 정보를 맵으로 변환
             // 키: "메뉴ID-영양소ID". 값: MenuNutrient
             Map<String, MenuNutrient> nutrientMap = allNutrients.stream()
                     .collect(Collectors.toMap(
-                            menuNutrient -> menuNutrient.getMenu().getId() + "-" + menuNutrient.getNutrient().getId(),
+                            menuNutrient -> menuNutrient.getMenu().getId() + "-" + menuNutrient.getNutrient().getNutrientName(),
                             menuNutrient -> menuNutrient,
                             (existing, replacement) -> replacement
                     ));
@@ -361,9 +433,9 @@ public class HealthReportServiceImpl implements HealthReportService{
                 float consumptionRate = 1 - leftoverRate; // 실제 섭취율 (1 - 0.3 = 0.7 즉 70%)
 
                 // 맵에서 각 영양소 정보 조회
-                String carboKey = menuId + "-" + CARBO_NUTRIENT_ID;
-                String proteinKey = menuId + "-" + PROTEIN_NUTRIENT_ID;
-                String fatKey = menuId + "-" + FAT_NUTRIENT_ID;
+                String carboKey = menuId + "-" + CARBO_NUTRIENT_NAME;
+                String proteinKey = menuId + "-" + PROTEIN_NUTRIENT_NAME;
+                String fatKey = menuId + "-" + FAT_NUTRIENT_NAME;
 
                 // 탄수화물 계산
                 MenuNutrient carbo = nutrientMap.get(carboKey);
@@ -418,9 +490,9 @@ public class HealthReportServiceImpl implements HealthReportService{
                 float consumptionRate = 1 - leftoverRate;
 
                 // 맵에서 영양소 정보 조회
-                String carboKey = menuId + "-" + CARBO_NUTRIENT_ID;
-                String proteinKey = menuId + "-" + PROTEIN_NUTRIENT_ID;
-                String fatKey = menuId + "-" + FAT_NUTRIENT_ID;
+                String carboKey = menuId + "-" + CARBO_NUTRIENT_NAME;
+                String proteinKey = menuId + "-" + PROTEIN_NUTRIENT_NAME;
+                String fatKey = menuId + "-" + FAT_NUTRIENT_NAME;
 
                 MenuNutrient carbo = nutrientMap.get(carboKey);
                 if (carbo != null) {
@@ -462,12 +534,19 @@ public class HealthReportServiceImpl implements HealthReportService{
         String requestBody = objectMapper.writeValueAsString(requestDto);
         HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
 
+
+
+        String aiServerUrl = aiServerBaseUrl + HEALTH_REPORT_ENDPOINT;
+        // 로컬 테스트를 위한 하드코딩 URL 사용 (주석 해제)
+        // String aiServerUrl = "http://127.0.0.1:8001/ai/health-report";
+        log.info("AI 서버 URL: {}", aiServerUrl);
+
         // RestTemplate 인스턴스를 필요할 때 생성
         RestTemplate restTemplate = new RestTemplate();
 
         // AI 서버에 요청 전송
         ResponseEntity<String> response = restTemplate.postForEntity(
-                AI_SERVER_URL, entity, String.class
+                aiServerUrl, entity, String.class
         );
 
         // 응답 처리

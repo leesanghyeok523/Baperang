@@ -25,6 +25,16 @@ public interface MenuNutrientRepository extends JpaRepository<MenuNutrient, Menu
      */
     List<MenuNutrient> findByMenu(Menu menu);
 
+    /**
+     * 여러 메뉴 ID로 영양소 정보 일괄 조회
+     * @param menuIds 메뉴 ID 목록
+     * @return 해당 메뉴들의 영양소 정보 목록
+     */
+    List<MenuNutrient> findByMenuIdIn(List<Long> menuIds);
+
     MenuNutrient findByMenuIdAndNutrientId(Long menuId, Long nutrientId);
     List<MenuNutrient> findByMenuIdInAndNutrientIdIn(List<Long> menuIds, List<Long> nutrientIds);
+
+    List<MenuNutrient> findByMenuIdInAndNutrient_NutrientNameIn(List<Long> menuIds, List<String> nutrientNames);
+    MenuNutrient findByMenuIdAndNutrient_NutrientName(Long menuId, String nutrientName);
 }

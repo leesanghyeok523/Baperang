@@ -108,7 +108,7 @@ def back_projection(
     return black_ratio, result_img, ~mask_bool
 
 # MiDaS 모델 로드 및 깊이 추정 함수
-def load_midas_model(device='cuda'):
+def load_midas_model(device='cpu'):
     """MiDaS 깊이 추정 모델 로드"""
     try:
         print("MiDaS DPT_Large 모델 로드 중...")
@@ -125,7 +125,7 @@ def load_midas_model(device='cuda'):
         print(f"MiDaS 모델 로드 중 오류 발생: {e}")
         return None, None
 
-def predict_depth(image, midas_model, midas_transform, device='cuda', roi_mask=None, slot_name=None):
+def predict_depth(image, midas_model, midas_transform, device='cpu', img_base=None):
     """MiDaS로 깊이 맵 생성 및 깊이 가중치 적용"""
     if midas_model is None or midas_transform is None:
         return None, 0, None, 0, None, None
@@ -315,7 +315,7 @@ def estimate_volume_from_depth_with_weight_old(depth_map):
     return volume_estimate, food_mask, volume_estimate, 0, z_plane, z_plane_source
 
 # ResNet 모델 로드 및 예측 함수
-def load_resnet_model(weights_path, device='cuda'):
+def load_resnet_model(weights_path, device='cpu'):
     """사전 훈련된 ResNet 모델 로드"""
     try:
         # 절대 경로로 변환
@@ -324,7 +324,7 @@ def load_resnet_model(weights_path, device='cuda'):
             print(f"가중치 파일을 찾을 수 없습니다: {abs_weights_path}")
             raise FileNotFoundError(f"가중치 파일을 찾을 수 없습니다: {abs_weights_path}")
             
-        checkpoint = torch.load(abs_weights_path, map_location=device, weights_only=False)
+        checkpoint = torch.load(abs_weights_path, map_location=device)
         model = checkpoint['model_ft']
         model.load_state_dict(checkpoint['state_dict'], strict=False)
         
@@ -349,7 +349,7 @@ def load_resnet_model(weights_path, device='cuda'):
             print(f"대체 모델 로드 실패: {e2}")
             return None
 
-def predict_resnet(image, model, device='cuda'):
+def predict_resnet(image, model, device='cpu'):
     """ResNet 모델로 음식량 예측"""
     if model is None:
         return None, None, None
@@ -707,7 +707,7 @@ def main():
     args = parser.parse_args()
     
     # 장치 설정
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cpu")
     print(f"사용 중인 장치: {device}")
     
     # 모델 로드

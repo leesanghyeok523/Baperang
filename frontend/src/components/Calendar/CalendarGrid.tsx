@@ -54,6 +54,10 @@ const CalendarGrid = ({
           const isSelected = day.type === 'current' && dateString === selectedDate;
           const dayMenus = day.type === 'current' && day.hasMenu ? menuData[dateString]?.menu : [];
 
+          // 공휴일 정보 가져오기
+          const isHoliday = day.type === 'current' && day.isHoliday;
+          const holidayName = day.holidayName || '';
+
           return (
             <div
               key={index}
@@ -72,21 +76,42 @@ const CalendarGrid = ({
               <div className="flex justify-between">
                 <span
                   className={`font-medium ${
-                    index % 7 === 0 ? 'text-red-500' : index % 7 === 6 ? 'text-blue-500' : ''
+                    day.type === 'prev' || day.type === 'next'
+                      ? index % 7 === 0
+                        ? 'text-red-500 opacity-40'
+                        : index % 7 === 6
+                        ? 'text-blue-500 opacity-40'
+                        : 'text-gray-400'
+                      : isHoliday
+                      ? 'text-red-500' // 공휴일인 경우 빨간색으로 표시
+                      : index % 7 === 0
+                      ? 'text-red-500'
+                      : index % 7 === 6
+                      ? 'text-blue-500'
+                      : ''
                   }`}
                 >
                   {day.date}
                 </span>
-                {day.type === 'current' && day.hasMenu && dayMenus && dayMenus.length > 0 && (
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                )}
+                {
+                  day.type === 'current' && day.hasMenu && dayMenus && dayMenus.length > 0
+                  // && (
+                  //   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  // )
+                }
               </div>
 
+              {/* 공휴일 정보 표시 */}
+              {day.type === 'current' && isHoliday && (
+                <div className="text-[10px] text-red-500 mt-1 overflow-hidden">{holidayName}</div>
+              )}
+
+              {/* 메뉴 정보 표시 */}
               {day.type === 'current' && day.hasMenu && dayMenus && dayMenus.length > 0 && (
-                <div className="text-[9px] mt-1 text-gray-600 overflow-hidden">
+                <div className="text-[11px] text-gray-600 overflow-hidden">
                   {dayMenus[0] && <div className="truncate">{dayMenus[0]}</div>}
                   {dayMenus.length > 1 && (
-                    <div className="text-[8px] text-gray-500">+{dayMenus.length - 1}개</div>
+                    <div className="text-[11px] text-gray-500">+{dayMenus.length - 1}개</div>
                   )}
                 </div>
               )}

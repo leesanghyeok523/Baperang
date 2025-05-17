@@ -1,6 +1,7 @@
 package com.ssafy.baperang.domain.menu.entity;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -9,8 +10,10 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import com.ssafy.baperang.domain.menunutrient.entity.MenuNutrient;
 import com.ssafy.baperang.domain.school.entity.School;
+import com.ssafy.baperang.global.converter.StringListConverter;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.FetchType;
@@ -59,8 +62,18 @@ public class Menu {
     @Column(name = "votes")
     private Integer votes;
 
+    @Column(name = "alternatives", columnDefinition = "json")
+    @Convert(converter = StringListConverter.class)
+    private List<String> alternatives;
+
+    // Custom getter for alternatives to ensure it's never null
+    public List<String> getAlternatives() {
+        return alternatives != null ? alternatives : new ArrayList<>();
+    }
+
     @Builder
-    public Menu(School school, LocalDate menuDate, String menuName, String category, Integer amount, Float favorite, Integer votes) {
+    public Menu(School school, LocalDate menuDate, String menuName, String category, 
+    Integer amount, Float favorite, Integer votes, List<String> alternatives) {
         this.school = school;
         this.menuDate = menuDate;
         this.menuName = menuName;
@@ -68,6 +81,7 @@ public class Menu {
         this.amount = amount != null ? amount : 0;
         this.favorite = favorite != null ? favorite : 0.0f;
         this.votes = votes != null ? votes : 0;
+        this.alternatives = alternatives != null ? alternatives : new ArrayList<>();
     }
 
     // 메뉴 내용이 변경될 경우 사용
@@ -81,6 +95,10 @@ public class Menu {
    }
 
     public void updateAmount(Integer amount) {this.amount = amount;}
+
+    public void updateAlternatives(List<String> alternatives) {
+        this.alternatives = alternatives != null ? alternatives : new ArrayList<>();
+    }
     
     /**
      * 만족도 투표 추가 메서드

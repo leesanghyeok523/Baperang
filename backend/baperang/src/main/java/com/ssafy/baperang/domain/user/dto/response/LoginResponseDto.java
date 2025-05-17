@@ -1,9 +1,6 @@
 package com.ssafy.baperang.domain.user.dto.response;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 @Getter
 public class LoginResponseDto {

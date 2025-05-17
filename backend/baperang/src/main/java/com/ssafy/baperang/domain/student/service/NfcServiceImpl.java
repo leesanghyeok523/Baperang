@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.beans.factory.annotation.Value;
 
 
 import java.time.LocalDate;
@@ -32,6 +33,11 @@ public class NfcServiceImpl implements NfcService {
     private final StudentRepository studentRepository;
     private final ObjectMapper objectMapper;
     private final LeftoverService leftoverService;
+
+    @Value("${AI_SERVER_BASE_URL}")
+    private String aiServerBaseUrl;
+
+    private static final String ANALYZE_LEFTOVER_ENDPOINT = "/ai/analyze-leftover";
 
     @Override
     @Transactional(readOnly = true)
@@ -157,6 +163,18 @@ public class NfcServiceImpl implements NfcService {
 
             Student student = studentOpt.get();
 
+            LocalDate today = LocalDate.now();
+
+            LocalDate studentDate = student.getImageDate();
+            boolean dateMatches = (studentDate != null && studentDate.equals(today));
+
+            if (dateMatches) {
+                log.warn("이미 오늘({}) 식전 이미지가 저장되어 있습니다. 학생={}", today, student.getStudentName());
+                return;
+            }
+
+            log.info("날짜 검증: DB 날짜={}, 오늘 날짜={}, 일치 여부={}", studentDate, today, dateMatches);
+
             // json 형식으로 url 변환
             String jsonUrls;
             try {
@@ -172,15 +190,6 @@ public class NfcServiceImpl implements NfcService {
                 log.info("URL {}: {}", key, url);
             });
 
-            // 현재 날짜
-            LocalDate today = LocalDate.now();
-
-            // 날짜 검증 - DB 날짜와 오늘 날짜 비교
-            LocalDate studentDate = student.getImageDate();
-            boolean dateMatches = (studentDate != null && studentDate.equals(today));
-
-            log.info("날짜 검증: DB 날짜={}, 오늘 날짜={}, 일치 여부={}",
-                    studentDate, today, dateMatches);
 
             // student 엔티티의 updateImage 메서드 사용
             student.updateImageDirectly(jsonUrls);
@@ -252,7 +261,8 @@ public class NfcServiceImpl implements NfcService {
             // AI 서버로 url 전송
             try {
 
-                String aiServerUrl = "http://127.0.0.1:8001/ai/analyze-leftover";
+
+                String aiServerUrl = aiServerBaseUrl + ANALYZE_LEFTOVER_ENDPOINT;
 
                 Map<String, Object> requestBody = new HashMap<>();
 
@@ -278,7 +288,7 @@ public class NfcServiceImpl implements NfcService {
                 HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestBody, headers);
 
                 // AI 서버에 POST 요청 보내기
-                log.info("AI 서버로 이미지 url 전송: {}", objectMapper.writeValueAsString(requestBody));
+                log.info("AI 서버로 이미지 url 전송: {}", objectMapper.writeValueAsString(requestBody), aiServerUrl);
 
                 RestTemplate restTemplate = new RestTemplate();
                 ResponseEntity<String> responseEntity = restTemplate.postForEntity(

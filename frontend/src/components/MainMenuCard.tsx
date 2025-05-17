@@ -1,14 +1,7 @@
 import { FiChevronLeft, FiChevronRight, FiCalendar } from 'react-icons/fi';
 import Card, { CardHeader, CardBody } from './ui/Card';
 import { useNavigate } from 'react-router-dom';
-
-export interface MenuCardProps {
-  menuItems: string[];
-  currentDate: Date;
-  onPrevDay: () => void;
-  onNextDay: () => void;
-  loading?: boolean;
-}
+import { MenuCardProps } from '../types/types';
 
 const MenuCard: React.FC<MenuCardProps> = ({
   menuItems,
@@ -16,6 +9,7 @@ const MenuCard: React.FC<MenuCardProps> = ({
   onPrevDay,
   onNextDay,
   loading = false,
+  onMenuSelect,
 }) => {
   const navigate = useNavigate();
 
@@ -34,9 +28,15 @@ const MenuCard: React.FC<MenuCardProps> = ({
     navigate('/calendar');
   };
 
+  const handleMenuItemClick = (item: string) => {
+    if (onMenuSelect && item !== '메뉴 정보가 없습니다') {
+      onMenuSelect(item);
+    }
+  };
+
   return (
-    <Card>
-      <CardHeader>
+    <Card className="h-full flex flex-col">
+      <CardHeader className="flex-shrink-0">
         <button
           onClick={onPrevDay}
           className="text-gray-600 hover:text-gray-900 focus:outline-none"
@@ -56,23 +56,34 @@ const MenuCard: React.FC<MenuCardProps> = ({
           <FiChevronRight size={30} />
         </button>
       </CardHeader>
-      <CardBody>
-        <div className="flex flex-col items-center justify-center h-full py-2">
+      <CardBody className="p-2 md:p-4 flex-grow overflow-hidden">
+        <div className="h-full flex flex-col items-center justify-center">
           {loading ? (
-            <div className="text-center">
-              <p className="text-xl font-medium text-gray-600">데이터를 불러오는 중...</p>
+            <div className="text-center w-full">
+              <p className="text-sm font-medium text-gray-600">데이터를 불러오는 중...</p>
             </div>
           ) : menuItems.length > 0 ? (
-            <div className="w-full space-y-3 overflow-y-auto max-h-[calc(100vh-220px)]">
-              {menuItems.map((item, index) => (
-                <div key={index} className="text-center p-1 rounded-lg bg-transparent">
-                  <p className="text-lg font-medium text-gray-800">{item}</p>
-                </div>
-              ))}
+            <div
+              className="w-full overflow-y-auto flex justify-center"
+              style={{ maxHeight: '100%' }}
+            >
+              <div className="pr-2 w-full max-w-[95%]">
+                {menuItems.map((item, index) => (
+                  <div
+                    key={index}
+                    className="text-center p-3 rounded-xl bg-transparent hover:bg-white/60 cursor-pointer mx-auto"
+                    onClick={() => handleMenuItemClick(item)}
+                  >
+                    <p className="text-base font-medium text-gray-800 break-words">{item}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           ) : (
-            <div className="text-center">
-              <p className="text-xl font-medium text-gray-200">오늘의 메뉴가 없습니다</p>
+            <div className="text-center w-full">
+              <p className="text-xl font-medium text-gray-200 cursor-not-allowed">
+                오늘의 메뉴가 없습니다
+              </p>
             </div>
           )}
         </div>

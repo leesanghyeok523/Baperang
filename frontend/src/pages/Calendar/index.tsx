@@ -110,8 +110,39 @@ const Calendar = () => {
   // 월간 잔반률 데이터 상태 추가
   const [monthlyWasteData, setMonthlyWasteData] = useState<DailyWasteRate[]>([]);
 
+  const { accessToken } = useAuthStore();
+
   // 화면에 표시할 년월 문자열
   const displayYearMonth = `${selectedYear}년 ${selectedMonth + 1}월`;
+
+  // 현재 선택된 달이 미래인지 확인
+  const isFutureMonth = () => {
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth();
+
+    // 선택된 연도가 현재 연도보다 크거나,
+    // 같은 연도이지만 선택된 월이 현재 월보다 큰 경우 미래로 간주
+    return (
+      selectedYear > currentYear || (selectedYear === currentYear && selectedMonth > currentMonth)
+    );
+  };
+
+  // 현재 날짜 기준 다음 달인지 확인
+  const isNextMonth = () => {
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth();
+
+    // 현재 달의 다음 달인 경우를 확인
+    if (currentMonth === 11) {
+      // 현재 12월인 경우 다음 달은 다음 해 1월
+      return selectedYear === currentYear + 1 && selectedMonth === 0;
+    } else {
+      // 그 외 경우는 같은 해의 다음 달
+      return selectedYear === currentYear && selectedMonth === currentMonth + 1;
+    }
+  };
 
   // 월 이동 함수
   const goToPrevMonth = () => {
@@ -136,13 +167,22 @@ const Calendar = () => {
     setSelectedDayWaste(null);
   };
 
+  // 식단 생성 후 강제로 데이터를 새로고침하기 위한 상태
+  const [isForceUpdate, setIsForceUpdate] = useState(false);
+
   // API에서 메뉴 데이터 가져오기
   const fetchMenuData = async () => {
     try {
       setLoading(true);
-      const { accessToken } = useAuthStore.getState();
 
-      console.log('fetchMenuData 호출됨', { year: selectedYear, month: selectedMonth + 1 });
+      console.log('fetchMenuData 호출됨', {
+        year: selectedYear,
+        month: selectedMonth + 1,
+        isFutureMonth: isFutureMonth(),
+        isForceUpdate,
+      });
+
+      // 미래 달 여부와 상관없이 항상 메뉴 데이터 조회
 
       if (!accessToken) {
         console.error('인증 토큰이 없습니다. 로그인이 필요합니다.');
@@ -200,11 +240,14 @@ const Calendar = () => {
 
           // 잔반률 데이터는 별도 API에서 가져오므로 빈 배열로 초기화
           newMenuData[dayData.date] = {
+            menuId: 0, // 임시 ID 추가
+            menuName: allMenuItems.join(', '), // 메뉴 이름 문자열로 변환
             date: `${parseInt(dayData.date.split('-')[1])}월 ${parseInt(
               dayData.date.split('-')[2]
             )}일`,
             menu: allMenuItems,
             wasteData: [],
+            holiday: dayData.holiday, // 공휴일 정보 추가
           };
         }
       });
@@ -213,6 +256,10 @@ const Calendar = () => {
       console.log('메뉴 데이터 키:', Object.keys(newMenuData));
 
       setMenuData(newMenuData);
+      // 강제 업데이트 후 플래그 초기화
+      if (isForceUpdate) {
+        setIsForceUpdate(false);
+      }
     } catch (error) {
       console.error('메뉴 데이터 가져오기 오류:', error);
       // 에러 상세 정보 출력
@@ -223,6 +270,10 @@ const Calendar = () => {
           data: error.response?.data,
         });
       }
+      // 강제 업데이트 후 플래그 초기화
+      if (isForceUpdate) {
+        setIsForceUpdate(false);
+      }
     } finally {
       setLoading(false);
     }
@@ -231,8 +282,6 @@ const Calendar = () => {
   // API에서 월간 잔반률 데이터 가져오기
   const fetchMonthlyWasteData = async (): Promise<DailyWasteRate[]> => {
     try {
-      const { accessToken } = useAuthStore.getState();
-
       if (!accessToken) {
         console.error('인증 토큰이 없습니다. 로그인이 필요합니다.');
         return [];
@@ -331,8 +380,6 @@ const Calendar = () => {
   // 반찬별 잔반률 데이터 조회
   const getDishWasteData = async (dateString: string): Promise<DishWasteRate[]> => {
     try {
-      const { accessToken } = useAuthStore.getState();
-
       if (!accessToken) {
         console.error('인증 토큰이 없습니다. 로그인이 필요합니다.');
         return [{ name: '로그인이 필요합니다', 잔반률: 0 }];
@@ -416,6 +463,18 @@ const Calendar = () => {
     }
   };
 
+  // 메뉴 데이터 새로고침 (식단 생성 후 호출될 콜백)
+  const refreshMenuData = () => {
+    // 현재 선택된 달에서 강제 업데이트 수행
+    console.log('메뉴 데이터 새로고침', { selectedYear, selectedMonth });
+
+    // 강제 업데이트 플래그 설정
+    setIsForceUpdate(true);
+
+    // 바로 데이터 다시 가져오기 (지연 없이)
+    fetchMenuData();
+  };
+
   return (
     <div className="min-h-screen w-full overflow-hidden relative">
       {/* 배경 이미지 */}
@@ -426,7 +485,7 @@ const Calendar = () => {
         className="relative z-10 flex items-center justify-evenly"
         style={{ height: 'calc(100vh - 80px)', marginTop: '75px' }}
       >
-        <div className="w-[85%] mx-auto">
+        <div className="w-[90%] mx-auto">
           <div
             className="bg-[#F8F1E7] rounded-3xl shadow-lg p-0 flex flex-col overflow-hidden"
             style={{ height: '73vh' }}
@@ -439,11 +498,46 @@ const Calendar = () => {
               goToNextMonth={goToNextMonth}
               toggleView={toggleView}
               handleExcelDownload={handleExcelDownload}
+              isFutureMonth={isFutureMonth()}
+              isNextMonth={isNextMonth()}
+              token={accessToken || undefined}
+              selectedYear={selectedYear}
+              selectedMonth={selectedMonth}
+              hasMenu={
+                // 해당 월에 메뉴가 있는지 확인 (연도와 월이 일치하는 날짜 찾기)
+                Object.keys(menuData).some((dateStr) => {
+                  const date = new Date(dateStr);
+                  return date.getFullYear() === selectedYear && date.getMonth() === selectedMonth;
+                })
+              }
+              updateMenuData={(data) => {
+                // 각 날짜별로 데이터를 처리하여 MenuDataType 형식으로 변환
+                const processedData: MenuDataType = {};
+
+                Object.keys(data).forEach((date) => {
+                  if (date && data[date].menu) {
+                    processedData[date] = {
+                      menuId: 0, // 임시 ID 추가
+                      menuName: data[date].menu.join(', '), // 메뉴 이름 문자열로 변환
+                      date:
+                        data[date].date ||
+                        `${parseInt(date.split('-')[1])}월 ${parseInt(date.split('-')[2])}일`,
+                      menu: data[date].menu,
+                      wasteData: data[date].wasteData || [],
+                      holiday: data[date].holiday || [],
+                    };
+                  }
+                });
+
+                setMenuData((current) => ({ ...current, ...processedData }));
+                console.log('메뉴 데이터 업데이트됨:', processedData);
+              }}
+              onMenuGenerated={refreshMenuData}
             />
 
             {loading ? (
               <div className="flex-grow flex items-center justify-center">
-                <p className="text-lg">데이터를 불러오는 중입니다...</p>
+                <p className="text-sm">데이터를 불러오는 중입니다...</p>
               </div>
             ) : showWasteChart ? (
               // 월간 잔반률 차트 뷰
@@ -460,7 +554,7 @@ const Calendar = () => {
               </div>
             ) : (
               // 달력 뷰
-              <div className="px-6 py-3 flex-grow flex flex-row gap-4 mb-1 overflow-hidden">
+              <div className="px-6 py-3 flex-grow flex flex-row gap-4 mb-1 overflow-hidden w-[100%]">
                 {/* 달력 그리드 */}
                 <CalendarGrid
                   days={days}

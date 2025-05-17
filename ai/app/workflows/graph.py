@@ -2,7 +2,7 @@
 import asyncio
 import time, json
 
-from typing import Dict, List, Any
+from typing import Dict, Any
 
 from .agents import WastePlanAgent, NutritionPlanAgent, IntegrationAgent
 from ..config import settings
@@ -12,12 +12,11 @@ class MenuPlanningWorkflow:
 
     def __init__(self):
         """워크플로우 초기화"""
-        # 에이전트 초기화
         self.waste_agent = WastePlanAgent()
         self.nutrition_agent = NutritionPlanAgent()
         self.integration_agent = IntegrationAgent()
     
-    async def run_workflow(self, init_state: Dict[str, Any]) -> Dict[str, Any]:
+    async def run_workflow(self, init_state: Dict[str, Any], holidays: Dict[str, Any]) -> Dict[str, Any]:
         """
         워크플로우 실행
 
@@ -35,8 +34,10 @@ class MenuPlanningWorkflow:
                 print(f"[WORKFLOW] Menu pool contains {total_menus} menus in {len(init_state['menu_pool'])} categories")
         
         # 1. 병렬로 잔반율 기반 식단과 영양소 기반 식단 생성
-        waste_task = asyncio.create_task(self.waste_agent.process(init_state))
-        nutrition_task = asyncio.create_task(self.nutrition_agent.process(init_state))
+        waste_task = asyncio.create_task(self.waste_agent.process(init_state, holidays))
+        nutrition_task = asyncio.create_task(self.nutrition_agent.process(init_state, holidays))
+        waste_task = asyncio.create_task(self.waste_agent.process(init_state, holidays))
+        nutrition_task = asyncio.create_task(self.nutrition_agent.process(init_state, holidays))
 
         if settings.DEBUG:
             print(f"[WORKFLOW] Starting parallel execution of waste and nutrition agents")
@@ -44,9 +45,6 @@ class MenuPlanningWorkflow:
 
         # 병렬 실행 대기
         waste_result, nutrition_result = await asyncio.gather(waste_task, nutrition_task)
-
-        print(waste_result)
-        print(nutrition_result)
 
         # 결과 출력 (디버깅용)
         if settings.DEBUG:
@@ -71,14 +69,13 @@ class MenuPlanningWorkflow:
             print(f"[WORKFLOW] Intermediate state after agents : {state.keys()}")
         
         # 3. 통합 에이전트 실행
-        final_result = await self.integration_agent.process(state)
-
-        print(f"final_reuslt: {final_result}")
+        final_result = await self.integration_agent.process(state, holidays)
+        
+        if settings.DEBUG:
+            print(f"final_reuslt: {final_result}")
 
         # 4. 최종 상태 업데이트
         state.update(final_result)
-
-        print(f"state: {state}")
 
         # 디버그 로그
         if settings.DEBUG:

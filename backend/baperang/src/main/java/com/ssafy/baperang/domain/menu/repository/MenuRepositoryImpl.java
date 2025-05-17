@@ -5,11 +5,11 @@ import java.util.Collection;
 import java.util.List;
 
 import org.springframework.stereotype.Repository;
-import lombok.RequiredArgsConstructor;
 
 import com.ssafy.baperang.domain.menu.entity.Menu;
 import com.ssafy.baperang.domain.school.entity.School;
-import com.ssafy.baperang.domain.menu.repository.MenuJpaRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Repository
 @RequiredArgsConstructor
@@ -22,6 +22,10 @@ public class MenuRepositoryImpl implements MenuRepository {
         return menuJpaRepository.saveAndFlush(menu);
     }
 
+    @Override
+    public List<Menu> saveAll(List<Menu> menus) {
+        return menuJpaRepository.saveAll(menus);
+    }
 
     @Override
     public List<Menu> findByMenuDate(LocalDate menuDate) {
@@ -61,5 +65,10 @@ public class MenuRepositoryImpl implements MenuRepository {
     @Override
     public List<Menu> findAllByIdIn(Collection<Long> menuIds) {
         return menuJpaRepository.findAllByIdIn(menuIds);
+    }
+    
+    @Override
+    public List<Menu> findBySchoolAndMenuName(School school, String menuName) {
+        return menuJpaRepository.findBySchoolAndMenuName(school, menuName);
     }
 }

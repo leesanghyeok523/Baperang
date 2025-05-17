@@ -1,8 +1,5 @@
 import React, { useState, useEffect } from 'react';
-
-interface MealCompletionRateProps {
-  completionRate: number; // 0-100 사이의 값
-}
+import { MealCompletionRateProps } from '../types/types';
 
 const MealCompletionRate: React.FC<MealCompletionRateProps> = ({ completionRate }) => {
   // 완료율이 범위를 벗어나지 않도록 보정
@@ -43,13 +40,13 @@ const MealCompletionRate: React.FC<MealCompletionRateProps> = ({ completionRate 
 
   return (
     <div className="flex flex-col items-center justify-center h-full">
-      <div className="relative w-[450px] h-[450px]">
+      <div className="relative object-contain h-full">
         {/* 식판 이미지 */}
-        <img src="/images/items/dish.png" alt="식판" className="w-full h-full object-contain" />
+        <img src="/images/items/dish.png" alt="식판" className=" w-full h-full" />
 
         {/* 채워지는 부분 (오버레이) */}
         <div
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-[99%] h-[95%] bg-[#FF8A8A] opacity-70 rounded-bl-3xl rounded-br-3xl"
+          className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[99%] h-[100%] rounded-3xl bg-[#FF8A8A] opacity-70"
           style={{
             clipPath: `inset(${100 - animatedRate}% 0 0 0)`,
             transition: 'clip-path 0.2s ease-out',

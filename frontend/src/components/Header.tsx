@@ -1,16 +1,13 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-
-interface HeaderProps {
-  isLoggedIn: boolean;
-}
+import { HeaderProps } from '../types/types';
 
 const Header = ({ isLoggedIn }: HeaderProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <header className="bg-transparent py-8 fixed left-0 right-0 z-50 w-full">
-      <div className="flex justify-between items-center w-[89%] mx-auto">
+    <header className="bg-transparent py-8 fixed top-4 left-0 right-0 z-50 w-full">
+      <div className="flex justify-between items-center w-[94%] mx-auto">
         <div className="flex items-center">
           {/* 로고 이미지와 텍스트 */}
           <Link to="/" className="flex items-center">
@@ -45,8 +42,8 @@ const Header = ({ isLoggedIn }: HeaderProps) => {
         <div className="hidden md:flex md:items-center mr-4 md:mr-8 text-2xl">
           {isLoggedIn && (
             <nav className="flex space-x-8">
-              <Link to="/diet" className="text-gray-700 hover:text-gray-900 font-bold ">
-                식단생성
+              <Link to="/calendar" className="text-gray-700 hover:text-gray-900 font-bold ">
+                식단관리
               </Link>
               <Link to="/student" className="text-gray-700 hover:text-gray-900 font-bold">
                 학생관리
@@ -71,11 +68,11 @@ const Header = ({ isLoggedIn }: HeaderProps) => {
           {isLoggedIn ? (
             <nav className="flex flex-col space-y-4">
               <Link
-                to="/diet"
+                to="/calendar"
                 className="text-gray-700 hover:text-gray-900 font-bold px-4 py-2"
                 onClick={() => setIsOpen(false)}
               >
-                식단생성
+                식단관리
               </Link>
               <Link
                 to="/student"

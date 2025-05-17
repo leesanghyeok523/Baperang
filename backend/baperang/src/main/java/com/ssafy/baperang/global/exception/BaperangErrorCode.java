@@ -48,6 +48,9 @@ public enum BaperangErrorCode {
     // 메뉴관련
     MENU_NOT_FOUND(404, "M001", "메뉴를 찾을 수 없습니다."),
 
+    // 재고 관련
+    RESOURCE_NOT_FOUND( 404, "R001", "요청한 리소스를 찾을 수 없습니다."),
+
     // 친구 관련 에러
     FRIEND_NOT_FOUND(404, "F001", "존재하지 않는 친구 요청입니다."),
     DUPLICATE_FRIEND_REQUEST(409, "F002", "이미 친구 요청을 보냈거나 친구 상태입니다."),
@@ -67,6 +70,7 @@ public enum BaperangErrorCode {
     AI_SERVER_ERROR(500, "AI002", "AI 서버와 통신 중 오류가 발생했습니다."),
     AI_SERVER_CONNECTION_ERROR(500, "AI003", "AI 서버 연결 오류가 발생했습니다."),
     AI_SERVER_RESPONSE_ERROR(500, "AI004", "AI 서버 응답 처리 중 오류가 발생했습니다.");
+
 
 
     private final int status;

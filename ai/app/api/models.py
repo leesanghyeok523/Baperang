@@ -1,12 +1,12 @@
 from pydantic import BaseModel, Field, RootModel
 from typing import List, Dict, Any, Optional
-from datetime import date
 
 # 식단 생성 요청 To LLM
 class PlanRequest(BaseModel):
     """Spring에서 전달받는 식단 생성 요청"""
     menuData: Dict[str, Dict[str, Dict[str, Any]]]  # {날짜: {메뉴명: {잔반율, 선호도, 영양소:{}}}}
     menuPool: Optional[Dict[str, Any]] = None # 사용 가능한 메뉴 목록
+    holidays: Dict[str, Any] # {날짜: 공휴일}
 
 class MenuOption(BaseModel):
     """카테고리별 메뉴 옵션"""
@@ -31,7 +31,6 @@ class PlanResponse(BaseModel):
     """FastAPI에서 Spring으로 보내는 응답"""
     # 날짜별 메뉴 리스트
     plan: Dict[str, Dict[str, MenuInfo]] # {날짜: {메뉴명: 카테고리, 대체 메뉴}}
-    # metrics: Optional[Dict[str, Any]] = None # 평균 선호도, 평균 잔반율, 영양 균형, 메뉴 다양성 등 참고 자료
 
 # 학생 정보 모델
 class StudentInfo(BaseModel):
@@ -39,7 +38,6 @@ class StudentInfo(BaseModel):
     id: int
     name: str
     grade: int
-    
     class_num: int = Field(..., alias="class")
     number: int
 

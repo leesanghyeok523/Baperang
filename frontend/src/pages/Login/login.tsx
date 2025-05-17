@@ -4,16 +4,17 @@ import { useNavigate, Link } from 'react-router-dom';
 import Button from '../../components/ui/button';
 import InputCard from '../../components/ui/inputcard';
 import useAuth from '../../hooks/useAuth';
+import { showErrorAlert } from '../../utils/sweetalert';
+import { LoginPageFormData } from '../../types/types';
 
 const LoginPage: React.FC = () => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<LoginPageFormData>({
     loginId: '',
     password: '',
   });
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { handleLogin, error: authError } = useAuth();
+  const { handleLogin, error: authError, isLoading } = useAuth();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -32,27 +33,33 @@ const LoginPage: React.FC = () => {
       return;
     }
 
-    setIsLoading(true);
     try {
       await handleLogin(formData);
       // 에러가 없다면 useAuth 내부에서 자동으로 리다이렉트됨
     } catch (error) {
       console.error('로그인 오류:', error);
-      setError('로그인 중 오류가 발생했습니다. 다시 시도해주세요.');
-    } finally {
-      setIsLoading(false);
+
+      // 에러 메시지 추출
+      let errorMessage = '로그인 중 오류가 발생했습니다. 다시 시도해주세요.';
+
+      if (error instanceof Error) {
+        errorMessage = error.message || '로그인 실패. 아이디 또는 비밀번호를 확인해주세요.';
+      }
+
+      setError(errorMessage);
+      showErrorAlert('로그인 오류', errorMessage);
     }
   };
 
   return (
     <div
-      className="
+      className={`
         min-h-screen
         flex items-center justify-center
         bg-login
         bg-cover
         bg-center
-      "
+      `}
     >
       <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-6">
         <div className="h-28 bg-logo bg-contain bg-no-repeat bg-center"></div>
