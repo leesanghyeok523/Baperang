@@ -20,3 +20,6 @@ export const defaultWasteData: WasteData[] = [];
 
 // 기본 메뉴 (날짜에 맞는 메뉴가 없을 경우)
 export const defaultMenu: string[] = ['메뉴 정보가 없습니다'];
+
+// WasteData 타입을 재내보내기
+export type { WasteData } from '../types/types';
