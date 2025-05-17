@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     API_TITLE: str = "AI system"
     API_VERSION: str = "0.0.1"
 
-    # 로깅 설정 -> DEBUG 면 로그에 민감한 것 설정
+    # 로깅 설정
     DEBUG: bool = os.getenv("DEBUG", "False")
 
     # LLM 캐싱
