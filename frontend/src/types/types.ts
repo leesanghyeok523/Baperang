@@ -80,9 +80,14 @@ export interface Menu {
   category: string;
 }
 
+// MenuItem 타입 통합 (중복 정의 해결)
 export interface MenuItem {
   menuId: number;
   menuName: string;
+  date?: string;
+  menu?: string[];
+  wasteData?: WasteData[];
+  holiday?: string[];
 }
 
 export interface DayMenuData {
@@ -279,14 +284,5 @@ export interface SSEMessageEvent extends Event {
 
 // 기타
 export const parseMenuName = (menuName: string): string[] => {
-  // <br/>, <br>, <BR/>, <BR> 등 다양한 형태의 br 태그 처리
-  const regex = /<br\s*\/?>/gi;
-  return menuName.split(regex).filter((item) => item.trim() !== '');
+  return menuName.split(',').map((item) => item.trim());
 };
-
-// 날짜별 식단 데이터 타입 정의
-export interface MenuItem {
-  date: string;
-  menu: string[];
-  wasteData?: WasteData[]; // 해당 날짜의 잔반률 데이터
-}

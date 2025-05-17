@@ -357,16 +357,13 @@ const MenuDetail = ({ selectedDate, menuData, onMenuUpdate }: MenuDetailProps) =
               </div>
             ) : (
               // 영양소 정보 목록 - 현재/과거 달인 경우
-              <div
-                className="overflow-y-auto mb-2"
-                style={{ maxHeight: '83px', minHeight: '50px' }}
-              >
+              <div className="overflow-y-auto" style={{ maxHeight: '83px', minHeight: '50px' }}>
                 {Object.keys(nutritionData).length > 0 ? (
                   <div className="grid gap-1">
                     {Object.entries(nutritionData).map(([name, value], idx) => (
                       <div
                         key={idx}
-                        className="flex justify-between items-center py-1 px-2 bg-gray-100 rounded-lg text-xs"
+                        className="w-[98%] flex justify-between items-center py-1 px-2 bg-gray-100 rounded-lg text-xs"
                       >
                         <span className="text-gray-700 truncate mr-2">{name}</span>
                         <span className="text-gray-700 whitespace-nowrap">{value}</span>
