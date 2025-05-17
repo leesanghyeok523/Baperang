@@ -36,18 +36,26 @@ public class Inventory {
     @Column(name = "order_quantity", nullable = false)
     private Integer orderQuantity;
 
+    @Column(name = "order_unit", nullable = false, length = 20)
+    private String orderUnit;
+
     @Column(name = "use_quantity", nullable = false)
     private Integer useQuantity;
 
+    @Column(name = "use_unit", nullable = false, length = 20)
+    private String useUnit;
+
     @Builder
     public Inventory(LocalDate inventoryDate, String productName, String vendor, Integer price,
-                     Integer orderQuantity, Integer useQuantity) {
+                     Integer orderQuantity, String orderUnit, Integer useQuantity, String useUnit) {
         this.inventoryDate = inventoryDate;
         this.productName = productName;
         this.vendor = vendor;
         this.price = price;
         this.orderQuantity = orderQuantity;
+        this.orderUnit = orderUnit;
         this.useQuantity = useQuantity;
+        this.useUnit = useUnit;
     }
 
     public void updateInventoryDate(LocalDate inventoryDate) {
@@ -70,7 +78,15 @@ public class Inventory {
         this.orderQuantity = orderQuantity;
     }
 
+    public void updateOrderUnit(String orderUnit) {
+        this.orderUnit = orderUnit;
+    }
+
     public void updateUseQuantity(Integer useQuantity) {
         this.useQuantity = useQuantity;
+    }
+
+    public void updateUseUnit(String useUnit) {
+        this.useUnit = useUnit;
     }
 }

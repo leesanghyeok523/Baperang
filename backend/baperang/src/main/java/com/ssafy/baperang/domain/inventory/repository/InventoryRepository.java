@@ -11,5 +11,7 @@ public interface InventoryRepository {
     Inventory saveAndFlush(Inventory inventory);
     Optional<Inventory> findById(Long id);
     List<Inventory> findByYearAndMonth(int year, int month);
-    void deleteById(Long Id);
+    void deleteById(Long Id);    List<Inventory> findByProductNameAndOrderUnit(String productName, String orderUnit);
+    List<Inventory> findByOrderUnit(String orderUnit);
+    List<Inventory> findByYearMonthAndUnit(int year, int month, String unit);
 }

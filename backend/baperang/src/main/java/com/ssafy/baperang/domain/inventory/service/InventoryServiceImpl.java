@@ -52,6 +52,11 @@ public class InventoryServiceImpl implements InventoryService {
                 return ErrorResponseDto.of(BaperangErrorCode.INVALID_INPUT_VALUE);
             }
 
+            if (requestDto.getOrderUnit() == null || requestDto.getUseUnit() == null) {
+                log.error("주문 단위 또는 사용 단위가 제공되지 않았습니다");
+                return ErrorResponseDto.of(BaperangErrorCode.INVALID_INPUT_VALUE);
+            }
+
             // 엔티티 생성 및 저장
             Inventory inventory = Inventory.builder()
                     .inventoryDate(requestDto.getInventoryDate())
@@ -59,7 +64,9 @@ public class InventoryServiceImpl implements InventoryService {
                     .vendor(requestDto.getVendor())
                     .price(requestDto.getPrice())
                     .orderQuantity(requestDto.getOrderQuantity())
+                    .orderUnit(requestDto.getOrderUnit())
                     .useQuantity(requestDto.getUseQuantity())
+                    .useUnit(requestDto.getUseUnit())
                     .build();
 
             Inventory savedInventory = inventoryRepository.saveAndFlush(inventory);
@@ -127,7 +134,9 @@ public class InventoryServiceImpl implements InventoryService {
                 .vendor(inventory.getVendor())
                 .price(inventory.getPrice())
                 .orderQuantity(inventory.getOrderQuantity())
+                .orderUnit(inventory.getOrderUnit())
                 .useQuantity(inventory.getUseQuantity())
+                .useUnit(inventory.getUseUnit())
                 .build();
     }
 
@@ -191,7 +200,7 @@ public class InventoryServiceImpl implements InventoryService {
             Optional<Inventory> inventoryOpt = inventoryRepository.findById(inventoryId);
             if (!inventoryOpt.isPresent()) {
                 log.error("수정할 재고 정보를 찾을 수 없음, ID: {}", inventoryId);
-                return ErrorResponseDto.of(BaperangErrorCode.INTERNAL_SERVER_ERROR);
+                return ErrorResponseDto.of(BaperangErrorCode.RESOURCE_NOT_FOUND);
             }
 
             Inventory inventory = inventoryOpt.get();
@@ -216,17 +225,30 @@ public class InventoryServiceImpl implements InventoryService {
                 inventory.updateOrderQuantity(requestDto.getOrderQuantity());
             }
 
+            if (requestDto.getOrderUnit() != null) {
+                inventory.updateOrderUnit(requestDto.getOrderUnit());
+            }
+
             if (requestDto.getUseQuantity() != null) {
                 Integer newUseQuantity = requestDto.getUseQuantity();
                 Integer newOrderQuantity = inventory.getOrderQuantity();
 
-                if (requestDto.getOrderQuantity() != null && newUseQuantity > requestDto.getOrderQuantity()) {
+                if (requestDto.getOrderQuantity() != null) {
+                    newOrderQuantity = requestDto.getOrderQuantity();
+                }
+
+                if (newUseQuantity > newOrderQuantity &&
+                        inventory.getOrderUnit().equals(inventory.getUseUnit())) {
                     log.error("사용 수량이 새 주문 수량보다 많습니다: 주문={}, 사용={}",
-                            requestDto.getOrderQuantity(), newUseQuantity);
+                            newOrderQuantity, newUseQuantity);
                     return ErrorResponseDto.of(BaperangErrorCode.INVALID_INPUT_VALUE);
                 }
 
                 inventory.updateUseQuantity(newUseQuantity);
+            }
+
+            if (requestDto.getUseUnit() != null) {
+                inventory.updateUseUnit(requestDto.getUseUnit());
             }
 
             log.info("재고 정보 수정 완료: ID: {}", inventoryId);
