@@ -73,3 +73,6 @@ export const generateMockInventoryData = (): InventoryItem[] => {
 
 // 목데이터 생성 및 내보내기
 export const inventoryData = generateMockInventoryData();
+
+// InventoryItem 타입을 재내보내기
+export type { InventoryItem } from '../types/types';
