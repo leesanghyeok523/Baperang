@@ -9,6 +9,8 @@ import {
   FiMinus,
   FiArrowUp,
   FiArrowDown,
+  FiChevronsLeft,
+  FiChevronsRight,
 } from 'react-icons/fi';
 import { exportInventoryToExcel } from './excelExporter';
 import {
@@ -54,16 +56,17 @@ export interface InventoryItem {
 // 공통 스타일 상수 정의
 const STYLES = {
   headerCell:
-    'py-[1%] px-1 text-center border-t border-b border-r border-gray-300 font-semibold truncate text-base md:text-lg',
+    'py-[0.68%] px-1 text-center border-t border-b border-r border-gray-300 font-semibold truncate text-base md:text-lg',
   headerCellLast:
-    'py-[1%] px-1 text-center border-t border-b border-gray-300 font-semibold truncate text-base md:text-lg',
+    'py-[0.68%] px-1 text-center border-t border-b border-gray-300 font-semibold truncate text-base md:text-lg',
   dataCell:
-    'py-[1%] px-1 text-center border-b border-r border-gray-300 truncate text-base md:text-lg',
-  dataCellLast: 'py-[1%] px-1 text-center border-b border-gray-300 truncate text-base md:text-lg',
+    'py-[0.68%] px-1 text-center border-b border-r border-gray-300 truncate text-base md:text-lg',
+  dataCellLast:
+    'py-[0.68%] px-1 text-center border-b border-gray-300 truncate text-base md:text-lg',
   dataCellFixed:
-    'py-[1%] px-1 text-center border-b border-r border-gray-300 truncate text-base md:text-lg',
+    'py-[0.68%] px-1 text-center border-b border-r border-gray-300 truncate text-base md:text-lg',
   dataCellLastFixed:
-    'py-[1%] px-1 text-center border-b border-gray-300 truncate text-base md:text-lg',
+    'py-[0.68%] px-1 text-center border-b border-gray-300 truncate text-base md:text-lg',
 };
 
 const InventoryPage: React.FC = () => {
@@ -80,6 +83,7 @@ const InventoryPage: React.FC = () => {
 
   // 수정 중인 아이템의 ID와 수정 값
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>('');
 
   // 항목 추가/삭제 상태
@@ -194,9 +198,27 @@ const InventoryPage: React.FC = () => {
       result.sort((a, b) => {
         if (sortField === 'date') {
           // 날짜 정렬 (YYYY.MM.DD 형식)
-          const dateA = a.date.split('.').map(Number).join('');
-          const dateB = b.date.split('.').map(Number).join('');
-          return sortDirection === 'asc' ? dateA.localeCompare(dateB) : dateB.localeCompare(dateA);
+          const datePartsA = a.date.split('.');
+          const datePartsB = b.date.split('.');
+
+          // 연도 비교
+          if (datePartsA[0] !== datePartsB[0]) {
+            return sortDirection === 'asc'
+              ? parseInt(datePartsA[0]) - parseInt(datePartsB[0])
+              : parseInt(datePartsB[0]) - parseInt(datePartsA[0]);
+          }
+
+          // 월 비교
+          if (datePartsA[1] !== datePartsB[1]) {
+            return sortDirection === 'asc'
+              ? parseInt(datePartsA[1]) - parseInt(datePartsB[1])
+              : parseInt(datePartsB[1]) - parseInt(datePartsA[1]);
+          }
+
+          // 일 비교
+          return sortDirection === 'asc'
+            ? parseInt(datePartsA[2]) - parseInt(datePartsB[2])
+            : parseInt(datePartsB[2]) - parseInt(datePartsA[2]);
         } else if (sortField === 'diff') {
           // diff 정렬
           const diffA = a.orderedQuantity - a.usedQuantity;
@@ -215,10 +237,10 @@ const InventoryPage: React.FC = () => {
     // 추가 행이 있으면 한 개 적게 표시
     const effectiveItemsPerPage = isAddingNewRow ? itemsPerPage - 1 : itemsPerPage;
 
-    return processedData.slice(
-      (currentPage - 1) * itemsPerPage,
-      (currentPage - 1) * itemsPerPage + effectiveItemsPerPage
-    );
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + effectiveItemsPerPage;
+
+    return processedData.slice(startIndex, endIndex);
   }, [processedData, currentPage, itemsPerPage, isAddingNewRow]);
 
   // 월 변경 함수
@@ -245,23 +267,70 @@ const InventoryPage: React.FC = () => {
     setCurrentPage(page);
   };
 
-  // 사용 수량 수정 시작
-  const startEdit = (item: InventoryItem) => {
+  // 수정 시작
+  const startEdit = (item: InventoryItem, field: string) => {
     setEditingId(item.id);
-    setEditValue(item.usedQuantity.toString());
+    setEditingField(field);
+
+    // 필드에 따라 적절한 초기값 설정
+    if (field === 'date') {
+      setEditValue(item.date);
+    } else if (field === 'productName') {
+      setEditValue(item.productName);
+    } else if (field === 'supplier') {
+      setEditValue(item.supplier);
+    } else if (field === 'price') {
+      setEditValue(item.price.toString());
+    } else if (field === 'orderedQuantity') {
+      setEditValue(item.orderedQuantity.toString());
+    } else if (field === 'usedQuantity') {
+      setEditValue(item.usedQuantity.toString());
+    }
+
+    // 전체 아이템 정보도 저장
   };
 
-  // 사용 수량 수정 저장
+  // 수정 취소
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditingField(null);
+    setEditValue('');
+  };
+
+  // 수정 저장
   const saveEdit = async () => {
-    if (editingId === null) return;
+    if (editingId === null || editingField === null) return;
 
     try {
       const item = inventory.find((i) => i.id === editingId);
       if (!item) return;
 
-      const newValue = parseInt(editValue) || 0;
+      // 필드별 값 변환 및 유효성 검사
+      const updateData: Record<string, string | number> = {};
+      const updatedItem = { ...item };
 
-      console.log('수정 요청 - ID:', editingId, '새 사용량:', newValue); // 요청 정보 로깅
+      if (editingField === 'date') {
+        updatedItem.date = editValue;
+        updateData.inventoryDate = formatDateForApi(editValue);
+      } else if (editingField === 'productName') {
+        updatedItem.productName = editValue;
+        updateData.productName = editValue;
+      } else if (editingField === 'supplier') {
+        updatedItem.supplier = editValue;
+        updateData.vendor = editValue;
+      } else if (editingField === 'price') {
+        const priceValue = parseInt(editValue) || 0;
+        updatedItem.price = priceValue;
+        updateData.price = priceValue;
+      } else if (editingField === 'orderedQuantity') {
+        const quantityValue = parseInt(editValue) || 0;
+        updatedItem.orderedQuantity = quantityValue;
+        updateData.orderQuantity = quantityValue;
+      } else if (editingField === 'usedQuantity') {
+        const quantityValue = parseInt(editValue) || 0;
+        updatedItem.usedQuantity = quantityValue;
+        updateData.useQuantity = quantityValue;
+      }
 
       // 토큰 확인
       if (!accessToken) {
@@ -273,12 +342,10 @@ const InventoryPage: React.FC = () => {
         ? accessToken
         : `Bearer ${accessToken}`;
 
-      // API 호출로 사용량 업데이트
+      // API 호출로 데이터 업데이트
       await axios.patch(
         `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.INVENTORY.UPDATE}/${editingId}`,
-        {
-          useQuantity: newValue,
-        },
+        updateData,
         {
           headers: {
             Authorization: authHeaderValue,
@@ -290,10 +357,7 @@ const InventoryPage: React.FC = () => {
       // 성공 시 로컬 상태 업데이트
       const updatedInventory = inventory.map((item) => {
         if (item.id === editingId) {
-          return {
-            ...item,
-            usedQuantity: newValue,
-          };
+          return updatedItem;
         }
         return item;
       });
@@ -301,6 +365,7 @@ const InventoryPage: React.FC = () => {
       setInventory(updatedInventory);
       setFilteredData(updatedInventory);
       setEditingId(null);
+      setEditingField(null);
       showToast('수정이 완료되었습니다');
     } catch (err) {
       console.error('재고 수정 중 오류 발생:', err);
@@ -309,6 +374,7 @@ const InventoryPage: React.FC = () => {
       } else {
         showErrorAlert('수정 실패', '재고 정보를 수정하는 중 오류가 발생했습니다.');
       }
+      cancelEdit();
     }
   };
 
@@ -375,35 +441,172 @@ const InventoryPage: React.FC = () => {
   };
 
   // 데이터 셀 렌더링 함수
-  const renderEditableCell = (item: InventoryItem) => {
-    return (
-      <div className="flex items-center justify-center h-full w-full">
-        {editingId === item.id ? (
-          <div className="flex items-center justify-center w-full min-h-[20px] h-full">
+  const renderEditableCell = (item: InventoryItem, field: string) => {
+    const isEditing = editingId === item.id && editingField === field;
+
+    // 필드별 편집 UI 및 표시 로직
+    if (field === 'date') {
+      return (
+        <div className="flex items-center justify-center h-full w-full">
+          {isEditing ? (
             <input
-              type="number"
+              type="date"
+              value={editValue.replace(/\./g, '-')}
+              onChange={(e) => {
+                const dateValue = e.target.value;
+                if (dateValue) {
+                  const [year, month, day] = dateValue.split('-');
+                  setEditValue(`${year}.${month}.${day}`);
+                }
+              }}
+              onBlur={saveEdit}
+              onKeyDown={(e) => e.key === 'Enter' && saveEdit()}
+              className="w-[84%] h-11 border-1 p-1 rounded-xl text-center text-base"
+              autoFocus
+            />
+          ) : (
+            <span
+              onClick={() => startEdit(item, 'date')}
+              className="cursor-pointer hover:bg-white/70 rounded-xl text-base w-[84%] h-11 flex items-center justify-center"
+            >
+              {item.date}
+            </span>
+          )}
+        </div>
+      );
+    } else if (field === 'productName') {
+      return (
+        <div className="flex items-center justify-center h-full w-full">
+          {isEditing ? (
+            <input
+              type="text"
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
               onBlur={saveEdit}
               onKeyDown={(e) => e.key === 'Enter' && saveEdit()}
-              className="w-16 h-8 p-1 border rounded text-center text-base"
+              className="w-[84%] h-11 border-1 p-1 rounded-xl text-center text-base"
               autoFocus
             />
-            <span className="ml-1 text-base">{item.unit}</span>
-          </div>
-        ) : (
-          <div className="flex items-center justify-center w-full min-h-[20px] h-full">
+          ) : (
             <span
-              onClick={() => startEdit(item)}
-              className="cursor-pointer hover:bg-gray-100 p-1 rounded text-base w-16 h-8 flex items-center justify-center"
+              onClick={() => startEdit(item, 'productName')}
+              className="cursor-pointer hover:bg-white/70 rounded-xl text-base w-[84%] h-11 flex items-center justify-center"
             >
-              {item.usedQuantity}
-              {item.unit}
+              {item.productName}
             </span>
-          </div>
-        )}
-      </div>
-    );
+          )}
+        </div>
+      );
+    } else if (field === 'supplier') {
+      return (
+        <div className="flex items-center justify-center h-full w-full">
+          {isEditing ? (
+            <input
+              type="text"
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              onBlur={saveEdit}
+              onKeyDown={(e) => e.key === 'Enter' && saveEdit()}
+              className="w-[84%] h-11 border-1 p-1 rounded-xl text-center text-base"
+              autoFocus
+            />
+          ) : (
+            <span
+              onClick={() => startEdit(item, 'supplier')}
+              className="cursor-pointer hover:bg-white/70 rounded-xl text-base w-[84%] h-11 flex items-center justify-center"
+            >
+              {item.supplier}
+            </span>
+          )}
+        </div>
+      );
+    } else if (field === 'price') {
+      return (
+        <div className="flex items-center justify-center h-full w-full">
+          {isEditing ? (
+            <div className="flex items-center justify-center w-full">
+              <input
+                type="number"
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                onBlur={saveEdit}
+                onKeyDown={(e) => e.key === 'Enter' && saveEdit()}
+                className="w-[84%] h-11 border-1 p-1 rounded-xl text-center text-base"
+                autoFocus
+              />
+              <span className="ml-1 text-base">원</span>
+            </div>
+          ) : (
+            <span
+              onClick={() => startEdit(item, 'price')}
+              className="cursor-pointer hover:bg-white/70 rounded-xl text-base w-[84%] h-11 flex items-center justify-center"
+            >
+              {item.price.toLocaleString()}원
+            </span>
+          )}
+        </div>
+      );
+    } else if (field === 'orderedQuantity') {
+      return (
+        <div className="flex items-center justify-center h-full w-full">
+          {isEditing ? (
+            <div className="flex items-center justify-center w-full min-h-[20px] h-full">
+              <input
+                type="number"
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                onBlur={saveEdit}
+                onKeyDown={(e) => e.key === 'Enter' && saveEdit()}
+                className="w-[80%] h-11 border-1 p-1 rounded-xl text-center text-base"
+                autoFocus
+              />
+              <span className="ml-1 text-base">{item.unit}</span>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center w-full min-h-[20px] h-full">
+              <span
+                onClick={() => startEdit(item, 'orderedQuantity')}
+                className="cursor-pointer hover:bg-white/70 rounded-xl text-base w-[84%] h-11 flex items-center justify-center"
+              >
+                {item.orderedQuantity}
+                {item.unit}
+              </span>
+            </div>
+          )}
+        </div>
+      );
+    } else if (field === 'usedQuantity') {
+      return (
+        <div className="flex items-center justify-center h-full w-full">
+          {isEditing ? (
+            <div className="flex items-center justify-center w-full min-h-[20px] h-full">
+              <input
+                type="number"
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                onBlur={saveEdit}
+                onKeyDown={(e) => e.key === 'Enter' && saveEdit()}
+                className="w-[80%] h-11 border-1 p-1 rounded-xl text-center text-base"
+                autoFocus
+              />
+              <span className="ml-1 text-base">{item.unit}</span>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center w-full min-h-[20px] h-full">
+              <span
+                onClick={() => startEdit(item, 'usedQuantity')}
+                className="cursor-pointer hover:bg-white/70 rounded-xl text-base w-[84%] h-11 flex items-center justify-center"
+              >
+                {item.usedQuantity}
+                {item.unit}
+              </span>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    return null;
   };
 
   // 테이블 행 렌더링 함수
@@ -421,15 +624,12 @@ const InventoryPage: React.FC = () => {
             </button>
           </td>
         )}
-        <td className={STYLES.dataCell}>{item.date}</td>
-        <td className={STYLES.dataCell}>{item.productName}</td>
-        <td className={STYLES.dataCell}>{item.supplier}</td>
-        <td className={STYLES.dataCell}>{item.price.toLocaleString()}원</td>
-        <td className={STYLES.dataCell}>
-          {item.orderedQuantity}
-          {item.unit}
-        </td>
-        <td className={STYLES.dataCellFixed}>{renderEditableCell(item)}</td>
+        <td className={STYLES.dataCell}>{renderEditableCell(item, 'date')}</td>
+        <td className={STYLES.dataCell}>{renderEditableCell(item, 'productName')}</td>
+        <td className={STYLES.dataCell}>{renderEditableCell(item, 'supplier')}</td>
+        <td className={STYLES.dataCell}>{renderEditableCell(item, 'price')}</td>
+        <td className={STYLES.dataCell}>{renderEditableCell(item, 'orderedQuantity')}</td>
+        <td className={STYLES.dataCellFixed}>{renderEditableCell(item, 'usedQuantity')}</td>
         <td className={`${STYLES.dataCellLast} font-medium ${diff.color}`}>
           {diff.value}
           {item.unit}
@@ -857,13 +1057,25 @@ const InventoryPage: React.FC = () => {
               <div className="flex justify-center items-center h-[7vh] min-h-[60px] mt-0">
                 {totalPages > 1 && (
                   <div className="flex justify-center space-x-2 md:space-x-4">
+                    {/* 첫 페이지 버튼 */}
+                    {currentPage > 1 ? (
+                      <button
+                        onClick={() => goToPage(1)}
+                        className="mx-3 px-3 py-2 font-semibold text-gray-700 flex items-center justify-center w-10 h-10"
+                      >
+                        <FiChevronsLeft size={20} />
+                      </button>
+                    ) : (
+                      <div className="mx-3 px-3 py-2 w-10 h-10"></div>
+                    )}
+
                     {/* 이전 페이지 버튼 또는 빈 공간 */}
                     {currentPage > 1 ? (
                       <button
                         onClick={() => goToPage(currentPage - 1)}
                         className="mx-3 px-3 py-2 font-semibold text-gray-700 flex items-center justify-center w-10 h-10"
                       >
-                        &lt;
+                        <FiChevronLeft size={20} />
                       </button>
                     ) : (
                       <div className="mx-3 px-3 py-2 w-10 h-10"></div>
@@ -886,7 +1098,7 @@ const InventoryPage: React.FC = () => {
                           key={page}
                           onClick={() => goToPage(page)}
                           className={`mx-3 px-3 py-2 font-semibold flex items-center justify-center w-10 h-10 rounded-lg ${
-                            currentPage === page ? 'text-orange-500 bg-orange-50' : 'text-gray-700'
+                            currentPage === page ? 'text-orange-500' : 'text-gray-700'
                           }`}
                         >
                           {page}
@@ -900,7 +1112,19 @@ const InventoryPage: React.FC = () => {
                         onClick={() => goToPage(currentPage + 1)}
                         className="mx-3 px-3 py-2 font-semibold text-gray-700 flex items-center justify-center w-10 h-10"
                       >
-                        &gt;
+                        <FiChevronRight size={20} />
+                      </button>
+                    ) : (
+                      <div className="mx-3 px-3 py-2 w-10 h-10"></div>
+                    )}
+
+                    {/* 마지막 페이지 버튼 */}
+                    {currentPage < totalPages ? (
+                      <button
+                        onClick={() => goToPage(totalPages)}
+                        className="mx-3 px-3 py-2 font-semibold text-gray-700 flex items-center justify-center w-10 h-10"
+                      >
+                        <FiChevronsRight size={20} />
                       </button>
                     ) : (
                       <div className="mx-3 px-3 py-2 w-10 h-10"></div>
