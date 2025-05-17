@@ -12,7 +12,6 @@ class MenuPlanningWorkflow:
 
     def __init__(self):
         """워크플로우 초기화"""
-        # 에이전트 초기화
         self.waste_agent = WastePlanAgent()
         self.nutrition_agent = NutritionPlanAgent()
         self.integration_agent = IntegrationAgent()
@@ -45,9 +44,6 @@ class MenuPlanningWorkflow:
         # 병렬 실행 대기
         waste_result, nutrition_result = await asyncio.gather(waste_task, nutrition_task)
 
-        print(waste_result)
-        print(nutrition_result)
-
         # 결과 출력 (디버깅용)
         if settings.DEBUG:
             print("\n=== WASTE PLAN RESULT ===")
@@ -72,13 +68,12 @@ class MenuPlanningWorkflow:
         
         # 3. 통합 에이전트 실행
         final_result = await self.integration_agent.process(state, holidays)
-
-        print(f"final_reuslt: {final_result}")
+        
+        if settings.DEBUG:
+            print(f"final_reuslt: {final_result}")
 
         # 4. 최종 상태 업데이트
         state.update(final_result)
-
-        print(f"state: {state}")
 
         # 디버그 로그
         if settings.DEBUG:

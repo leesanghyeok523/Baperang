@@ -262,66 +262,6 @@ class MenuService:
             if len(menu) >= 3 and menu[:3] in valid_menu:
                 return valid_menu
         return None
-    
-    def calculate_nutrition_metrics(self, plan: Dict[str, List[str]], menu_data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        생성된 식단의 영양소 정보 계산
-
-        Args:
-            plan: 검증된 식단 계획
-            menu_data: 메뉴 데이터 (영양소 정보 포함)
-        
-        Returns:
-            Dict: 영양소 지표
-        """
-        # 영양소 정보
-        menu_nutrition = menu_data["menu_nutrition"]
-        nutrition_keys = menu_data.get("nutrition_keys", ['kcal', 'protein', 'fat', 'carbo'])
-
-        # 일별 영양소 합계
-        daily_nutrition = {}
-
-        # 각 날짜별 영양소 합계 계산
-        for date, menus in plan.items():
-            daily_total = {key: 0 for key in nutrition_keys}
-
-            # 각 메뉴의 영양소 합산
-            for menu in menus:
-                if menu in menu_nutrition:
-                    for key in nutrition_keys:
-                        if key in menu_nutrition[menu]:
-                            daily_total[key] += menu_nutrition[menu][key]
-        
-            daily_nutrition[date] = daily_total
-        
-        # 전체 기간 평균 계산
-        avg_nutrition = {key: 0 for key in nutrition_keys}
-        for daily_total in daily_nutrition.values():
-            for key in nutrition_keys:
-                avg_nutrition[key] += daily_total[key]
-        
-        # 평균 계산
-        days_count = len(daily_nutrition)
-        if days_count > 0:
-            for key in avg_nutrition:
-                avg_nutrition[key] /= days_count
-        
-        # 영양소 비율 계산 (탄수화물, 단백질, 지방)
-        nutrition_ratio = {}
-        if ('carbo' in avg_nutrition and 'protein' in avg_nutrition and 'fat' in avg_nutrition):
-            total_macros = avg_nutrition['carbo'] + avg_nutrition['protein'] + avg_nutrition['fat']
-            if total_macros > 0:
-                nutrition_ratio = {
-                    'carbo': round(avg_nutrition['carbo'] / total_macros * 100, 1),
-                    'protein': round(avg_nutrition['protein'] / total_macros * 100, 1),
-                    'fat': round(avg_nutrition['fat'] / total_macros * 100, 1)
-                }
-        
-        return {
-            "daily_nutrition": daily_nutrition,
-            "avg_nutrition": avg_nutrition,
-            "nutrition_ratio": nutrition_ratio
-        }
 
     def generate_alternatives(self, plan: Dict[str,List[str]], menu_data:Dict[str,Any]) -> Dict[str, Dict[str, List[str]]]:
         """

@@ -2,8 +2,6 @@ from fastapi import APIRouter, HTTPException, Depends
 from ..config import settings
 import time
 
-from ..core import dummy
-
 from .models import (
     PlanRequest,
     PlanResponse,
@@ -98,11 +96,6 @@ async def generate_menu_plan(
         if request.menuPool:
             print(f"[ROUTE][generate_menu_plan] Menu Pool provided with {len(request.menuPool)} items")
         start_time = time.time()
-    else:
-        # 더미데이터 반환(spring확인용)
-        return PlanResponse(
-            plan=dummy.report_plan)
-    
     """
     통합 식단 계획 생성 엔드포인트
     
@@ -123,16 +116,17 @@ async def generate_menu_plan(
             print(f"[ROUTE][generate_menu_plan] Data prepared, running workflow")
 
         # 워크 플로우 실행
-        print(f"[ROUTE][generate_menu_plan] Before awaiting workflow")
+        if settings.DEBUG:
+            print(f"[ROUTE][generate_menu_plan] Before awaiting workflow")
         result = await workflow.run_workflow(processed_data, holidays)
 
-        print("[ROUTE][generate_menu_plan] After awaiting workflow, result : ", result)
-        print("[ROUTE][generate_menu_plan] working flow process time :", time.time() - start_time)
+        if settings.DEBUG:
+            print("[ROUTE][generate_menu_plan] After awaiting workflow, result : ", result)
+            print("[ROUTE][generate_menu_plan] working flow process time :", time.time() - start_time)
 
-        # 통합 식단 검증 - 메뉴 풀 활용
-        integrated_plan = result["integrated_plan"]
         
-        # MenuService.generate_alternatives_async 메소드를 위한 데이터 변환
+        integrated_plan = result["integrated_plan"]
+
         # 1. 날짜별 메뉴 리스트 형태로 변환
         plan_for_alternatives = {}
         for date, menu_categories in integrated_plan.items():
@@ -157,20 +151,18 @@ async def generate_menu_plan(
             menu_map = {}
             for menu_name, category in menu_categories.items():
                 # 대체 메뉴 가져오기 (없으면 빈 리스트)
-                alternative_menus = alternatives_data.get(date, {}).get(menu_name, [])
-                
+                alternative_menus = alternatives_data.get(date, {}).get(menu_name, [])                
                 menu_map[menu_name] = {
                     "category": category,
                     "alternatives": alternative_menus
                 }
-            
             menu_based_plan[date] = menu_map
 
-        print("menu_based_plan : ", menu_based_plan)
+        if settings.DEBUG:
+            print("menu_based_plan : ", menu_based_plan)
 
         return PlanResponse(
-            plan=menu_based_plan,
-            # metrics=result.get("metrics", {})
+            plan=menu_based_plan
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"식단 생성 중 오류: {str(e)}")
@@ -181,36 +173,27 @@ async def create_health_report(
     request: ReportRequest,
     report_service:ReportService = Depends(get_report_service)
 ):
-    dummy_analyze: str = "BMI 지수 21.1는 정상 상태입니다. 현재 건강한 상태를 유지하고 있습니다."
-    dummy_plan: str = "적정량의 음식을 선택해 잔반을 줄이세요."
-    dummy_opinion: str = "식습관 개선과 영양 균형에 주의가 필요합니다. 정기적인 운동과 균형 잡힌 식단 관리를 통해 건강 상태를 개선하시기 바랍니다."
-    
     if settings.DEBUG:
         print("[ROUTE][create_health_report] start create report")
         print(f"요청 데이터: {request}")
-        try:
-            report = await report_service.create_health_report(
-                bmi=request.bmi,
-                leftover=request.leftover,
-                leftover_most=request.leftoverMost,
-                leftover_least=request.leftoverLeast,
-                nutrient=request.nutrient
-            )
-            print("생성결과 : ",report)
-            # 리포트 응답 반환
-            return ReportResponse(
-                analyzeReport=report["analyzeReport"],
-                plan=report["plan"],
-                opinion=report["opinion"]
-            )
-        except Exception as e:
-            error_msg = f"리포트 생성 중 오류: {str(e)}"
-            if settings.DEBUG:
-                print(f"[ERROR] {error_msg}")
-            raise HTTPException(status_code=500, detail=error_msg)
-    else:
-        return ReportResponse(
-            analyzeReport=dummy_analyze,
-            plan=dummy_plan,
-            opinion=dummy_opinion
+    try:
+        report = await report_service.create_health_report(
+            bmi=request.bmi,
+            leftover=request.leftover,
+            leftover_most=request.leftoverMost,
+            leftover_least=request.leftoverLeast,
+            nutrient=request.nutrient
         )
+        if settings.DEBUG:
+            print("생성결과 : ",report)
+        # 리포트 응답 반환
+        return ReportResponse(
+            analyzeReport=report["analyzeReport"],
+            plan=report["plan"],
+            opinion=report["opinion"]
+        )
+    except Exception as e:
+        error_msg = f"리포트 생성 중 오류: {str(e)}"
+        if settings.DEBUG:
+            print(f"[ERROR] {error_msg}")
+        raise HTTPException(status_code=500, detail=error_msg)

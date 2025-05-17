@@ -105,8 +105,8 @@ class PromptTemplates:
         for category, menus in menu_pool.items():
             limited_menu[category] = menus[:20] if len(menus) > 20 else menus
 
-        # print(limited_menu)
-        print(leftover_data)
+        if settings.DEBUG:
+            print(leftover_data)
         # 잔반율도 카테고리별로 정리
         categorized_leftover = leftover_data
 
@@ -182,8 +182,7 @@ class PromptTemplates:
         limited_menu = {}
         for category, menus in menu_pool.items():
             limited_menu[category] = menus[:20] if len(menus) > 20 else menus
-        
-        print(limited_menu)
+
         # 선호도 데이터 정리 (average_rating 키에서 추출)
         ratings = preference_data.get("average_rating", {})
 

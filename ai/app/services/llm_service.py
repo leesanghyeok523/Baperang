@@ -118,15 +118,6 @@ class LLMService:
         self.model_name = model_name or settings.LLM_MODEL
         self.temperature = temperature or settings.LLM_TEMPERATURE
 
-        # 캐싱 딕셔너리
-        self.response_cache: Dict[str, str] = {}
-
-        # 캐시 사용 여부 설정
-        self.use_cache = settings.DEBUG and os.getenv("USE_LLM_CACHE", "True").lower() == "true"
-
-        if self.use_cache and settings.DEBUG:
-            print(f"[LLM] 캐싱 활성화: 동일한 프롬프트에 대한 중복 API 호출 방지")
-
         # LLM 클라이언트 초기화
         self.llm = OpenAI(
             api_key=settings.OPENAI_API_KEY
@@ -161,7 +152,6 @@ class LLMService:
 
         if settings.DEBUG:
             print(f"[LLM][generate_structured_response] Requesting structured response")
-            start_time = time.time()
 
         print(f"시스템 프롬프트: {system}")
         print(f"사용자 프롬프트: {prompt}")
@@ -176,14 +166,16 @@ class LLMService:
             functions=[function_def],
             function_call="auto"
         )
-        
-        print("[DEBUG] resp = :", resp)
+
+        if settings.DEBUG:
+            print("[DEBUG] resp = :", resp)
 
         message = resp.choices[0].message
 
-        print("[DEBUG] function_call =", message.function_call)
-        print("[DEBUG] function_call.name =", message.function_call.name)
-        print("[DEBUG] function_call.arguments =", message.function_call.arguments)
+        if settings.DEBUG:
+            print("[DEBUG] function_call =", message.function_call)
+            print("[DEBUG] function_call.name =", message.function_call.name)
+            print("[DEBUG] function_call.arguments =", message.function_call.arguments)
 
         if message.function_call:
             try:

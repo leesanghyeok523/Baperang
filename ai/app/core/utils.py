@@ -69,36 +69,3 @@ def parse_llm_json(text: str) -> Dict[str, Any]:
                 result[date] = menus
     
     return result
-
-def get_dummy_leftover_data() -> Dict[str, float]:
-    """
-    테스트용 더미 잔반율 데이터 생성
-    
-    Returns:
-        Dict: 메뉴별 잔반율
-    """
-    return {
-        "돈삼겹숙주덮밥": 0.15,
-        "실파계란국": 0.25,
-        "당면김말이강정": 0.10,
-        "김치볶음밥": 0.18,
-        "미역국": 0.30,
-        "된장국": 0.28,
-        "시금치나물": 0.40,
-        "깍두기": 0.20,
-        "비빔밥": 0.12
-    }
-
-def get_dummy_nutrition_data() -> Dict[str, Any]:
-    """
-    테스트용 더미 영양 데이터 생성
-    
-    Returns:
-        Dict: 영양 목표
-    """
-    return {
-        "calories": 2000,
-        "protein": 50,
-        "carbs": 300,
-        "fat": 70
-    }

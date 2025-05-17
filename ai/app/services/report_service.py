@@ -28,10 +28,9 @@ class ReportService:
         )
         
         # 디버깅 출력 추가
-        print("[REPORT][DEBUG] 리포트 타입:", type(report))
-        print("[REPORT][DEBUG] 리포트 값:", report)
-        
         if settings.DEBUG:
-            print("[ReportService] 건강 리포트 생성 완료")
+            print("[REPORT] 건강 리포트 생성 완료")
+            print("[REPORT][DEBUG] 리포트 타입:", type(report))
+            print("[REPORT][DEBUG] 리포트 값:", report)
         
         return report

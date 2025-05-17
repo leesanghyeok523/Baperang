@@ -21,10 +21,6 @@ class WastePlanAgent:
         Returns:
             Dict: 처리 결과
         """
-        if settings.DEBUG:
-            print(f"[AGENT][WastePlanAgent] Processing state with keys: {', '.join(state.keys())}")
-            start_time = time.time()
-        # print(state)
         leftover_data = state.get("leftover_data", {})
         menu_pool = state.get("menu_pool", [])
         if settings.DEBUG:
@@ -81,7 +77,6 @@ class NutritionPlanAgent:
         )
 
         # LLM 호출
-        print("before LLM Calling")
         nutrition_plan = await self.llm_service.generate_structured_response(prompt, function_def=nutrition_plan_fn)
         
         # 결과 반환
@@ -97,10 +92,8 @@ class IntegrationAgent:
     async def process(self, state: Dict[str, Any], holidays: Dict[str, Any]) -> Dict[str, Any]:
         """
         잔반율 식단과 영양소 기반 식단을 통합
-
         Args:
             state: 현재 상태
-
         Returns:
             Dict: 처리 결과
         """
