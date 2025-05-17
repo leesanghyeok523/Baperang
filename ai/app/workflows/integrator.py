@@ -1,7 +1,6 @@
 # 식단 통합 로직
-import time, json
-from typing import Dict, List, Any, Optional
-import asyncio
+import time
+from typing import Dict, List, Any
 from ..services.menu_service import MenuService
 from ..config import settings
 
@@ -47,9 +46,6 @@ class MenuIntegrator:
         # 대체 메뉴 생성
         alternatives = await self.generate_alternatives(validated_plan, menu_pool)
 
-        # 통합 메트릭 계산
-        metrics = self.calculate_integration_metrics(waste_plan, nutrition_plan, validated_plan)
-
         if settings.DEBUG:
             total_duration = time.time() - start_time
             print(f"[INTEGRATOR] Integration process completed in {total_duration:.4f} seconds")
@@ -57,7 +53,6 @@ class MenuIntegrator:
         return {
             "integrated_plan": validated_plan,
             "alternatives": alternatives,
-            "metrics": metrics
         }
     
     async def generate_alternatives(self, plan: Dict[str, List[str]], menu_data: Dict[str, Any]) -> Dict[str, Dict[str, List[str]]]:
@@ -107,55 +102,3 @@ class MenuIntegrator:
             alternatvies[date] = date_alternatives
         
         return alternatvies
-    
-    def _infer_category(self, menu: str, menu_pool: Dict[str, List[str]]) -> str:
-        pass
-
-    def calculate_integration_metrics(self, waste_plan: Dict[str, List[str]],
-                                      nutrition_plan: Dict[str, List[str]],
-                                      integrated_plan: Dict[str, List[str]]) -> Dict[str, Any]:
-        """
-        통합 메트릭 계산
-
-        Args:
-            waste_plan: 잔반율 기반 식단
-            nutrition_plan: 영양소 기반 식단
-            integrated_plan: 통합 식단
-        Returns:
-            Dict: 메트릭
-        """
-        # 일치율 계산
-        waste_match_count = 0
-        nutrition_match_count = 0
-        total_items = 0
-
-        for date, menus in integrated_plan.items():
-            total_items += len(menus)
-            
-            # 잔반율 기반 식단과 일치 항목 수
-            if date in waste_plan:
-                waste_match_count += len(set(menus) & set(waste_plan[date]))
-            
-            # 영양소 기반 식단과 일치 항목 수
-            if date in nutrition_plan:
-                nutrition_match_count += len(set(menus) & set(nutrition_plan[date]))
-        
-        # 일치율 계산
-        waste_match_ratio = waste_match_count / total_items if total_items > 0 else 0
-        nutrition_match_ratio = nutrition_match_count / total_items if total_items > 0 else 0
-        
-        # 다양성 지수 계산 (중복되지 않는 메뉴 비율)
-        all_menus = []
-        for menus in integrated_plan.values():
-            all_menus.extend(menus)
-        
-        unique_menus = len(set(all_menus))
-        diversity_index = unique_menus / len(all_menus) if all_menus else 0
-        
-        return {
-            "waste_match_ratio": round(waste_match_ratio, 2),
-            "nutrition_match_ratio": round(nutrition_match_ratio, 2),
-            "diversity_index": round(diversity_index, 2),
-            "unique_menu_count": unique_menus,
-            "total_menu_count": len(all_menus)
-        }
