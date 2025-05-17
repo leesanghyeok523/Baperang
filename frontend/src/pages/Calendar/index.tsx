@@ -240,6 +240,8 @@ const Calendar = () => {
 
           // 잔반률 데이터는 별도 API에서 가져오므로 빈 배열로 초기화
           newMenuData[dayData.date] = {
+            menuId: 0, // 임시 ID 추가
+            menuName: allMenuItems.join(', '), // 메뉴 이름 문자열로 변환
             date: `${parseInt(dayData.date.split('-')[1])}월 ${parseInt(
               dayData.date.split('-')[2]
             )}일`,
@@ -515,6 +517,8 @@ const Calendar = () => {
                 Object.keys(data).forEach((date) => {
                   if (date && data[date].menu) {
                     processedData[date] = {
+                      menuId: 0, // 임시 ID 추가
+                      menuName: data[date].menu.join(', '), // 메뉴 이름 문자열로 변환
                       date:
                         data[date].date ||
                         `${parseInt(date.split('-')[1])}월 ${parseInt(date.split('-')[2])}일`,

@@ -56,7 +56,7 @@ const MainPage = () => {
     });
 
     // 초기 만족도 데이터 이벤트 처리 추가
-    // @ts-expect-error EventSourcePolyfill 타입 정의 불일치
+    // @ts-ignore EventSourcePolyfill 타입 정의 불일치
     eventSource.addEventListener('initial-satisfaction', (event: SSEMessageEvent) => {
       try {
         const menuSatisfactions = JSON.parse(event.data);
@@ -86,7 +86,7 @@ const MainPage = () => {
 
     // 투표 이벤트 처리
     // EventSourcePolyfill의 타입 호환성 문제로 타입 검사 예외 처리
-    // @ts-expect-error EventSourcePolyfill 타입 정의 불일치
+    // @ts-ignore EventSourcePolyfill 타입 정의 불일치
     eventSource.addEventListener('satisfaction-update', (event: SSEMessageEvent) => {
       try {
         const data = JSON.parse(event.data) as SatisfactionUpdate;
@@ -173,7 +173,7 @@ const MainPage = () => {
     eventSource.onmessage = () => {};
 
     // 에러 처리
-    // @ts-expect-error EventSourcePolyfill 타입 정의 불일치
+    // @ts-ignore EventSourcePolyfill 타입 정의 불일치
     eventSource.onerror = (error: Event) => {
       console.error('SSE 연결 오류:', error);
       eventSource.close();
