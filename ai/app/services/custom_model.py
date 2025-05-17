@@ -10,6 +10,7 @@ import os
 import time
 from datetime import datetime
 import argparse
+import re
 
 # 한글 폰트 설정
 plt.rcParams['font.family'] = 'Malgun Gothic'  # 윈도우 기본 한글 폰트
@@ -104,7 +105,7 @@ def back_projection(
     # 8. 잔반 비율 계산 (검은색 픽셀 비율)
     h, w = result_img.shape[:2]
     black_ratio = mask_bool.mean() * 100
-    return black_ratio, result_img, mask_bool
+    return black_ratio, result_img, ~mask_bool
 
 # MiDaS 모델 로드 및 깊이 추정 함수
 def load_midas_model(device='cuda'):
@@ -124,10 +125,10 @@ def load_midas_model(device='cuda'):
         print(f"MiDaS 모델 로드 중 오류 발생: {e}")
         return None, None
 
-def predict_depth(image, midas_model, midas_transform, device='cuda', roi_mask=None):
+def predict_depth(image, midas_model, midas_transform, device='cuda', roi_mask=None, slot_name=None):
     """MiDaS로 깊이 맵 생성 및 깊이 가중치 적용"""
     if midas_model is None or midas_transform is None:
-        return None, 0, None, 0
+        return None, 0, None, 0, None, None
     
     # 이미지 변환
     if isinstance(image, np.ndarray):
@@ -162,30 +163,61 @@ def predict_depth(image, midas_model, midas_transform, device='cuda', roi_mask=N
         depth_map = (depth_map - depth_min) / (depth_max - depth_min)
     
     # 깊이 맵에서 음식 부피 추정 및 깊이 가중치 적용 비율 계산
-    volume_estimate, food_mask, weighted_ratio, food_volume_cm3 = estimate_volume_from_depth_with_weight(depth_map, roi_mask)
+    volume_estimate, food_mask, weighted_ratio, food_volume_cm3, z_plane, z_plane_source = estimate_volume_from_depth_with_weight(depth_map, roi_mask, slot_name)
     
-    return depth_map, weighted_ratio, food_mask, food_volume_cm3
+    return depth_map, weighted_ratio, food_mask, food_volume_cm3, z_plane, z_plane_source
 
-def estimate_volume_from_depth_with_weight(depth_map, roi_mask=None):
-    """깊이 맵에서 음식 부피 추정 (ΔZ 기반 부피 적분, 실제 부피 cm³ 포함, food_mask 보강, z_plane 안정화, ΔZ 컷오프 적용)"""
+# 칸별 실제 크기(cm) 및 해상도
+# 배포환경용용
+TRAY_SLOTS = {
+    "side1": {"w": 9.0, "h": 11.0, "nx": 724, "ny": 730, "z_plane": 0.420},
+    "side2": {"w": 9.0, "h": 11.0, "nx": 726, "ny": 730, "z_plane": 0.416},
+    "main":  {"w": 15.0, "h": 11.0, "nx": 854, "ny": 730, "z_plane": 0.444},
+    "rice":  {"w": 17.2, "h": 15.0, "nx": 1224, "ny": 998, "z_plane": 0.350},
+    "soup":  {"w": 15.0, "h": 15.0, "nx": 1080, "ny": 998},
+}
+# 개발환경용    
+# TRAY_SLOTS = {
+#     "side1": {"w": 9.0, "h": 11.0, "nx": 1053, "ny": 1282, "z_plane": 0.420},
+#     "side2": {"w": 9.0, "h": 11.0, "nx": 1062, "ny": 1247, "z_plane": 0.416},
+#     "main":  {"w": 15.0, "h": 11.0, "nx": 1653, "ny": 1265, "z_plane": 0.444},
+#     "rice":  {"w": 17.2, "h": 15.0, "nx": 2019, "ny": 1727, "z_plane": 0.350},
+#     "soup":  {"w": 15.0, "h": 15.0, "nx": 1777, "ny": 1716},  # 필요시 soup도 추가
+# }
+
+def estimate_volume_from_depth_with_weight(depth_map, roi_mask=None, slot_name=None):
+    print(f"[DEBUG] estimate_volume_from_depth_with_weight: slot_name={slot_name}")
     if roi_mask is None or roi_mask.mean() < 0.05:
         return estimate_volume_from_depth_with_weight_old(depth_map)
 
     # 1. food_mask 보강 (팽창)
     food_mask = roi_mask.astype(np.uint8)
-    food_mask = cv2.dilate(food_mask, np.ones((5,5), np.uint8), iterations=1) > 0
+    food_mask = food_mask > 0
 
     # 2. z_plane 계산 안정화 (음식 주변 5px 제외)
-    tray_mask = ~cv2.erode(food_mask.astype(np.uint8), np.ones((5,5), np.uint8), iterations=1).astype(bool)
+    tray_mask = ~food_mask.astype(bool)
 
     # 음식/트레이 영역별 복사본 생성
     depth_tray = depth_map.copy()
     depth_food = depth_map.copy()
-    depth_food[~food_mask] = np.nan
+    depth_food[~food_mask] = np.nan  # 음식 마스크가 True인 부분만 남김
     depth_tray[food_mask] = np.nan
 
-    # 트레이 평균 깊이
-    z_plane = np.nanmean(depth_tray[tray_mask]) if np.any(tray_mask) else np.nanmean(depth_tray)
+    # 트레이 평균 깊이(z_plane) 계산 보강
+    if slot_name in TRAY_SLOTS and "z_plane" in TRAY_SLOTS[slot_name]:
+        z_plane = TRAY_SLOTS[slot_name]["z_plane"]
+        z_plane_source = 'fixed_empty'
+    elif np.sum(tray_mask) > 0.05 * tray_mask.size:
+        z_plane = np.nanmean(depth_tray[tray_mask])
+        z_plane_source = 'tray_mask'
+    else:
+        try:
+            depth_map_empty = np.load('ai/depth_map_empty.npy')
+            z_plane = np.nanmean(depth_map_empty)
+            z_plane_source = 'empty_plate'
+        except Exception:
+            z_plane = np.nanmean(depth_tray)
+            z_plane_source = 'fallback'
 
     # ΔZ (음식 높이)
     dz = np.maximum(0, depth_map - z_plane)
@@ -195,25 +227,32 @@ def estimate_volume_from_depth_with_weight(depth_map, roi_mask=None):
         scale_cm_per_unit = np.load('midas_scale.npy')
     except Exception:
         scale_cm_per_unit = 3.0  # fallback: 기존 H_CM
-    dz_cm = dz * scale_cm_per_unit
-    dz_cutoff = 0.2  # 0.2cm 이상만 음식으로 인정
-    food_mask = (dz_cm > dz_cutoff)
+    dz_cm = dz * scale_cm_per_unit * 2 # 음식 깊이 80배로 반영
+    dz_cutoff = 0.002  # 0.002cm 이상만 음식으로 인정 (하한)
+    dz_upper = 3.0   # 2.0cm 이하만 음식으로 인정 (상한, 필요시 조정)
+    # 음식 마스크가 True인 부분만 부피 계산
+    food_mask_final = food_mask & ((dz_cm > dz_cutoff) & (dz_cm < dz_upper))
 
     # 평균 높이 (dz_cm>0 영역)
-    valid_h = dz_cm[food_mask]
+    valid_h = dz_cm[food_mask_final]
     avg_h_cm = np.nanmean(valid_h) if valid_h.size else 0
 
-    # 실제 부피 계산
-    W_CM, L_CM, H_CM = 37.5, 29.0, 3.0
-    NX, NY = 2592, 1944
+    # slot_name에 따라 W_CM, L_CM, NX, NY 적용
+    if slot_name in TRAY_SLOTS:
+        slot = TRAY_SLOTS[slot_name]
+        W_CM, L_CM = slot["w"], slot["h"]
+        NX, NY = slot["nx"], slot["ny"]
+    else:
+        W_CM, L_CM, NX, NY = 37.5, 29.0, 2592, 1944  # 전체 식판 기본값
+    H_CM = 3.0
     PIX_AREA = (W_CM / NX) * (L_CM / NY)
-    food_pixel_count = np.sum(food_mask)
+    food_pixel_count = np.sum(food_mask_final)
     food_area_cm2 = food_pixel_count * PIX_AREA
-    food_volume_cm3 = food_area_cm2 * avg_h_cm
+    food_volume_cm3 = food_area_cm2 * avg_h_cm * 30
 
     # 비율(%)도 보정
     volume_pct = min(60, (food_pixel_count / (NX*NY)) * (avg_h_cm / H_CM) * 100)
-    return volume_pct, food_mask, volume_pct, food_volume_cm3
+    return volume_pct, food_mask_final, volume_pct, food_volume_cm3, z_plane, z_plane_source
 
 def estimate_volume_from_depth_with_weight_old(depth_map):
     """기존 K-means 기반 부피 추정 방식 (fallback용)"""
@@ -271,7 +310,9 @@ def estimate_volume_from_depth_with_weight_old(depth_map):
     # 부피 추정
     volume_estimate = min(100, food_ratio * 100)
     
-    return volume_estimate, food_mask, volume_estimate, 0
+    z_plane = np.nanmean(depth_map)
+    z_plane_source = 'fallback'
+    return volume_estimate, food_mask, volume_estimate, 0, z_plane, z_plane_source
 
 # ResNet 모델 로드 및 예측 함수
 def load_resnet_model(weights_path, device='cuda'):
@@ -435,7 +476,8 @@ def combine_results_custom(backproj_result, midas_result, resnet_result, weights
 # 결과 시각화 함수 (수정됨)
 def visualize_results_custom(image, backproj_img, depth_map, depth_mask,
                              backproj_result, midas_result, resnet_result,
-                             final_result, weights, output_path=None, food_volume_cm3=None):
+                             final_result, weights, output_path=None, food_volume_cm3=None, relative_volume_pct=None,
+                             z_plane=None, z_plane_source=None):
     """세 모델의 결과를 새로운 방식으로 시각화"""
     fig, axs = plt.subplots(2, 3, figsize=(15, 10))
     
@@ -453,38 +495,52 @@ def visualize_results_custom(image, backproj_img, depth_map, depth_mask,
     
     # 깊이 맵과 마스크
     if depth_map is not None:
-        # 깊이 맵과 마스크 결합해서 시각화
-        depth_vis = np.zeros((*depth_map.shape, 3), dtype=np.uint8)
-        
+        # (추가) 식판 바닥 기준 정규화
+        tray_mask = ~depth_mask.astype(bool)
+        tray_depth = depth_map[tray_mask].mean() if np.any(tray_mask) else depth_map.mean()
+        norm_depth_map = depth_map - tray_depth
+        vmin = 0
+        vmax = np.percentile(norm_depth_map, 99)
+
         # 깊이맵을 컬러맵으로 변환 (plasma)
         plasma_cm = plt.cm.plasma
-        plasma_norm = plt.Normalize(vmin=0, vmax=1)
-        depth_colored = plasma_cm(plasma_norm(depth_map))[:, :, :3]  # alpha 채널 제거
+        plasma_norm = plt.Normalize(vmin=vmin, vmax=vmax)
+        depth_colored = plasma_cm(plasma_norm(norm_depth_map))[:, :, :3]  # alpha 채널 제거
         depth_colored = (depth_colored * 255).astype(np.uint8)
-        
-        # 깊이맵 위에 마스크 윤곽선 표시
-        if depth_mask is not None:
-            # 기본 이미지는 깊이맵
-            depth_vis = depth_colored
-            
-            # 마스크 윤곽선 추출
-            mask_uint8 = depth_mask.astype(np.uint8) * 255
-            contours, _ = cv2.findContours(mask_uint8, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            
-            # 윤곽선 그리기
-            cv2.drawContours(depth_vis, contours, -1, (255, 255, 255), 2)
-            
-            # 스케일링 팩터 제거 (MiDaS 결과 그대로 표시)
-            midas_percentage = min(100, midas_result)
-            axs[0, 2].imshow(depth_vis)
-            axs[0, 2].set_title(f'깊이 맵 + ΔZ 음식 영역 (음식량: {midas_percentage:.1f}%)')
+
+        # ΔZ(깊이차) 맵 시각화 (viridis 컬러맵)
+        try:
+            scale_cm_per_unit = np.load('midas_scale.npy')
+        except Exception:
+            scale_cm_per_unit = 3.0  # fallback, 실제론 np.load('midas_scale.npy') 사용 가능
+        dz = norm_depth_map * scale_cm_per_unit
+        dz_vis = dz * 10  # 시각화용 10배
+
+        im = axs[1, 2].imshow(dz_vis, cmap='viridis', vmin=0, vmax=2)  # vmax는 데이터 분포에 맞게 조정
+        axs[1, 2].set_title('ΔZ(깊이차) 맵 [cm, x10(시각화)]')
+        plt.colorbar(im, ax=axs[1, 2], fraction=0.046, pad=0.04)
+
+        # ΔZ 통계 계산 (음식/식판 바닥)
+        dz_food = dz[depth_mask]
+        dz_tray = dz[tray_mask]
+        def stat_str(arr):
+            if arr.size == 0:
+                return 'N/A'
+            return f"평균 {np.nanmean(arr):.3f}, std {np.nanstd(arr):.3f}, min {np.nanmin(arr):.3f}, max {np.nanmax(arr):.3f}"
+        dz_food_stat = stat_str(dz_food)
+        dz_tray_stat = stat_str(dz_tray)
+
+        # tray_mask(식판 바닥 마스크) 시각화 추가
+        if tray_mask is not None:
+            axs[1, 0].imshow(tray_mask, cmap='gray')
+            axs[1, 0].set_title('식판 바닥 마스크(tray_mask)')
+            axs[1, 0].axis('off')
         else:
-            axs[0, 2].imshow(depth_map, cmap='plasma')
-            midas_percentage = min(100, midas_result)
-            axs[0, 2].set_title(f'깊이 맵 (음식량: {midas_percentage:.1f}%)')
+            axs[1, 0].text(0.5, 0.5, 'tray_mask 없음', ha='center', va='center')
+            axs[1, 0].axis('off')
     else:
         axs[0, 2].text(0.5, 0.5, '깊이 맵 없음', ha='center', va='center')
-    axs[0, 2].axis('off')
+        axs[0, 2].axis('off')
     
     # ResNet 결과
     resnet_class, resnet_prob, resnet_percentage = resnet_result
@@ -519,6 +575,13 @@ def visualize_results_custom(image, backproj_img, depth_map, depth_mask,
     result_text += f'ResNet({resnet_class}): {details["resnet_percentage"]:.1f}%'
     if food_volume_cm3 is not None:
         result_text += f'\n실제 부피: {food_volume_cm3:.2f} cm³'
+    if relative_volume_pct is not None:
+        result_text += f'\n상대 부피: {relative_volume_pct:.1f}%'
+    # z_plane 정보 추가
+    if z_plane is not None and z_plane_source is not None:
+        result_text += f'\nz_plane: {z_plane:.3f} ({z_plane_source})'
+    result_text += f'\nΔZ(음식): {dz_food_stat}'
+    result_text += f'\nΔZ(식판): {dz_tray_stat}'
     axs[1, 2].text(0.5, 0.5, result_text, ha='center', va='center', fontsize=12)
     
     plt.tight_layout()
@@ -531,6 +594,13 @@ def visualize_results_custom(image, backproj_img, depth_map, depth_mask,
     else:
         return fig
 
+def extract_slot_name(image_name):
+    base = os.path.basename(image_name)
+    match = re.search(r'(side_?1|side_?2|main|rice|soup)', base, re.IGNORECASE)
+    if match:
+        return match.group(1).replace('_', '').lower()
+    return None
+
 # 메인 분석 함수
 def analyze_food_image_custom(target_image_path, reference_image_path, 
                              resnet_model, midas_model, midas_transform,
@@ -539,7 +609,7 @@ def analyze_food_image_custom(target_image_path, reference_image_path,
     세 모델을 사용하여 음식 이미지 분석 (사용자 정의 방식)
     """
     # 결과 디렉토리 생성
-    os.makedirs(output_dir, exist_ok=True)
+    # os.makedirs(output_dir, exist_ok=True)
     
     # 이미지 로드
     if isinstance(target_image_path, str):
@@ -557,12 +627,21 @@ def analyze_food_image_custom(target_image_path, reference_image_path,
     
     # 1. 역투영 분석
     backproj_result, backproj_img, food_mask = back_projection(target_img, reference_img)
+    # 참조 이미지(가득 찬 상태)에서 음식 마스크 추출
+    _, _, ref_food_mask = back_projection(reference_img, reference_img)
+    ref_food_pixel_count = np.sum(ref_food_mask)
+    cur_food_pixel_count = np.sum(food_mask)
+    # 상대 부피(%) 계산
+    relative_volume_pct = (cur_food_pixel_count / ref_food_pixel_count) * 100 if ref_food_pixel_count > 0 else 0
+    
+    # slot_name 추출
+    slot_name = extract_slot_name(image_name) if image_name else None
     
     # 2. MiDaS 깊이 분석
     if midas_model is not None and midas_transform is not None:
-        depth_map, midas_result, depth_mask, food_volume_cm3 = predict_depth(target_img, midas_model, midas_transform, roi_mask=food_mask)
+        depth_map, midas_result, depth_mask, food_volume_cm3, z_plane, z_plane_source = predict_depth(target_img, midas_model, midas_transform, roi_mask=food_mask, slot_name=slot_name)
     else:
-        depth_map, midas_result, depth_mask, food_volume_cm3 = None, 0, None, 0
+        depth_map, midas_result, depth_mask, food_volume_cm3, z_plane, z_plane_source = None, 0, None, 0, None, None
     
     # 3. ResNet 분류
     if resnet_model is not None:
@@ -576,25 +655,26 @@ def analyze_food_image_custom(target_image_path, reference_image_path,
     # 5. 결과 융합
     final_result = combine_results_custom(backproj_result, midas_result, resnet_result, weights)
     
-    # 6. 결과 시각화
-    try:
-        if image_name is not None:
-            img_base = os.path.splitext(os.path.basename(image_name))[0]
-        elif isinstance(target_image_path, str):
-            img_name = os.path.basename(target_image_path)
-            img_base = os.path.splitext(img_name)[0]
-        else:
-            img_base = "uploaded_image"
-    except Exception:
-        img_base = "uploaded_image"
+    # 6. 결과 시각화 (주석 처리)
+    # try:
+    #     if image_name is not None:
+    #         img_base = os.path.splitext(os.path.basename(image_name))[0]
+    #     elif isinstance(target_image_path, str):
+    #         img_name = os.path.basename(target_image_path)
+    #         img_base = os.path.splitext(img_name)[0]
+    #     else:
+    #         img_base = "uploaded_image"
+    # except Exception:
+    #     img_base = "uploaded_image"
     
-    # 시각화 결과 저장
-    viz_path = os.path.join(output_dir, f"{img_base}_analysis.png")
-    visualize_results_custom(
-        target_img, backproj_img, depth_map, depth_mask,
-        backproj_result, midas_result, resnet_result,
-        final_result, weights, viz_path, food_volume_cm3
-    )
+    # 시각화 결과 저장 (주석 처리)
+    # viz_path = os.path.join(output_dir, f"{img_base}_analysis.png")
+    # visualize_results_custom(
+    #     target_img, backproj_img, depth_map, depth_mask,
+    #     backproj_result, midas_result, resnet_result,
+    #     final_result, weights, viz_path, food_volume_cm3, relative_volume_pct,
+    #     z_plane=z_plane, z_plane_source=z_plane_source
+    # )
     
     # 결과 정리
     final_percentage, confidence, details = final_result
@@ -610,7 +690,7 @@ def analyze_food_image_custom(target_image_path, reference_image_path,
         'confidence': confidence,
         'details': details,
         'food_volume_cm3': food_volume_cm3,
-        'visualization_path': viz_path
+        'relative_volume_pct': relative_volume_pct
     }
     
     return result_dict
@@ -670,7 +750,8 @@ def main():
         print("-" * 50)
         print(f"최종 음식량: {result['final_percentage']:.1f}% (신뢰도: {result['confidence']*100:.1f}%)")
         print(f"실제 부피: {result['food_volume_cm3']:.2f} cm³")
-        print(f"시각화 파일: {result['visualization_path']}")
+        print(f"상대 부피: {result['relative_volume_pct']:.1f}%")
+        # print(f"시각화 파일: {result['visualization_path']}")
     
     # 종료 시간
     end_time = time.time()

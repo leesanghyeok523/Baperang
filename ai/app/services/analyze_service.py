@@ -11,6 +11,8 @@ import cv2
 import numpy as np
 from .custom_model import analyze_food_image_custom, load_resnet_model, load_midas_model
 
+# 메모리 캐시를 위한 딕셔너리
+reference_cache = {}
 
 def download_image(url):
     start = time.time()
@@ -23,16 +25,18 @@ def download_image(url):
     return img
 
 
-def crop_center(img, crop_ratio=0.5, save_path=None):
+def crop_center(img, crop_ratio=0.1, cache_key=None):
     start = time.time()
     h, w = img.shape[:2]
     ch, cw = int(h * crop_ratio), int(w * crop_ratio)
     startx = w//2 - cw//2
     starty = h//2 - ch//2
     cropped = img[starty:starty+ch, startx:startx+cw]
-    if save_path is not None:
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
-        cv2.imwrite(save_path, cropped)
+    
+    # 캐시 키가 제공된 경우 메모리에 저장
+    if cache_key is not None:
+        reference_cache[cache_key] = cropped
+        
     elapsed = time.time() - start
     if settings.DEBUG:
         print(f"[TIMING] crop_center: {elapsed:.3f}s")
@@ -82,13 +86,13 @@ class AnalyzeService:
                 if settings.DEBUG:
                     print(f"[TIMING] download two images for {category}: {dl_elapsed:.3f}s")
 
-                # 중앙 crop (reference)
+                # 중앙 crop (reference) - 메모리에 캐싱
                 ref_start = time.time()
-                ref_save_path = f"./results/reference_{category}_{int(time.time()*1000)}.png"
-                reference = crop_center(before_img, save_path=ref_save_path)
+                cache_key = f"reference_{category}"
+                reference = crop_center(before_img, cache_key=cache_key)
                 ref_elapsed = time.time() - ref_start
                 if settings.DEBUG:
-                    print(f"[TIMING] crop_center for {category}: {ref_elapsed:.3f}s, saved to {ref_save_path}")
+                    print(f"[TIMING] crop_center for {category}: {ref_elapsed:.3f}s")
 
                 # 식전 이미지 분석
                 pre_start = time.time()
@@ -98,7 +102,7 @@ class AnalyzeService:
                     resnet_model=resnet_model,
                     midas_model=midas_model,
                     midas_transform=midas_transform,
-                    image_name=before_images[category]
+                    image_name=before_images[category],
                 )
                 pre_elapsed = time.time() - pre_start
                 if settings.DEBUG:
@@ -112,20 +116,69 @@ class AnalyzeService:
                     resnet_model=resnet_model,
                     midas_model=midas_model,
                     midas_transform=midas_transform,
-                    image_name=after_images[category]
+                    image_name=after_images[category],
                 )
                 post_elapsed = time.time() - post_start
                 if settings.DEBUG:
                     print(f"[TIMING] analyze after image for {category}: {post_elapsed:.3f}s")
 
-                # 음식량 추출 및 잔반율 계산
-                before_amount = before_result['final_percentage'] if before_result else 0.0
-                after_amount = after_result['final_percentage'] if after_result else 0.0
-                leftover_rate = max(0, before_amount - after_amount)
+                # 각 모델별 결과 추출
+                before_backproj = before_result['backproj_percentage'] if before_result else 0.0
+                after_backproj = after_result['backproj_percentage'] if after_result else 0.0
+                before_volume = before_result['food_volume_cm3'] if before_result else 0.0
+                after_volume = after_result['food_volume_cm3'] if after_result else 0.0
+                before_resnet = before_result['resnet_result'][2] if before_result else 0.0
+                after_resnet = after_result['resnet_result'][2] if after_result else 0.0
 
-                before_amounts[category] = round(before_amount, 1)
-                after_amounts[category] = round(after_amount, 1)
-                leftover_rates[category] = round(leftover_rate, 1)
+                # before/after 딕셔너리 저장
+                before_amounts[category] = {
+                    'backproj': float(round(before_backproj, 1)),
+                    'food_volume_cm3': float(round(before_volume, 2)),
+                    'resnet': float(round(before_resnet, 1))
+                }
+                after_amounts[category] = {
+                    'backproj': float(round(after_backproj, 1)),
+                    'food_volume_cm3': float(round(after_volume, 2)),
+                    'resnet': float(round(after_resnet, 1))
+                }
+
+                # leftover 계산
+                if before_backproj > 0:
+                    leftover_backproj = max(0, (before_backproj - after_backproj) / before_backproj * 100)
+                else:
+                    leftover_backproj = 0.0
+                if before_resnet > 0:
+                    leftover_resnet = max(0, (before_resnet - after_resnet) / before_resnet * 100)
+                else:
+                    leftover_resnet = 0.0
+                if before_volume > 0:
+                    leftover_volume_pct = max(0, (before_volume - after_volume) / before_volume * 100)
+                else:
+                    leftover_volume_pct = 0.0
+
+                # 가중치 적용 (예외 처리)
+                # 1. after의 backproj가 20 이하라면 backproj 1.0, resnet/midas 0
+                if after_backproj <= 20:
+                    w_backproj, w_volume, w_resnet = 1.0, 0.0, 0.0
+                # 2. resnet leftover가 0.0이면 backproj 0.5, midas 0.5
+                elif leftover_resnet == 0.0:
+                    w_backproj, w_volume, w_resnet = 0.5, 0.5, 0.0
+                # 3. 기본 가중치
+                else:
+                    w_backproj, w_volume, w_resnet = 0.4, 0.3, 0.3
+
+                final_leftover = (
+                    w_backproj * leftover_backproj +
+                    w_volume * leftover_volume_pct +
+                    w_resnet * leftover_resnet
+                )
+
+                leftover_rates[category] = {
+                    'backproj': float(round(leftover_backproj, 1)),
+                    'food_volume_pct': float(round(leftover_volume_pct, 1)),
+                    'resnet': float(round(leftover_resnet, 1)),
+                    'final': float(round(final_leftover, 1))
+                }
 
         total_elapsed = time.time() - total_start
         if settings.DEBUG:
@@ -135,8 +188,9 @@ class AnalyzeService:
             print(f"[ANALYZE] After: {after_amounts}")
             print(f"[ANALYZE] Leftover: {leftover_rates}")
 
+        leftoverRate_final = {k: round(100 - v['final'], 2) for k, v in leftover_rates.items()}
         return {
-            "leftoverRate": after_amounts,
+            "leftoverRate": leftoverRate_final,
             "studentInfo": student_info
         }
 
@@ -157,13 +211,13 @@ def analyze_leftover(before_images, after_images, resnet_model, midas_model, mid
         if settings.DEBUG:
             print(f"[TIMING] analyze_leftover download images for {key}: {dl_elapsed:.3f}s")
 
-        # 중앙 crop
+        # 중앙 crop - 메모리에 캐싱
         crop_start = time.time()
-        ref_save_path = f"./results/reference_{key}_{int(time.time()*1000)}.png"
-        reference = crop_center(before_img, save_path=ref_save_path)
+        cache_key = f"reference_{key}_{int(time.time()*1000)}"
+        reference = crop_center(before_img, cache_key=cache_key)
         crop_elapsed = time.time() - crop_start
         if settings.DEBUG:
-            print(f"[TIMING] analyze_leftover crop_center for {key}: {crop_elapsed:.3f}s, saved to {ref_save_path}")
+            print(f"[TIMING] analyze_leftover crop_center for {key}: {crop_elapsed:.3f}s")
 
         # 분석
         proc_start = time.time()
