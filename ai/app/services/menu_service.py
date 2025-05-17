@@ -316,6 +316,7 @@ class MenuService:
                     sorted_menus = sorted(
                         same_category_menus,
                         key=lambda m: menu_preference.get(m, 0) if isinstance(m, str) else 0,
+                        key=lambda m: menu_preference.get(m, 0) if isinstance(m, str) else 0,
                         reverse=True
                     )
 
