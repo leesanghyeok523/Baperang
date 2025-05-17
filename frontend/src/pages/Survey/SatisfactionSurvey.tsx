@@ -5,6 +5,7 @@ import API_CONFIG from '../../config/api';
 import axios from 'axios';
 import { useAuthStore } from '../../store/authStore';
 import { EventSourcePolyfill } from 'event-source-polyfill';
+import { showErrorAlert, showSuccessAlert } from '../../utils/sweetalert';
 
 // 만족도 레벨 정의
 const satisfactionLevels = [
@@ -421,7 +422,6 @@ const SatisfactionSurvey = () => {
       setPreferenceData(updatedPreferenceData);
     } catch (error) {
       console.error('만족도 처리 중 오류 발생:', error);
-      alert('만족도 투표에 실패했습니다. 다시 시도해주세요.');
     }
   };
 
@@ -481,10 +481,10 @@ const SatisfactionSurvey = () => {
 
       setIsClosed(true);
       setShowConfirmation(false);
-      alert('만족도 조사가 마감되었습니다.');
+      showSuccessAlert('만족도 조사가 마감되었습니다.');
     } catch (err) {
       console.error('만족도 제출 중 오류 발생:', err);
-      alert('만족도 제출에 실패했습니다. 다시 시도해주세요.');
+      showErrorAlert('만족도 제출에 실패했습니다.');
     } finally {
       setIsLoading(false);
     }

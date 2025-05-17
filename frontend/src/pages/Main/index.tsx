@@ -6,15 +6,8 @@ import { defaultMenu, WasteData } from '../../data/menuData';
 import API_CONFIG from '../../config/api';
 import axios from 'axios';
 import { useAuthStore } from '../../store/authStore';
-import { ApiResponse, SatisfactionUpdate } from '../../types/types';
+import { ApiResponse, SatisfactionUpdate, parseMenuName, SSEMessageEvent } from '../../types/types';
 import { EventSourcePolyfill } from 'event-source-polyfill';
-
-// br 태그로 분리된 메뉴 이름을 배열로 분리하는 함수
-const parseMenuName = (menuName: string): string[] => {
-  // <br/>, <br>, <BR/>, <BR> 등 다양한 형태의 br 태그 처리
-  const regex = /<br\s*\/?>/gi;
-  return menuName.split(regex).filter((item) => item.trim() !== '');
-};
 
 const MainPage = () => {
   // 현재 날짜 기준으로 초기화
@@ -62,11 +55,8 @@ const MainPage = () => {
       withCredentials: true,
     });
 
-    // 커스텀 이벤트 타입 (실제 이벤트 구조에 맞게 정의)
-    type SSEMessageEvent = Event & { data: string };
-
     // 초기 만족도 데이터 이벤트 처리 추가
-    // @ts-expect-error EventSourcePolyfill 타입 정의 불일치
+    // @ts-ignore EventSourcePolyfill 타입 정의 불일치
     eventSource.addEventListener('initial-satisfaction', (event: SSEMessageEvent) => {
       try {
         const menuSatisfactions = JSON.parse(event.data);
@@ -96,7 +86,7 @@ const MainPage = () => {
 
     // 투표 이벤트 처리
     // EventSourcePolyfill의 타입 호환성 문제로 타입 검사 예외 처리
-    // @ts-expect-error EventSourcePolyfill 타입 정의 불일치
+    // @ts-ignore EventSourcePolyfill 타입 정의 불일치
     eventSource.addEventListener('satisfaction-update', (event: SSEMessageEvent) => {
       try {
         const data = JSON.parse(event.data) as SatisfactionUpdate;
@@ -183,7 +173,7 @@ const MainPage = () => {
     eventSource.onmessage = () => {};
 
     // 에러 처리
-    // @ts-expect-error EventSourcePolyfill 타입 정의 불일치
+    // @ts-ignore EventSourcePolyfill 타입 정의 불일치
     eventSource.onerror = (error: Event) => {
       console.error('SSE 연결 오류:', error);
       eventSource.close();
@@ -257,6 +247,7 @@ const MainPage = () => {
         return;
       }
 
+      // 해당 날짜의 데이터가 있는 경우
       if (dayData && dayData.menu && dayData.menu.length > 0) {
         // <br/> 태그로 분리하여 메뉴 항목으로 처리
         const allMenuItems: string[] = [];
@@ -272,6 +263,9 @@ const MainPage = () => {
         // 메뉴가 있는 경우에만 설정
         if (allMenuItems.length > 0) {
           setCurrentMenuItems(allMenuItems);
+        } else if (dayData.holiday && dayData.holiday.length > 0) {
+          // 메뉴는 없지만 공휴일이 있는 경우
+          setCurrentMenuItems([`오늘은 ${dayData.holiday[0]} 공휴일입니다.`]);
         } else {
           setCurrentMenuItems(defaultMenu);
         }

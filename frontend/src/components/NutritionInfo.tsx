@@ -4,16 +4,7 @@ import { useAuthStore } from '../store/authStore';
 import axios from 'axios';
 import API_CONFIG from '../config/api';
 import { useState, useEffect } from 'react';
-
-interface NutritionInfoProps {
-  selectedMenu: string | null;
-  currentDate: Date;
-}
-
-interface NutrientResponse {
-  영양소: Record<string, string>;
-  메뉴: string;
-}
+import { NutritionInfoProps, NutrientResponse } from '../types/types';
 
 const NutritionInfo: React.FC<NutritionInfoProps> = ({ selectedMenu, currentDate }) => {
   const [loading, setLoading] = useState<boolean>(false);
@@ -79,18 +70,18 @@ const NutritionInfo: React.FC<NutritionInfoProps> = ({ selectedMenu, currentDate
         <div className="h-full flex flex-col items-center justify-center">
           {loading ? (
             <div className="text-center w-full">
-              <p className="text-xl font-medium text-gray-600">데이터를 불러오는 중...</p>
+              <p className="text-sm font-medium text-gray-600">데이터를 불러오는 중...</p>
             </div>
           ) : selectedMenu && Object.keys(nutritionData).length > 0 ? (
             <div
               className="w-full overflow-y-auto flex justify-center"
               style={{ maxHeight: '100%' }}
             >
-              <div className="space-y-2 pr-2 w-full max-w-[98%]">
+              <div className="space-y-3 pr-2 w-full max-w-[98%]">
                 {Object.entries(nutritionData).map(([name, value], index) => (
                   <div
                     key={index}
-                    className="flex justify-between items-center px-3 py-3 rounded-xl bg-white/60 mx-auto"
+                    className="flex justify-between items-center px-3 py-3.5 rounded-xl bg-white/60 mx-auto"
                   >
                     <span className="text-sm font-medium text-gray-700 truncate mr-2">{name}</span>
                     <span className="text-sm font-medium text-gray-700 whitespace-nowrap">

@@ -294,6 +294,8 @@ class MenuService:
                 for menu in menus:
                     if isinstance(menu, str):  # 문자열인 경우만 처리
                         menu_categories[menu] = category
+                    if isinstance(menu, str):  # 문자열인 경우만 처리
+                        menu_categories[menu] = category
 
         # 날짜별 대체 메뉴 생성
         for date, menus in plan.items():
@@ -314,9 +316,18 @@ class MenuService:
                     sorted_menus = sorted(
                         same_category_menus,
                         key=lambda m: menu_preference.get(m, 0) if isinstance(m, str) else 0,
+                        key=lambda m: menu_preference.get(m, 0) if isinstance(m, str) else 0,
                         reverse=True
                     )
 
+                    top_menus = sorted_menus[:min(15, len(sorted_menus))]
+
+                    # 상위 15개 중에서 랜덤하게 3개 선택 (메뉴가 3개 미만이면 모두 선택)
+                    if len(top_menus) > 3:
+                        alt_menus = random.sample(top_menus, 3)
+                    else:
+                        alt_menus = top_menus
+                    
                     top_menus = sorted_menus[:min(15, len(sorted_menus))]
 
                     # 상위 15개 중에서 랜덤하게 3개 선택 (메뉴가 3개 미만이면 모두 선택)

@@ -15,7 +15,6 @@ public interface StudentRepository {
     Student saveAndFlush(Student student);
 
     // 커스텀 쿼리 메서드
-    List<String> findAllStudentNames();
     List<String> findAllStudentNamesBySchoolId(Long schoolId);
     Optional<Student> findByIdWithSchool(Long studentId);
     Optional<Student> findByIdAndSchoolId(Long studentId, Long schoolId);

@@ -54,5 +54,11 @@ public interface MenuJpaRepository extends JpaRepository<Menu, Long> {
 
     // 여러 ID로 메뉴 한번에 조회
     List<Menu> findAllByIdIn(Collection<Long> menuIds);
+    
+    // 학교와 메뉴 이름으로 조회 (날짜 상관없이)
+    List<Menu> findBySchoolAndMenuName(
+            School school,
+            String menuName
+    );
 }
 

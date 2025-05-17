@@ -17,6 +17,7 @@ class MenuPlanningWorkflow:
         self.integration_agent = IntegrationAgent()
     
     async def run_workflow(self, init_state: Dict[str, Any], holidays: Dict[str, Any]) -> Dict[str, Any]:
+    async def run_workflow(self, init_state: Dict[str, Any], holidays: Dict[str, Any]) -> Dict[str, Any]:
         """
         워크플로우 실행
 
@@ -34,6 +35,8 @@ class MenuPlanningWorkflow:
                 print(f"[WORKFLOW] Menu pool contains {total_menus} menus in {len(init_state['menu_pool'])} categories")
         
         # 1. 병렬로 잔반율 기반 식단과 영양소 기반 식단 생성
+        waste_task = asyncio.create_task(self.waste_agent.process(init_state, holidays))
+        nutrition_task = asyncio.create_task(self.nutrition_agent.process(init_state, holidays))
         waste_task = asyncio.create_task(self.waste_agent.process(init_state, holidays))
         nutrition_task = asyncio.create_task(self.nutrition_agent.process(init_state, holidays))
 

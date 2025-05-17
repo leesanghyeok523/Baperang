@@ -1,15 +1,7 @@
 import { FiChevronLeft, FiChevronRight, FiCalendar } from 'react-icons/fi';
 import Card, { CardHeader, CardBody } from './ui/Card';
 import { useNavigate } from 'react-router-dom';
-
-export interface MenuCardProps {
-  menuItems: string[];
-  currentDate: Date;
-  onPrevDay: () => void;
-  onNextDay: () => void;
-  loading?: boolean;
-  onMenuSelect?: (menuItem: string) => void;
-}
+import { MenuCardProps } from '../types/types';
 
 const MenuCard: React.FC<MenuCardProps> = ({
   menuItems,
@@ -68,7 +60,7 @@ const MenuCard: React.FC<MenuCardProps> = ({
         <div className="h-full flex flex-col items-center justify-center">
           {loading ? (
             <div className="text-center w-full">
-              <p className="text-xl font-medium text-gray-600">데이터를 불러오는 중...</p>
+              <p className="text-sm font-medium text-gray-600">데이터를 불러오는 중...</p>
             </div>
           ) : menuItems.length > 0 ? (
             <div

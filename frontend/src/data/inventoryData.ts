@@ -1,16 +1,4 @@
-// 재고 관리 데이터 타입 정의
-export interface InventoryItem {
-  id: number;
-  date: string;
-  productName: string;
-  supplier: string;
-  price: number;
-  orderedQuantity: number;
-  usedQuantity: number;
-  unit: string;
-}
-
-// 재고 목록에 사용할 상품 목록
+import { InventoryItem } from '../types/types'; // 재고 목록에 사용할 상품 목록
 const products = [
   { name: '쌀', supplier: '곰곰', unit: 'kg', priceRange: [1200000, 2000000] },
   { name: '닭', supplier: '하림', unit: '마리', priceRange: [800000, 1200000] },
@@ -85,3 +73,6 @@ export const generateMockInventoryData = (): InventoryItem[] => {
 
 // 목데이터 생성 및 내보내기
 export const inventoryData = generateMockInventoryData();
+
+// InventoryItem 타입을 재내보내기
+export type { InventoryItem } from '../types/types';

@@ -105,6 +105,7 @@ async def generate_menu_plan(
         menu_data = request.menuData
         menu_pool = request.menuPool
         holidays = request.holidays
+        holidays = request.holidays
 
         if settings.DEBUG:
             print(f"[ROUTE][generate_menu_plan] Preparing data for LLM")
