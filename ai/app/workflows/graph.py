@@ -17,7 +17,6 @@ class MenuPlanningWorkflow:
         self.integration_agent = IntegrationAgent()
     
     async def run_workflow(self, init_state: Dict[str, Any], holidays: Dict[str, Any]) -> Dict[str, Any]:
-    async def run_workflow(self, init_state: Dict[str, Any], holidays: Dict[str, Any]) -> Dict[str, Any]:
         """
         워크플로우 실행
 
