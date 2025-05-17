@@ -21,6 +21,7 @@ class WastePlanAgent:
         Returns:
             Dict: 처리 결과
         """
+        start_time = time.time()
         leftover_data = state.get("leftover_data", {})
         menu_pool = state.get("menu_pool", [])
         if settings.DEBUG:

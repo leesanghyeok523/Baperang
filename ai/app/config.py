@@ -1,8 +1,8 @@
 # env 등 각종 자격 
 import os
 from dotenv import load_dotenv
-from functools import lru_cache # Least Recently Used Cache_함수호출결과 캐싱
 from pydantic_settings import BaseSettings
+from functools import lru_cache
 
 load_dotenv()
 
@@ -20,10 +20,8 @@ class Settings(BaseSettings):
     API_VERSION: str = "0.0.1"
 
     # 로깅 설정
-    DEBUG: bool = os.getenv("DEBUG", "False")
-
-    # LLM 캐싱
-    USE_LLM_CACHE: bool = os.getenv("USE_LLM_CACHE", "True").lower() == "true"
+    # DEBUG: bool = os.getenv("DEBUG", "False")
+    DEBUG: bool = False
 
     class Config:
         env_file = ".env"
@@ -35,6 +33,7 @@ def get_settings() -> Settings:
 
 # 설정 인스턴스 생성
 settings = get_settings()
+get_settings.cache_clear()
 
 # 디버그 로그
 if settings.DEBUG:

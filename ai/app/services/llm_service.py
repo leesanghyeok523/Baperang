@@ -152,9 +152,8 @@ class LLMService:
 
         if settings.DEBUG:
             print(f"[LLM][generate_structured_response] Requesting structured response")
-
-        print(f"시스템 프롬프트: {system}")
-        print(f"사용자 프롬프트: {prompt}")
+            print(f"시스템 프롬프트: {system}")
+            print(f"사용자 프롬프트: {prompt}")
         
 
         # function calling을 위한 openai SDK 적용
@@ -179,21 +178,20 @@ class LLMService:
 
         if message.function_call:
             try:
-                print(f"원본 함수 호출 응답: {message.function_call.arguments}")
+                if settings.DEBUG:
+                    print(f"원본 함수 호출 응답: {message.function_call.arguments}")
                 payload = json.loads(message.function_call.arguments)
                 if len(payload) == 0:
-                    print(f"[ERROR] 빈 응답이 반환되었습니다. 프롬프트 내용을 확인하세요.")
-                    # 대체 로직 구현 또는 오류 발생
-                    return {}
+                    if settings.DEBUG:
+                        print(f"[ERROR] 빈 응답이 반환되었습니다. 프롬프트 내용을 확인하세요.")
+                        return {}
                 
                 # 함수 이름에 따라 처리
                 function_name = message.function_call.name
                 if function_name == "health_report":
-                    # 건강 리포트는 그대로 반환
                     return payload
                 
                 elif "plan" in payload and function_name in ["waste_plan", "nutrition_plan", "integration_plan"]:
-                    # 식단 계획 함수의 경우에만 plan 추출
                     return payload["plan"]
                 else:
                     return payload
@@ -236,4 +234,5 @@ class LLMService:
             
             return report
         except Exception as e:
-            print(f"[ERROR] 건강 리포트 생성 중 오류 발생: {str(e)}")
+            if settings.DEBUG:
+                print(f"[ERROR] 건강 리포트 생성 중 오류 발생: {str(e)}")

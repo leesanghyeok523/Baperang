@@ -274,16 +274,15 @@ class MenuService:
             Dict: 날짜별, 메뉴별 대체 메뉴 목록
         """
 
-        print("[MENU][generate_alternatives] Received menu_data with keys:", menu_data.keys())
-
         # 메뉴별 카테고리 매핑
         menu_categories = menu_data.get("menu_categories", {})
         categorized_menus = menu_data.get("categorized_menus", {})
         menu_preference = menu_data.get("menu_preference", {})
 
         # 디버깅 출력
-        print(f"[MENU][generate_alternatives] categorized_menus keys: {categorized_menus.keys() if categorized_menus else 'None'}")
-        print(f"[MENU][generate_alternatives] menu_preference keys count: {len(menu_preference) if menu_preference else 'None'}")
+        if settings.DEBUG:
+            print(f"[MENU][generate_alternatives] categorized_menus keys: {categorized_menus.keys() if categorized_menus else 'None'}")
+            print(f"[MENU][generate_alternatives] menu_preference keys count: {len(menu_preference) if menu_preference else 'None'}")
 
         alternatives = {}
 
