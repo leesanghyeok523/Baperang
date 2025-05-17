@@ -2,7 +2,7 @@ import json, time
 import os
 import asyncio
 
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, Optional
 from openai import OpenAI
 
 from ..core.prompts import PromptTemplates
@@ -118,19 +118,8 @@ class LLMService:
         self.model_name = model_name or settings.LLM_MODEL
         self.temperature = temperature or settings.LLM_TEMPERATURE
 
-        # 캐싱 딕셔너리
-        self.response_cache: Dict[str, str] = {}
-
-        # 캐시 사용 여부 설정
-        self.use_cache = settings.DEBUG and os.getenv("USE_LLM_CACHE", "True").lower() == "true"
-
-        if self.use_cache and settings.DEBUG:
-            print(f"[LLM] 캐싱 활성화: 동일한 프롬프트에 대한 중복 API 호출 방지")
-
         # LLM 클라이언트 초기화
         self.llm = OpenAI(
-            # model_name=self.model_name,
-            # temperature=self.temperature,
             api_key=settings.OPENAI_API_KEY
         )
 
@@ -163,10 +152,8 @@ class LLMService:
 
         if settings.DEBUG:
             print(f"[LLM][generate_structured_response] Requesting structured response")
-            start_time = time.time()
-
-        print(f"시스템 프롬프트: {system}")
-        print(f"사용자 프롬프트: {prompt}")
+            print(f"시스템 프롬프트: {system}")
+            print(f"사용자 프롬프트: {prompt}")
         
 
         # function calling을 위한 openai SDK 적용
@@ -177,34 +164,34 @@ class LLMService:
             temperature=self.temperature,
             functions=[function_def],
             function_call="auto"
-            # function_call={"name": function_def["name"]}
         )
-        
-        print("[DEBUG] resp = :", resp)
+
+        if settings.DEBUG:
+            print("[DEBUG] resp = :", resp)
 
         message = resp.choices[0].message
 
-        print("[DEBUG] function_call =", message.function_call)
-        print("[DEBUG] function_call.name =", message.function_call.name)
-        print("[DEBUG] function_call.arguments =", message.function_call.arguments)
+        if settings.DEBUG:
+            print("[DEBUG] function_call =", message.function_call)
+            print("[DEBUG] function_call.name =", message.function_call.name)
+            print("[DEBUG] function_call.arguments =", message.function_call.arguments)
 
         if message.function_call:
             try:
-                print(f"원본 함수 호출 응답: {message.function_call.arguments}")
+                if settings.DEBUG:
+                    print(f"원본 함수 호출 응답: {message.function_call.arguments}")
                 payload = json.loads(message.function_call.arguments)
                 if len(payload) == 0:
-                    print(f"[ERROR] 빈 응답이 반환되었습니다. 프롬프트 내용을 확인하세요.")
-                    # 대체 로직 구현 또는 오류 발생
-                    return {}
+                    if settings.DEBUG:
+                        print(f"[ERROR] 빈 응답이 반환되었습니다. 프롬프트 내용을 확인하세요.")
+                        return {}
                 
                 # 함수 이름에 따라 처리
                 function_name = message.function_call.name
                 if function_name == "health_report":
-                    # 건강 리포트는 그대로 반환
                     return payload
                 
                 elif "plan" in payload and function_name in ["waste_plan", "nutrition_plan", "integration_plan"]:
-                    # 식단 계획 함수의 경우에만 plan 추출
                     return payload["plan"]
                 else:
                     return payload
@@ -247,4 +234,5 @@ class LLMService:
             
             return report
         except Exception as e:
-            print(f"[ERROR] 건강 리포트 생성 중 오류 발생: {str(e)}")
+            if settings.DEBUG:
+                print(f"[ERROR] 건강 리포트 생성 중 오류 발생: {str(e)}")
