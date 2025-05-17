@@ -7,7 +7,6 @@ import Calendar from './pages/Calendar';
 import Header from './components/Header';
 import InventoryPage from './pages/Inventory';
 import MyPage from './pages/MyPage';
-import CreateMeal from './pages/CreateMeal';
 import ForgotAccountPage from './pages/ForgotAccount';
 import { useAuthStore } from './store/authStore';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -103,7 +102,6 @@ function App() {
             <Route index element={<Navigate to="/main" />} />
             <Route path="main" element={<MainPage />} />
             <Route path="calendar" element={<Calendar />} />
-            <Route path="diet" element={<CreateMeal />} />
             <Route path="student" element={<StudentManagement />} />
             <Route path="inventory" element={<InventoryPage />} />
             <Route path="mypage" element={<MyPage />} />
