@@ -342,7 +342,7 @@ const MenuDetail = ({ selectedDate, menuData, onMenuUpdate }: MenuDetailProps) =
                     {alternatives.map((alt, idx) => (
                       <div
                         key={idx}
-                        className=" bg-gray-100 hover:bg-orange-100 p-2 rounded-lg cursor-pointer transition-colors text-xs text-center"
+                        className="bg-gray-100 hover:bg-orange-100 p-2 rounded-lg cursor-pointer transition-colors text-xs text-center"
                         onClick={() => handleAlternativeSelect(alt)}
                       >
                         {alt}
