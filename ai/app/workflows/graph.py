@@ -2,7 +2,7 @@
 import asyncio
 import time, json
 
-from typing import Dict, List, Any
+from typing import Dict, Any
 
 from .agents import WastePlanAgent, NutritionPlanAgent, IntegrationAgent
 from ..config import settings

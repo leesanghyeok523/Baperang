@@ -1,5 +1,4 @@
-from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
-from typing import Dict, List, Any
+from fastapi import APIRouter, HTTPException, Depends
 from ..config import settings
 import time
 
@@ -18,7 +17,6 @@ from ..services.menu_service import MenuService
 from ..services.analyze_service import AnalyzeService
 from ..workflows.graph import MenuPlanningWorkflow
 from ..services.report_service import ReportService
-import asyncio
 
 router = APIRouter(prefix="/ai")
 
@@ -127,17 +125,9 @@ async def generate_menu_plan(
         # 워크 플로우 실행
         print(f"[ROUTE][generate_menu_plan] Before awaiting workflow")
         result = await workflow.run_workflow(processed_data, holidays)
-        # print(f"[ROUTE][generate_menu_plan] After awaiting workflow, result type: {type(result)}")
 
         print("[ROUTE][generate_menu_plan] After awaiting workflow, result : ", result)
-        # print("[ROUTE][generate_menu_plan] After awaiting workflow, processed_data : ", processed_data)
-
-
-        # # 카테고리별 메뉴 매핑 생성(반대 방향 매핑)
-        # menu_to_category = {}
-        # for category, menu_list in processed_data["menu_pool"].items():
-        #     for menu in menu_list:
-        #         menu_to_category[menu] = category
+        print("[ROUTE][generate_menu_plan] working flow process time :", time.time() - start_time)
 
         # 통합 식단 검증 - 메뉴 풀 활용
         integrated_plan = result["integrated_plan"]
@@ -175,58 +165,7 @@ async def generate_menu_plan(
                 }
             
             menu_based_plan[date] = menu_map
-    
-        """
-        # print("[ROUTES][generate_menu_plan] start formatting :", integrated_plan)
-        
-        # 메뉴 기반 형식으로 직접 변환
-        menu_based_plan = {}
-        for date, menu_categories in integrated_plan.items():
-            # menus는 딕셔너리: {'된장찌개': 'soup', '김치볶음밥': 'rice', ...}
-            
-            # print("[ROUTES][generate_menu_plan] start creating alternatives : ", menu_categories)
 
-            # 카테고리별 메뉴 추출
-            soup_menu = next((menu for menu, category in menu_categories.items() if category == "soup"), None)
-            rice_menu = next((menu for menu, category in menu_categories.items() if category == "rice"), None)
-            main_menu = next((menu for menu, category in menu_categories.items() if category == "main"), None)
-            side_menu = [menu for menu, category in menu_categories.items() if category == "side"]
-
-            # 메뉴 별 대체 메뉴 (dict 직접 사용)
-            menu_map = {}
-
-            # 각 카테고리별 대체 메뉴 생성
-            if soup_menu:
-                soup_alternatives = [m for m in processed_data["menu_pool"]["soup"] if m != soup_menu][:3]
-                menu_map[soup_menu] = {
-                    "category": "soup",
-                    "alternatives": soup_alternatives
-                }
-
-            if rice_menu:
-                rice_alternatives = [m for m in processed_data["menu_pool"]["rice"] if m != rice_menu][:3]
-                menu_map[rice_menu] = {
-                    "category": "rice",
-                    "alternatives": rice_alternatives
-                }
-
-            if main_menu:
-                main_alternatives = [m for m in processed_data["menu_pool"]["main"] if m != main_menu][:3]
-                menu_map[main_menu] = {
-                    "category": "main",
-                    "alternatives": main_alternatives
-                }
-
-            # 사이드 메뉴 처리
-            for side_m in side_menu:
-                side_alternatives = [m for m in processed_data["menu_pool"]["side"] if m != side_m][:3]
-                menu_map[side_m] = {
-                    "category": "side",
-                    "alternatives": side_alternatives
-                }
-    
-            menu_based_plan[date] = menu_map
-        """
         print("menu_based_plan : ", menu_based_plan)
 
         return PlanResponse(
@@ -275,20 +214,3 @@ async def create_health_report(
             plan=dummy_plan,
             opinion=dummy_opinion
         )
-
-# 안 쓸 것 같음
-@router.get("/menu-pool", response_model=Dict[str, List[str]])
-async def get_menu_pool(
-    menu_service: MenuService = Depends(get_menu_service)
-):
-    """
-    사용 가능한 메뉴 풀 조회
-    
-    카테고리별 메뉴 목록을 반환합니다.
-    
-    현재로선 사용하지 않을 확률 높음
-    """
-    try:
-        return await menu_service.get_menu_categories()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"메뉴 풀 조회 중 오류: {str(e)}")

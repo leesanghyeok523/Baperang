@@ -1,6 +1,5 @@
 from typing import Dict, List, Any, Optional
-import aiohttp
-import json, time
+import time
 import random
 from ..config import settings
 from collections import defaultdict

@@ -59,7 +59,6 @@ class PromptTemplates:
             # 이미 카테고리 정보가 제공된 경우
             return categories
         
-        # 간단한 카테고리 추정 로직
         categorized = {
             "soup": [],
             "rice": [],
@@ -74,7 +73,6 @@ class PromptTemplates:
             "side": ["나물", "무침", "장아찌", "샐러드", "김치", "깍두기"],
         }
 
-        # 메뉴 분류
         for menu in menu_pool:
             categorized_flag = False
             for category, keywords in category_keywords.items():
@@ -330,21 +328,6 @@ class PromptTemplates:
         }}
         ```
         """
-    
-
-        
-        
-        # ## 출력 형식
-        # 날짜별 메뉴 목록을 JSON 형식으로 작성해주세요:
-        # 중요: 반드시 아래 형식과 일치하는 유효한 JSON만 반환해주세요. 주석이나 코드는 포함하지 마세요.
-        # ```json
-        # {example_output}
-        # ```
-        
-        # 또한 각 카테고리별로 대체 메뉴 옵션도 함께 제공해주세요:
-        # ```json
-        # {exemple_alternatives}
-        # ```
 
     @staticmethod
     def report_template(bmi: float, leftover: Dict[str, Any],
@@ -371,6 +354,7 @@ class PromptTemplates:
         ## 중요
         1. 각 부분은 학생의 정보를 구체적으로 반영하여 맞춤형으로 작성해주세요.
         2. 각각의 리포트 내용은 json 형식으로 아래와 같이 작성해주세요.
+        3. 영양소 섭취 현황이 0인 날짜는 제외하고 학습하세요.
         ```json
         {{
            "analyzeReport" : "BMI 지수 21.1는 정상 상태입니다. 현재 건강한 상태를 유지하고 있습니다." ,
@@ -378,5 +362,4 @@ class PromptTemplates:
            "opinion": "식습관 개선과 영양 균형에 주의가 필요합니다. 정기적인 운동과 균형 잡힌 식단 관리를 통해 건강 상태를 개선하시기 바랍니다."
         }}
         ```
-    
         """

@@ -2,7 +2,7 @@ import json, time
 import os
 import asyncio
 
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, Optional
 from openai import OpenAI
 
 from ..core.prompts import PromptTemplates
@@ -129,8 +129,6 @@ class LLMService:
 
         # LLM 클라이언트 초기화
         self.llm = OpenAI(
-            # model_name=self.model_name,
-            # temperature=self.temperature,
             api_key=settings.OPENAI_API_KEY
         )
 
@@ -177,7 +175,6 @@ class LLMService:
             temperature=self.temperature,
             functions=[function_def],
             function_call="auto"
-            # function_call={"name": function_def["name"]}
         )
         
         print("[DEBUG] resp = :", resp)
