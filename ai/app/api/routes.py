@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from ..config import settings
 import time
+from fastapi import Request
 
 from .models import (
     PlanRequest,
@@ -23,8 +24,8 @@ router = APIRouter(prefix="/ai")
 def get_menu_service():
     return MenuService()
 
-def get_analyze_service():
-    return AnalyzeService()
+def get_analyze_service(request: Request) -> AnalyzeService:
+    return request.app.state.analyze_service
 
 def get_workflow_service():
     return MenuPlanningWorkflow()
