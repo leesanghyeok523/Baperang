@@ -198,13 +198,19 @@ class AnalyzeService:
     
     def __init__(self):
         if settings.DEBUG:
-            print("[ANALYZE] Initializing analyze service")
+            print("[ANALYZE] Initializing analyze service and loading models...")
         self.device = torch.device("cpu")
         
         # 모델 싱글톤으로 로드
         weights_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'weights', 'new_opencv_ckpt_b84_e200.pth')
+        if settings.DEBUG:
+            print("[ANALYZE] Loading ResNet model...")
         self.resnet_model = load_resnet_model(weights_path, device='cpu')
+        if settings.DEBUG:
+            print("[ANALYZE] Loading MiDaS model...")
         self.midas_model, self.midas_transform = load_midas_model(device='cpu')
+        if settings.DEBUG:
+            print("[ANALYZE] All models loaded successfully")
 
     async def analyze_leftover_images(
         self,
