@@ -125,7 +125,7 @@ def load_midas_model(device='cpu'):
         print(f"MiDaS 모델 로드 중 오류 발생: {e}")
         return None, None
 
-def predict_depth(image, midas_model, midas_transform, device='cpu', img_base=None):
+def predict_depth(image, midas_model, midas_transform, device='cpu', roi_mask=None, slot_name=None):
     """MiDaS로 깊이 맵 생성 및 깊이 가중치 적용"""
     if midas_model is None or midas_transform is None:
         return None, 0, None, 0, None, None
@@ -324,7 +324,7 @@ def load_resnet_model(weights_path, device='cpu'):
             print(f"가중치 파일을 찾을 수 없습니다: {abs_weights_path}")
             raise FileNotFoundError(f"가중치 파일을 찾을 수 없습니다: {abs_weights_path}")
             
-        checkpoint = torch.load(abs_weights_path, map_location=device)
+        checkpoint = torch.load(abs_weights_path, map_location=device, weights_only=False)
         model = checkpoint['model_ft']
         model.load_state_dict(checkpoint['state_dict'], strict=False)
         
