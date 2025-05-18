@@ -11,6 +11,15 @@ import time
 from datetime import datetime
 import argparse
 import re
+from torchvision import transforms
+import random
+
+# RNG 시드 고정
+SEED = 42
+random.seed(SEED)         # 파이썬 표준 RNG
+np.random.seed(SEED)      # NumPy RNG
+torch.manual_seed(SEED)   # PyTorch
+cv2.setRNGSeed(SEED)      # OpenCV RNG
 
 # 한글 폰트 설정
 plt.rcParams['font.family'] = 'Malgun Gothic'  # 윈도우 기본 한글 폰트
@@ -107,7 +116,17 @@ def back_projection(
     black_ratio = mask_bool.mean() * 100
     return black_ratio, result_img, ~mask_bool
 
-# MiDaS 모델 로드 및 깊이 추정 함수
+def preprocess_image_for_midas(img: np.ndarray) -> np.ndarray:
+    """MiDaS 모델을 위한 이미지 전처리 (384x384 고정 크기)"""
+    h, w = img.shape[:2]
+    scale = 384 / max(h, w)
+    img = cv2.resize(img, (int(w*scale), int(h*scale)))
+    # 검정 패딩으로 384×384
+    square = np.zeros((384, 384, 3), np.uint8)
+    y, x = (384-img.shape[0])//2, (384-img.shape[1])//2
+    square[y:y+img.shape[0], x:x+img.shape[1]] = img
+    return square
+
 def load_midas_model(device='cpu'):
     """MiDaS 깊이 추정 모델 로드"""
     try:
@@ -116,11 +135,13 @@ def load_midas_model(device='cpu'):
         midas.to(device)
         midas.eval()
         
-        # 입력 변환 설정
-        midas_transforms = torch.hub.load("intel-isl/MiDaS", "transforms")
-        transform = midas_transforms.dpt_transform
+        # 새로운 transform 설정 (정규화만 수행)
+        midas_transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+        ])
         
-        return midas, transform
+        return midas, midas_transform
     except Exception as e:
         print(f"MiDaS 모델 로드 중 오류 발생: {e}")
         return None, None
@@ -140,15 +161,19 @@ def predict_depth(image, midas_model, midas_transform, device='cpu', roi_mask=No
     if len(img.shape) > 2 and img.shape[2] == 4:
         img = cv2.cvtColor(img, cv2.COLOR_RGBA2RGB)
     
-    # MiDaS 입력 형식으로 변환
-    input_batch = midas_transform(img).to(device)
+    # 원본 이미지 크기 저장
+    original_h, original_w = img.shape[:2]
+    
+    # MiDaS 입력을 위한 전처리
+    img_proc = preprocess_image_for_midas(img)
+    input_batch = midas_transform(img_proc).unsqueeze(0).to(device)
     
     # 깊이 추정
     with torch.no_grad():
         prediction = midas_model(input_batch)
         prediction = torch.nn.functional.interpolate(
             prediction.unsqueeze(1),
-            size=img.shape[:2],
+            size=(original_h, original_w),  # 원본 크기로 복원
             mode="bicubic",
             align_corners=False,
         ).squeeze()
@@ -187,7 +212,7 @@ TRAY_SLOTS = {
 
 def estimate_volume_from_depth_with_weight(depth_map, roi_mask=None, slot_name=None):
     print(f"[DEBUG] estimate_volume_from_depth_with_weight: slot_name={slot_name}")
-    if roi_mask is None or roi_mask.mean() < 0.05:
+    if roi_mask is None or roi_mask.mean() < 0.01:
         return estimate_volume_from_depth_with_weight_old(depth_map)
 
     # 1. food_mask 보강 (팽창)
