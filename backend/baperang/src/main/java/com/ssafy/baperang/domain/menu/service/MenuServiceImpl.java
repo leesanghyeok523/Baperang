@@ -138,11 +138,31 @@ public class MenuServiceImpl implements MenuService {
                     // 공휴일이 아닌 경우 기존 로직 적용
                     List<Menu> dayMenus = menusByDate.getOrDefault(currentDate, Collections.emptyList());
 
-                    List<MenuResponseDto.Menus> menusList = dayMenus.stream()
-                            .map(menu -> MenuResponseDto.Menus.builder()
-                                    .menuId(menu.getId())
-                                    .menuName(menu.getMenuName())
-                                    .build())
+                    // 메뉴 이름 목록 추출
+                    List<String> menuNames = dayMenus.stream()
+                            .map(Menu::getMenuName)
+                            .collect(Collectors.toList());
+
+                    // 카테고리별로 정렬된 메뉴 이름 목록
+                    List<String> sortedMenuNames = sortMenusByCategory(menuNames, school);
+
+                    // 정렬된 메뉴 이름에 해당하는 Menu 엔티티 매핑
+                    Map<String, Menu> menuMap = dayMenus.stream()
+                            .collect(Collectors.toMap(
+                                Menu::getMenuName,
+                                menu -> menu,
+                                (existing, replacement) -> existing
+                            ));
+
+                    // 정렬된 순서대로 MenuResponseDto.Menus 생성
+                    List<MenuResponseDto.Menus> menusList = sortedMenuNames.stream()
+                            .map(menuName -> {
+                                Menu menu = menuMap.get(menuName);
+                                return MenuResponseDto.Menus.builder()
+                                        .menuId(menu.getId())
+                                        .menuName(menu.getMenuName())
+                                        .build();
+                            })
                             .collect(Collectors.toList());
 
                     MenuResponseDto.Days day = MenuResponseDto.Days.builder()
@@ -184,7 +204,6 @@ public class MenuServiceImpl implements MenuService {
     @Override
     @Transactional(readOnly = true)
     public Object getOneDayMenu(String token, String date) { 
-        
         try {
             // 토큰 유효성
             if (!jwtService.validateToken(token)) {
@@ -212,7 +231,8 @@ public class MenuServiceImpl implements MenuService {
                 return menu;
             }
 
-            return menu;
+            // 카테고리별로 정렬된 메뉴 반환
+            return sortMenusByCategory(menu, school);
         } catch (Exception e) {
             log.error("오늘 메뉴 조회 중 오류 발생: {}", e.getMessage(), e);
             return ErrorResponseDto.of(BaperangErrorCode.INTERNAL_SERVER_ERROR);
@@ -222,7 +242,6 @@ public class MenuServiceImpl implements MenuService {
     @Override
     @Transactional(readOnly = true)
     public Object getTodayMenu(String token) { 
-        
         try {
             // 토큰 유효성
             if (!jwtService.validateToken(token)) {
@@ -252,7 +271,8 @@ public class MenuServiceImpl implements MenuService {
                 return menu;
             }
 
-            return menu;
+            // 카테고리별로 정렬된 메뉴 반환
+            return sortMenusByCategory(menu, school);
         } catch (Exception e) {
             log.error("오늘 메뉴 조회 중 오류 발생: {}", e.getMessage(), e);
             return ErrorResponseDto.of(BaperangErrorCode.INTERNAL_SERVER_ERROR);
@@ -776,5 +796,38 @@ public class MenuServiceImpl implements MenuService {
             log.error("메뉴 수정 중 오류 발생: {}", e.getMessage(), e);
             return ErrorResponseDto.of(BaperangErrorCode.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    private List<String> sortMenusByCategory(List<String> menus, School school) {
+        // 해당 날짜의 모든 메뉴 엔티티 조회
+        List<Menu> menuEntities = menuRepository.findBySchoolAndMenuDate(school, LocalDate.now());
+        
+        // 카테고리별 우선순위 맵
+        Map<String, Integer> categoryPriority = new HashMap<>();
+        categoryPriority.put("rice", 1);
+        categoryPriority.put("soup", 2);
+        categoryPriority.put("main", 3);
+        categoryPriority.put("side", 4);
+        
+        // 메뉴 이름 -> 카테고리 매핑
+        Map<String, String> menuToCategory = menuEntities.stream()
+            .collect(Collectors.toMap(
+                Menu::getMenuName,
+                Menu::getCategory,
+                (existing, replacement) -> existing
+            ));
+        
+        // 정렬된 메뉴 리스트 생성
+        return menus.stream()
+            .sorted((menu1, menu2) -> {
+                String category1 = menuToCategory.getOrDefault(menu1, "side");
+                String category2 = menuToCategory.getOrDefault(menu2, "side");
+                
+                int priority1 = categoryPriority.getOrDefault(category1, 5);
+                int priority2 = categoryPriority.getOrDefault(category2, 5);
+                
+                return Integer.compare(priority1, priority2);
+            })
+            .collect(Collectors.toList());
     }
 }
