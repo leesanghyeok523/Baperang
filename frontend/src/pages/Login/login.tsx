@@ -1,11 +1,14 @@
 // src/pages/Login/index.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Button from '../../components/ui/button';
 import InputCard from '../../components/ui/inputcard';
 import useAuth from '../../hooks/useAuth';
 import { showErrorAlert } from '../../utils/sweetalert';
 import { LoginPageFormData } from '../../types/types';
+
+// 로컬스토리지 키 상수
+const SAVED_LOGIN_ID_KEY = 'savedLoginId';
 
 const LoginPage: React.FC = () => {
   const [formData, setFormData] = useState<LoginPageFormData>({
@@ -16,9 +19,23 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { handleLogin, error: authError, isLoading } = useAuth();
 
+  // 컴포넌트 마운트 시 저장된 아이디 불러오기
+  useEffect(() => {
+    const savedLoginId = localStorage.getItem(SAVED_LOGIN_ID_KEY);
+    if (savedLoginId) {
+      setFormData((prev) => ({ ...prev, loginId: savedLoginId }));
+    }
+  }, []);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+
+    // 아이디 입력 시 로컬스토리지에 저장
+    if (name === 'loginId') {
+      localStorage.setItem(SAVED_LOGIN_ID_KEY, value);
+    }
+
     // 입력할 때 에러 메시지 초기화
     setError('');
   };
@@ -46,6 +63,12 @@ const LoginPage: React.FC = () => {
 
       setError(errorMessage);
       showErrorAlert('로그인 오류', errorMessage);
+
+      // 로그인 실패 시에도 아이디는 로컬스토리지에 저장
+      localStorage.setItem(SAVED_LOGIN_ID_KEY, formData.loginId);
+
+      // 비밀번호만 초기화
+      setFormData((prev) => ({ ...prev, password: '' }));
     }
   };
 
