@@ -19,8 +19,14 @@ const MainPage = () => {
   const [loading, setLoading] = useState(false);
   const [selectedMenu, setSelectedMenu] = useState<string | null>(null);
 
-  // 선호도 데이터는 SSE에서 받은 데이터만 저장
+  // SSE에서 받은 데이터를 저장하는 상태들
   const [todayWasteData, setTodayWasteData] = useState<WasteData[]>([]);
+  const [todayLeftoverData, setTodayLeftoverData] = useState<WasteData[]>([]);
+  const [mealCompletionData, setMealCompletionData] = useState({
+    completedStudents: 0,
+    totalStudents: 0,
+    completionRate: 0,
+  });
   const { isAuthenticated, accessToken } = useAuthStore();
 
   // 메뉴 아이템 클릭 핸들러
@@ -56,10 +62,11 @@ const MainPage = () => {
     });
 
     // 초기 만족도 데이터 이벤트 처리 추가
-    // @ts-ignore EventSourcePolyfill 타입 정의 불일치
+    // @ts-expect-error EventSourcePolyfill 타입 정의 불일치
     eventSource.addEventListener('initial-satisfaction', (event: SSEMessageEvent) => {
       try {
         const menuSatisfactions = JSON.parse(event.data);
+        console.log('[SSE] 초기 선호도 데이터 수신:', menuSatisfactions);
 
         if (Array.isArray(menuSatisfactions)) {
           // 수신된 데이터를 WasteData 배열로 변환
@@ -84,12 +91,68 @@ const MainPage = () => {
       }
     });
 
+    // 초기 잔반률 데이터 이벤트 처리
+    // @ts-expect-error EventSourcePolyfill 타입 정의 불일치
+    eventSource.addEventListener('initial-leftover', (event: SSEMessageEvent) => {
+      try {
+        const menuLeftovers = JSON.parse(event.data);
+        console.log('[SSE] 초기 잔반율 데이터 수신:', menuLeftovers);
+
+        if (Array.isArray(menuLeftovers)) {
+          // 수신된 데이터를 WasteData 배열로 변환
+          const initialData: WasteData[] = menuLeftovers.map((item) => {
+            // leftoverRate가 이미 퍼센트(0-100)인지 또는 소수(0-1)인지 확인
+            const leftoverRate =
+              typeof item.leftoverRate === 'number'
+                ? item.leftoverRate <= 1
+                  ? item.leftoverRate * 100
+                  : item.leftoverRate
+                : 0;
+
+            return {
+              name: item.menuName,
+              category: item.category,
+              선호도: 0, // 선호도 초기값
+              잔반률: leftoverRate, // 퍼센트 값으로 변환
+            };
+          });
+
+          // 유효한 잔반률 데이터가 있는 경우에만 상태 업데이트
+          if (initialData.length > 0) {
+            setTodayLeftoverData(initialData);
+          }
+        }
+      } catch (err) {
+        console.error('초기 잔반률 데이터 처리 중 오류:', err);
+      }
+    });
+
+    // 초기 식사 완료율 데이터 이벤트 처리
+    // @ts-expect-error EventSourcePolyfill 타입 정의 불일치
+    eventSource.addEventListener('initial-completion', (event: SSEMessageEvent) => {
+      try {
+        const completionData = JSON.parse(event.data);
+        console.log('[SSE] 초기 식사 완료율 데이터 수신:', completionData);
+
+        if (completionData && typeof completionData === 'object') {
+          setMealCompletionData({
+            completedStudents: completionData.completedStudents || 0,
+            totalStudents: completionData.totalStudents || 0,
+            completionRate: completionData.completionRate || 0,
+          });
+        }
+      } catch (err) {
+        console.error('초기 식사 완료율 데이터 처리 중 오류:', err);
+      }
+    });
+
     // 투표 이벤트 처리
     // EventSourcePolyfill의 타입 호환성 문제로 타입 검사 예외 처리
-    // @ts-ignore EventSourcePolyfill 타입 정의 불일치
+    // @ts-expect-error EventSourcePolyfill 타입 정의 불일치
     eventSource.addEventListener('satisfaction-update', (event: SSEMessageEvent) => {
       try {
         const data = JSON.parse(event.data) as SatisfactionUpdate;
+        console.log('[SSE] 실시간 선호도 업데이트 수신:', data);
 
         // 만족도 데이터만 업데이트 (잔반률과 연관짓지 않음)
         if (data.menuName && data.averageSatisfaction) {
@@ -159,6 +222,86 @@ const MainPage = () => {
       }
     });
 
+    // 잔반률 업데이트 이벤트 처리
+    // @ts-expect-error EventSourcePolyfill 타입 정의 불일치
+    eventSource.addEventListener('leftover-update', (event: SSEMessageEvent) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log('[SSE] 실시간 잔반율 업데이트 수신:', data);
+
+        if (Array.isArray(data)) {
+          // 전체 데이터를 한번에 받는 경우
+          const newLeftoverData = data.map((item) => {
+            // leftoverRate가 이미 퍼센트(0-100)인지 또는 소수(0-1)인지 확인
+            const leftoverRate =
+              typeof item.leftoverRate === 'number'
+                ? item.leftoverRate <= 1
+                  ? item.leftoverRate * 100
+                  : item.leftoverRate
+                : 0;
+
+            return {
+              name: item.menuName,
+              category: item.category,
+              선호도: 0, // 기본값
+              잔반률: leftoverRate, // 퍼센트 값으로 변환
+            };
+          });
+
+          setTodayLeftoverData(newLeftoverData);
+        } else if (data.menuName && typeof data.leftoverRate === 'number') {
+          // 단일 메뉴 업데이트
+          setTodayLeftoverData((prevData) => {
+            const menuIndex = prevData.findIndex((item) => item.name === data.menuName);
+            const updatedData = [...prevData];
+
+            // leftoverRate가 이미 퍼센트(0-100)인지 또는 소수(0-1)인지 확인
+            const leftoverRate =
+              data.leftoverRate <= 1 ? data.leftoverRate * 100 : data.leftoverRate;
+
+            if (menuIndex >= 0) {
+              // 기존 메뉴 업데이트
+              updatedData[menuIndex] = {
+                ...updatedData[menuIndex],
+                잔반률: leftoverRate,
+              };
+            } else {
+              // 새 메뉴 추가
+              updatedData.push({
+                name: data.menuName,
+                category: data.category,
+                선호도: 0,
+                잔반률: leftoverRate,
+              });
+            }
+
+            return updatedData;
+          });
+        }
+      } catch (err) {
+        console.error('잔반률 데이터 처리 중 오류:', err);
+      }
+    });
+
+    // 식사 완료율 업데이트 이벤트 처리
+    // @ts-expect-error EventSourcePolyfill 타입 정의 불일치
+    eventSource.addEventListener('completion-update', (event: SSEMessageEvent) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log('[SSE] 실시간 식사 완료율 업데이트 수신:', data);
+
+        if (data && typeof data === 'object') {
+          setMealCompletionData({
+            completedStudents: data.completedStudents || 0,
+            totalStudents: data.totalStudents || 0,
+            completionRate: data.completionRate || 0,
+          });
+        }
+      } catch (err) {
+        console.error('식사 완료율 데이터 처리 중 오류:', err);
+      }
+    });
+
     // 연결 이벤트 처리
     eventSource.addEventListener('connect', () => {
       // 연결 성공 로그 제거
@@ -173,7 +316,7 @@ const MainPage = () => {
     eventSource.onmessage = () => {};
 
     // 에러 처리
-    // @ts-ignore EventSourcePolyfill 타입 정의 불일치
+    // @ts-expect-error EventSourcePolyfill 타입 정의 불일치
     eventSource.onerror = (error: Event) => {
       console.error('SSE 연결 오류:', error);
       eventSource.close();
@@ -200,6 +343,11 @@ const MainPage = () => {
       }
     };
   }, [isAuthenticated, accessToken]);
+
+  // 식사 완료율 상태 변화 추적을 위한 useEffect
+  useEffect(() => {
+    console.log('[상태 업데이트] 현재 식사 완료율 데이터:', mealCompletionData);
+  }, [mealCompletionData]);
 
   // 일별 메뉴 데이터 가져오기
   const fetchDailyMenu = async (dateStr: string) => {
@@ -347,10 +495,14 @@ const MainPage = () => {
               </div>
             </div>
 
-            {/* 실시간 잔반률/선호도 전환 카드 - SSE에서 받은 데이터만 사용 */}
+            {/* 실시간 잔반률/선호도 전환 카드 - SSE에서 받은 데이터 사용 */}
             <div className="col-span-12 md:col-span-8">
               <div className="h-[73vh]">
-                <RateToggleCard data={todayWasteData} />
+                <RateToggleCard
+                  data={todayWasteData}
+                  leftoverData={todayLeftoverData}
+                  completionData={mealCompletionData}
+                />
               </div>
             </div>
           </div>
