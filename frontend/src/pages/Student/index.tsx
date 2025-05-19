@@ -85,6 +85,7 @@ const StudentManagement = () => {
           },
         }
       );
+      console.log(response)
 
       // API 응답을 내부 형식으로 변환
       const formattedStudents: StudentType[] = response.data.students.map((student) => ({
