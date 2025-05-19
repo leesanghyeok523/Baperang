@@ -53,4 +53,9 @@ public class StudentRepositoryImpl implements StudentRepository {
     public List<Student> findBySchoolIdOrderByGradeAscClassNumAscNumberAsc(Long schoolId) {
         return studentJpaRepository.findBySchoolIdOrderByGradeAscClassNumAscNumberAsc(schoolId);
     }
+
+    @Override
+    public long countBySchool(School school) {
+        return studentJpaRepository.countBySchool(school);
+    }
 }

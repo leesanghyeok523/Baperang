@@ -21,4 +21,7 @@ public interface StudentRepository {
     Optional<Student> findBySchoolAndGradeAndClassNumAndNumber(
             School school, int grade, int classNum, int number);
     List<Student> findBySchoolIdOrderByGradeAscClassNumAscNumberAsc(Long schoolId);
+
+    // 학교별 전체 학생 수 카운트
+    long countBySchool(com.ssafy.baperang.domain.school.entity.School school);
 }

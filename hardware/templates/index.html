@@ -42,8 +42,12 @@
       }
 
       @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
       }
     </style>
   </head>
@@ -67,11 +71,6 @@
       <div id="loading-spinner" class="spinner-container">
         <div class="spinner"></div>
       </div>
-
-      <div
-        class="flex justify-center items-center"
-        style="padding-top: 75px; height: calc(100vh - 60px)"
-      >
 
       <div
         class="flex justify-center items-center"
@@ -135,13 +134,15 @@
         const spinnerEl = document.getElementById("loading-spinner");
         let lastPk = null;
         let detectionRunning = false;
-        let name = ''
-
+        let name = "";
+        let status = "";
         // 1) 학생증/NFC 폴링
         async function pollNfc() {
           try {
             const res = await fetch("/nfc-info");
             const data = await res.json();
+
+            status = data.status;
 
             if (data.isTagged && data.pk !== lastPk) {
               lastPk = data.pk;
@@ -151,7 +152,7 @@
                 data.gender === "female"
                   ? '{{ url_for("static", filename="image/student/girl.png") }}'
                   : '{{ url_for("static", filename="image/student/boy.png") }}';
-              name = data.name
+              name = data.name;
             } else if (!data.isTagged && lastPk !== null) {
               lastPk = null;
               nameEl.textContent = "학생증을 인식시켜주세요";
@@ -170,21 +171,26 @@
             const res = await fetch("/detection-status");
             if (!res.ok) return;
             const { detected, processing } = await res.json();
-          
+
             if (processing) {
               spinnerEl.style.visibility = "visible";
               // 여기서 텍스트를 변경하지 않음 - 기존 텍스트 유지
             } else {
               spinnerEl.style.visibility = "hidden";
             }
-          
+
             if (detected && !detectionRunning) {
               detectionRunning = true;
               // 인식완료 표시
               nameEl.innerHTML = `
               <span class="text-blue-500 mr-2 text-[3.2rem]">🍳</span>인식완료!`;
-              msgEl.textContent = "";
-            
+
+              if (status == "식전") {
+                msgEl.textContent = "식사 맛있게 하세요!";
+              } else {
+                msgEl.textContent = "좋은 하루 되세요!";
+              }
+
               // 3초 뒤 복원
               setTimeout(() => {
                 detectionRunning = false;
