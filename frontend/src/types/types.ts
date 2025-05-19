@@ -248,6 +248,8 @@ export interface WasteRateCardProps {
 // 식사 완료율 관련 타입
 export interface MealCompletionRateProps {
   completionRate: number; // 0-100 사이의 값
+  totalStudents: number; // 전체 학생 수
+  completedStudents: number; // 식사를 완료한 학생 수
 }
 
 // 비율 토글 관련 타입
