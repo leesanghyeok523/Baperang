@@ -47,6 +47,7 @@ public enum BaperangErrorCode {
 
     // 메뉴관련
     MENU_NOT_FOUND(404, "M001", "메뉴를 찾을 수 없습니다."),
+    ALREADY_MADE_MENU(400, "M002", "이미 메뉴 생성 완료입니다."),
 
     // 재고 관련
     RESOURCE_NOT_FOUND( 404, "R001", "요청한 리소스를 찾을 수 없습니다."),

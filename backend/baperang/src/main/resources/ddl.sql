@@ -20,6 +20,7 @@ CREATE TABLE school (
                         school_pk    BIGINT       PRIMARY KEY AUTO_INCREMENT,
                         school_name  VARCHAR(100) NOT NULL,
                         city         VARCHAR(20) NOT NULL,
+                        make_month   INT,
                         created_at   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
                         updated_at   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
