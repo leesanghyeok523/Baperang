@@ -126,7 +126,7 @@ const MainPage = () => {
     });
 
     // 초기 식사 완료율 데이터 이벤트 처리
-    eventSource.addEventListener('initial-completion', (event: SSEMessageEvent) => {
+    eventSource.addEventListener('initial-completion-rate', (event: SSEMessageEvent) => {
       try {
         const completionData = JSON.parse(event.data);
         console.log('[SSE] 초기 식사 완료율 데이터 수신:', completionData);
@@ -279,7 +279,7 @@ const MainPage = () => {
     });
 
     // 식사 완료율 업데이트 이벤트 처리
-    eventSource.addEventListener('completion-update', (event: SSEMessageEvent) => {
+    eventSource.addEventListener('completion-rate-update', (event: SSEMessageEvent) => {
       try {
         const data = JSON.parse(event.data);
         console.log('[SSE] 실시간 식사 완료율 업데이트 수신:', data);

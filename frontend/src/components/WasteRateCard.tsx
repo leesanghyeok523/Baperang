@@ -32,7 +32,7 @@ const WasteRateCard: React.FC<WasteRateCardProps> = ({ data }) => {
           <XAxis dataKey="name" type="category" tick={{ fontSize: 14 }} tickMargin={10} />
           <YAxis
             type="number"
-            domain={[0, Math.max(maxValue * 1.2, 10)]} // 최대값의 1.2배 또는 최소 10까지 표시
+            domain={[0, 100]} // 0~100% 고정
             tickFormatter={(value) => `${value.toFixed(1)}%`}
             tickMargin={10}
           />
