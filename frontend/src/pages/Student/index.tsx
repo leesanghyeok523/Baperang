@@ -87,7 +87,7 @@ const StudentManagement = () => {
           },
         }
       );
-
+      
       // API 응답을 내부 형식으로 변환
       const formattedStudents: StudentType[] = response.data.students.map((student) => ({
         id: student.studentId,
@@ -96,7 +96,6 @@ const StudentManagement = () => {
         classNum: student.classNum,
         studentNum: student.number,
         gender: student.gender || 'blank', // 기본값 설정
-        wasteRate: Math.floor(Math.random() * 40), // 임시 데이터
       }));
 
       setStudents(formattedStudents);
@@ -140,6 +139,8 @@ const StudentManagement = () => {
         // BMI 계산 (키는 cm 단위로 m로 변환)
         const heightInMeters = data.height / 100;
         const bmi = data.weight / (heightInMeters * heightInMeters);
+        const wasteRate = Math.round(data.weeklyLeftoverAverage * 10) / 10
+        const wasteRateStr = wasteRate.toFixed(1)
 
         // 현재 학생 정보 업데이트
         const updatedStudent: StudentType = {
@@ -155,7 +156,7 @@ const StudentManagement = () => {
           date: data.date,
           content: data.content,
           schoolName: data.schoolName,
-          wasteRate: students.find((s) => s.id === data.studentId)?.wasteRate || 0,
+          wasteRate: wasteRateStr
         };
 
         setSelectedStudent(updatedStudent);

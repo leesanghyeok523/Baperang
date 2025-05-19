@@ -1,9 +1,7 @@
 package com.ssafy.baperang.domain.user.service;
 
-import com.ssafy.baperang.domain.user.dto.request.LoginRequestDto;
-import com.ssafy.baperang.domain.user.dto.request.SignupRequestDto;
+import com.ssafy.baperang.domain.user.dto.request.*;
 
-import com.ssafy.baperang.domain.user.dto.request.UpdateUserRequestDto;
 import jakarta.servlet.http.HttpServletResponse;
 
 public interface UserService {
@@ -15,4 +13,6 @@ public interface UserService {
     public Object updateUser(String token, UpdateUserRequestDto requestDto);
     public Object getUserDetail(String token);
     public Object validateToken(String token);
+    public Object findUserId(FindIdRequestDto requestDto);
+    public Object changePassword(NewPasswordRequestDto requestDto);
 }
