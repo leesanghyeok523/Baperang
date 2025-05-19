@@ -238,6 +238,7 @@ export interface WasteData {
   name: string;
   잔반률: number;
   선호도?: number;
+  category?: string;
 }
 
 // 잔반률 관련 타입
@@ -248,13 +249,19 @@ export interface WasteRateCardProps {
 // 식사 완료율 관련 타입
 export interface MealCompletionRateProps {
   completionRate: number; // 0-100 사이의 값
-  totalStudents: number; // 전체 학생 수
+  totalStudents: number;
   completedStudents: number; // 식사를 완료한 학생 수
 }
 
-// 비율 토글 관련 타입
+// 레이트 토글 카드 관련 타입
 export interface RateToggleCardProps {
   data: WasteData[];
+  leftoverData?: WasteData[];
+  completionData?: {
+    completedStudents: number;
+    totalStudents: number;
+    completionRate: number;
+  };
 }
 
 // 엑셀 내보내기 관련 타입
