@@ -27,6 +27,7 @@ export interface StudentDetailResponse {
   date: string;
   content: string;
   schoolName: string;
+  weeklyLeftoverAverage: number;
 }
 
 export interface StudentType {
@@ -38,7 +39,7 @@ export interface StudentType {
   number?: number;
   gender: string;
   bmi?: number;
-  wasteRate?: number;
+  wasteRate?: string;
   height?: number;
   weight?: number;
   date?: string;
