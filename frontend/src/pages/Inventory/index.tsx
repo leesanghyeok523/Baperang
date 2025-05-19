@@ -13,12 +13,7 @@ import {
   FiChevronsRight,
 } from 'react-icons/fi';
 import { exportInventoryToExcel } from './excelExporter';
-import {
-  showErrorAlert,
-  showSuccessAlert,
-  showToast,
-  showConfirmAlert,
-} from '../../utils/sweetalert';
+import { showErrorAlert, showSuccessAlert, showConfirmAlert } from '../../utils/sweetalert';
 import axios from 'axios';
 import API_CONFIG from '../../config/api';
 import { useAuthStore } from '../../store/authStore';
@@ -39,6 +34,8 @@ interface InventoryApiItem {
   price: number;
   orderQuantity: number;
   useQuantity: number;
+  orderUnit?: string;
+  useUnit?: string;
 }
 
 // 프론트엔드에서 사용할 인벤토리 아이템 타입
@@ -51,22 +48,24 @@ export interface InventoryItem {
   orderedQuantity: number;
   usedQuantity: number;
   unit: string;
+  orderUnit?: string;
+  useUnit?: string;
 }
 
 // 공통 스타일 상수 정의
 const STYLES = {
   headerCell:
-    'py-[0.68%] px-1 text-center border-t border-b border-r border-gray-300 font-semibold truncate text-base md:text-lg',
+    'py-[0.688%] px-1 text-center border-t border-b border-r border-gray-300 font-semibold truncate text-base md:text-lg',
   headerCellLast:
-    'py-[0.68%] px-1 text-center border-t border-b border-gray-300 font-semibold truncate text-base md:text-lg',
+    'py-[0.688%] px-1 text-center border-t border-b border-gray-300 font-semibold truncate text-base md:text-lg',
   dataCell:
-    'py-[0.68%] px-1 text-center border-b border-r border-gray-300 truncate text-base md:text-lg',
+    'py-[0.688%] px-1 text-center border-b border-r border-gray-300 truncate text-base md:text-lg',
   dataCellLast:
-    'py-[0.68%] px-1 text-center border-b border-gray-300 truncate text-base md:text-lg',
+    'py-[0.688%] px-1 text-center border-b border-gray-300 truncate text-base md:text-lg',
   dataCellFixed:
-    'py-[0.68%] px-1 text-center border-b border-r border-gray-300 truncate text-base md:text-lg',
+    'py-[0.688%] px-1 text-center border-b border-r border-gray-300 truncate text-base md:text-lg',
   dataCellLastFixed:
-    'py-[0.68%] px-1 text-center border-b border-gray-300 truncate text-base md:text-lg',
+    'py-[0.688%] px-1 text-center border-b border-gray-300 truncate text-base md:text-lg',
 };
 
 const InventoryPage: React.FC = () => {
@@ -78,6 +77,17 @@ const InventoryPage: React.FC = () => {
   const [totalPages, setTotalPages] = useState<number>(1);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{
+    id: number | null;
+    field: string | null;
+    message: string;
+    type: 'success' | 'error';
+  }>({
+    id: null,
+    field: null,
+    message: '',
+    type: 'success',
+  });
   const itemsPerPage = 8;
   const { accessToken } = useAuthStore();
 
@@ -96,7 +106,9 @@ const InventoryPage: React.FC = () => {
     price: 0,
     orderedQuantity: 0,
     usedQuantity: 0,
-    unit: '개',
+    unit: 'kg',
+    orderUnit: 'kg',
+    useUnit: 'kg',
   });
 
   // 필터링된 데이터 (현재 월에 해당하는 데이터만)
@@ -133,8 +145,6 @@ const InventoryPage: React.FC = () => {
         }
       );
 
-      console.log('API 응답 데이터:', response.data); // 응답 데이터 로깅
-
       // API 응답 데이터를 프론트엔드 형식으로 변환
       const inventories = response.data?.inventories || [];
       const transformedData: InventoryItem[] = inventories.map((item) => ({
@@ -145,7 +155,9 @@ const InventoryPage: React.FC = () => {
         price: item.price,
         orderedQuantity: item.orderQuantity,
         usedQuantity: item.useQuantity,
-        unit: '개', // API에서 제공하지 않으므로 기본값 설정
+        orderUnit: item.orderUnit || '개',
+        useUnit: item.useUnit || '개',
+        unit: item.orderUnit || '개', // 기존 UI 호환성을 위해 유지
       }));
 
       setInventory(transformedData);
@@ -297,6 +309,21 @@ const InventoryPage: React.FC = () => {
     setEditValue('');
   };
 
+  // 피드백 표시 후 타이머로 자동 제거하는 함수
+  const showFeedback = (
+    id: number | null,
+    field: string | null,
+    message: string,
+    type: 'success' | 'error'
+  ) => {
+    setFeedback({ id, field, message, type });
+
+    // 3초 후 피드백 제거
+    setTimeout(() => {
+      setFeedback({ id: null, field: null, message: '', type: 'success' });
+    }, 3000);
+  };
+
   // 수정 저장
   const saveEdit = async () => {
     if (editingId === null || editingField === null) return;
@@ -326,10 +353,14 @@ const InventoryPage: React.FC = () => {
         const quantityValue = parseInt(editValue) || 0;
         updatedItem.orderedQuantity = quantityValue;
         updateData.orderQuantity = quantityValue;
+        // 단위 필드 추가 (kg으로 고정)
+        updateData.orderUnit = 'kg';
       } else if (editingField === 'usedQuantity') {
         const quantityValue = parseInt(editValue) || 0;
         updatedItem.usedQuantity = quantityValue;
         updateData.useQuantity = quantityValue;
+        // 단위 필드 추가 (kg으로 고정)
+        updateData.useUnit = 'kg';
       }
 
       // 토큰 확인
@@ -364,15 +395,18 @@ const InventoryPage: React.FC = () => {
 
       setInventory(updatedInventory);
       setFilteredData(updatedInventory);
+
+      // 토스트 대신 인라인 피드백 표시
+      showFeedback(editingId, editingField, '수정 완료', 'success');
+
       setEditingId(null);
       setEditingField(null);
-      showToast('수정이 완료되었습니다');
     } catch (err) {
-      console.error('재고 수정 중 오류 발생:', err);
       if (axios.isAxiosError(err) && err.response?.status === 401) {
         showErrorAlert('인증 오류', '인증에 실패했습니다. 다시 로그인해주세요.');
       } else {
-        showErrorAlert('수정 실패', '재고 정보를 수정하는 중 오류가 발생했습니다.');
+        // 오류 피드백 표시
+        showFeedback(editingId, editingField, '수정 실패', 'error');
       }
       cancelEdit();
     }
@@ -381,8 +415,6 @@ const InventoryPage: React.FC = () => {
   // ID를 직접 받아 삭제 처리하는 함수
   const deleteInventoryItem = async (id: number) => {
     try {
-      console.log('삭제 요청 - ID:', id); // 요청 정보 로깅
-
       // 토큰 확인
       if (!accessToken) {
         showErrorAlert('인증 오류', '로그인이 필요합니다.');
@@ -407,7 +439,6 @@ const InventoryPage: React.FC = () => {
       setFilteredData(updatedInventory);
       showSuccessAlert('삭제 완료', '항목이 성공적으로 삭제되었습니다.');
     } catch (err) {
-      console.error('재고 삭제 중 오류 발생:', err);
       if (axios.isAxiosError(err) && err.response?.status === 401) {
         showErrorAlert('인증 오류', '인증에 실패했습니다. 다시 로그인해주세요.');
       } else {
@@ -443,11 +474,30 @@ const InventoryPage: React.FC = () => {
   // 데이터 셀 렌더링 함수
   const renderEditableCell = (item: InventoryItem, field: string) => {
     const isEditing = editingId === item.id && editingField === field;
+    const showFeedbackIcon = feedback.id === item.id && feedback.field === field;
+
+    // 피드백 아이콘 렌더링 함수
+    const renderFeedbackIcon = () => {
+      if (!showFeedbackIcon) return null;
+
+      return (
+        <div
+          className={
+            feedback.type === 'success'
+              ? 'absolute right-4 top-1 text-green-500'
+              : 'absolute right-4 top-1 text-red-500'
+          }
+        >
+          {feedback.type === 'success' ? <FiCheck size={16} /> : <FiMinus size={16} />}
+        </div>
+      );
+    };
 
     // 필드별 편집 UI 및 표시 로직
     if (field === 'date') {
       return (
-        <div className="flex items-center justify-center h-full w-full">
+        <div className="flex items-center justify-center h-full w-full relative">
+          {renderFeedbackIcon()}
           {isEditing ? (
             <input
               type="date"
@@ -476,7 +526,8 @@ const InventoryPage: React.FC = () => {
       );
     } else if (field === 'productName') {
       return (
-        <div className="flex items-center justify-center h-full w-full">
+        <div className="flex items-center justify-center h-full w-full relative">
+          {renderFeedbackIcon()}
           {isEditing ? (
             <input
               type="text"
@@ -499,7 +550,8 @@ const InventoryPage: React.FC = () => {
       );
     } else if (field === 'supplier') {
       return (
-        <div className="flex items-center justify-center h-full w-full">
+        <div className="flex items-center justify-center h-full w-full relative">
+          {renderFeedbackIcon()}
           {isEditing ? (
             <input
               type="text"
@@ -522,7 +574,8 @@ const InventoryPage: React.FC = () => {
       );
     } else if (field === 'price') {
       return (
-        <div className="flex items-center justify-center h-full w-full">
+        <div className="flex items-center justify-center h-full w-full relative">
+          {renderFeedbackIcon()}
           {isEditing ? (
             <div className="flex items-center justify-center w-full">
               <input
@@ -548,19 +601,19 @@ const InventoryPage: React.FC = () => {
       );
     } else if (field === 'orderedQuantity') {
       return (
-        <div className="flex items-center justify-center h-full w-full">
+        <div className="flex items-center justify-center h-full w-full relative">
+          {renderFeedbackIcon()}
           {isEditing ? (
-            <div className="flex items-center justify-center w-full min-h-[20px] h-full">
+            <div className="flex w-[84%] h-11 rounded-xl bg-white/70 hover:bg-white overflow-hidden text-sm">
               <input
                 type="number"
                 value={editValue}
                 onChange={(e) => setEditValue(e.target.value)}
                 onBlur={saveEdit}
                 onKeyDown={(e) => e.key === 'Enter' && saveEdit()}
-                className="w-[80%] h-11 border-1 p-1 rounded-xl text-center text-base"
+                className="w-full p-2.5 text-left border-none bg-transparent outline-none pl-4"
                 autoFocus
               />
-              <span className="ml-1 text-base">{item.unit}</span>
             </div>
           ) : (
             <div className="flex items-center justify-center w-full min-h-[20px] h-full">
@@ -569,7 +622,6 @@ const InventoryPage: React.FC = () => {
                 className="cursor-pointer hover:bg-white/70 rounded-xl text-base w-[84%] h-11 flex items-center justify-center"
               >
                 {item.orderedQuantity}
-                {item.unit}
               </span>
             </div>
           )}
@@ -577,19 +629,19 @@ const InventoryPage: React.FC = () => {
       );
     } else if (field === 'usedQuantity') {
       return (
-        <div className="flex items-center justify-center h-full w-full">
+        <div className="flex items-center justify-center h-full w-full relative">
+          {renderFeedbackIcon()}
           {isEditing ? (
-            <div className="flex items-center justify-center w-full min-h-[20px] h-full">
+            <div className="flex w-[84%] h-11 rounded-xl bg-white/70 hover:bg-white overflow-hidden text-sm">
               <input
                 type="number"
                 value={editValue}
                 onChange={(e) => setEditValue(e.target.value)}
                 onBlur={saveEdit}
                 onKeyDown={(e) => e.key === 'Enter' && saveEdit()}
-                className="w-[80%] h-11 border-1 p-1 rounded-xl text-center text-base"
+                className="w-full p-2.5 text-left border-none bg-transparent outline-none pl-4"
                 autoFocus
               />
-              <span className="ml-1 text-base">{item.unit}</span>
             </div>
           ) : (
             <div className="flex items-center justify-center w-full min-h-[20px] h-full">
@@ -598,7 +650,6 @@ const InventoryPage: React.FC = () => {
                 className="cursor-pointer hover:bg-white/70 rounded-xl text-base w-[84%] h-11 flex items-center justify-center"
               >
                 {item.usedQuantity}
-                {item.unit}
               </span>
             </div>
           )}
@@ -630,10 +681,7 @@ const InventoryPage: React.FC = () => {
         <td className={STYLES.dataCell}>{renderEditableCell(item, 'price')}</td>
         <td className={STYLES.dataCell}>{renderEditableCell(item, 'orderedQuantity')}</td>
         <td className={STYLES.dataCellFixed}>{renderEditableCell(item, 'usedQuantity')}</td>
-        <td className={`${STYLES.dataCellLast} font-medium ${diff.color}`}>
-          {diff.value}
-          {item.unit}
-        </td>
+        <td className={`${STYLES.dataCellLast} font-medium ${diff.color}`}>{diff.value}</td>
       </tr>
     );
   };
@@ -654,7 +702,9 @@ const InventoryPage: React.FC = () => {
       price: 0,
       orderedQuantity: 0,
       usedQuantity: 0,
-      unit: '개',
+      unit: 'kg',
+      orderUnit: 'kg',
+      useUnit: 'kg',
     });
     setIsAddingNewRow(true);
   };
@@ -682,8 +732,8 @@ const InventoryPage: React.FC = () => {
       newItem.price === undefined ||
       newItem.orderedQuantity === undefined
     ) {
-      // 일부 필드만 비어있는 경우 토스트 알림
-      showToast('모든 필드를 입력해주세요', 'error');
+      // 일부 필드만 비어있는 경우 피드백 표시
+      showFeedback(null, null, '모든 필드를 입력해주세요', 'error');
       return;
     }
 
@@ -696,9 +746,9 @@ const InventoryPage: React.FC = () => {
         price: newItem.price,
         orderQuantity: newItem.orderedQuantity,
         useQuantity: newItem.usedQuantity || 0,
+        orderUnit: newItem.orderUnit || newItem.unit,
+        useUnit: newItem.useUnit || newItem.unit,
       };
-
-      console.log('추가 요청 데이터:', requestData); // 요청 데이터 로깅
 
       // 토큰 확인
       if (!accessToken) {
@@ -722,8 +772,6 @@ const InventoryPage: React.FC = () => {
         }
       );
 
-      console.log('추가 응답 데이터:', response.data); // 응답 데이터 로깅
-
       // API 응답에서 ID를 가져오거나, 없으면 임시 ID 생성
       const newItemId = response.data?.id || Math.max(...inventory.map((item) => item.id), 0) + 1;
 
@@ -736,7 +784,9 @@ const InventoryPage: React.FC = () => {
         price: newItem.price || 0,
         orderedQuantity: newItem.orderedQuantity || 0,
         usedQuantity: newItem.usedQuantity || 0,
-        unit: newItem.unit || '개',
+        unit: newItem.unit || 'kg',
+        orderUnit: newItem.orderUnit || newItem.unit || 'kg',
+        useUnit: newItem.useUnit || newItem.unit || 'kg',
       };
 
       // 인벤토리에 추가
@@ -744,13 +794,12 @@ const InventoryPage: React.FC = () => {
       setInventory(updatedInventory);
       setFilteredData(updatedInventory);
 
-      // 성공 토스트 메시지 표시
-      showToast('항목이 추가되었습니다');
+      // 토스트 대신 피드백 표시
+      showFeedback(newItemId, null, '항목이 추가되었습니다', 'success');
 
       // 새 행 추가 모드 종료
       setIsAddingNewRow(false);
     } catch (err) {
-      console.error('재고 추가 중 오류 발생:', err);
       if (axios.isAxiosError(err) && err.response?.status === 401) {
         showErrorAlert('인증 오류', '인증에 실패했습니다. 다시 로그인해주세요.');
       } else {
@@ -772,10 +821,30 @@ const InventoryPage: React.FC = () => {
     );
   };
 
+  // 전역 피드백 메시지 컴포넌트
+  const renderGlobalFeedback = () => {
+    if (!feedback.id && !feedback.field && feedback.message) {
+      return (
+        <div
+          className={`fixed top-4 right-4 z-50 rounded-lg p-3 ${
+            feedback.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+          } text-white shadow-lg flex items-center space-x-2`}
+        >
+          <div>{feedback.type === 'success' ? <FiCheck size={18} /> : <FiMinus size={18} />}</div>
+          <div>{feedback.message}</div>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="min-h-screen w-full overflow-hidden relative">
       {/* 배경 이미지 */}
       <div className="absolute inset-0 z-0 bg-main bg-cover bg-center"></div>
+
+      {/* 전역 피드백 메시지 */}
+      {renderGlobalFeedback()}
 
       {/* 메인 컨텐츠 */}
       <div
@@ -881,14 +950,25 @@ const InventoryPage: React.FC = () => {
                           <th className={STYLES.headerCell}>상품명</th>
                           <th className={STYLES.headerCell}>거래처</th>
                           <th className={STYLES.headerCell}>가격</th>
-                          <th className={STYLES.headerCell}>주문수량</th>
-                          <th className={STYLES.headerCell}>실제사용수량</th>
+                          <th className={STYLES.headerCell}>
+                            <div className="flex items-center justify-center">
+                              <span>주문수량</span>
+                              <span className="text-xs ml-1 text-gray-500">(kg)</span>
+                            </div>
+                          </th>
+                          <th className={STYLES.headerCell}>
+                            <div className="flex items-center justify-center">
+                              <span>실제사용수량</span>
+                              <span className="text-xs ml-1 text-gray-500">(kg)</span>
+                            </div>
+                          </th>
                           <th
                             className={`${STYLES.headerCellLast} cursor-pointer hover:bg-gray-100`}
                             onClick={() => toggleSort('diff')}
                           >
                             <div className="flex items-center justify-center space-x-1">
                               <span>diff</span>
+                              <span className="text-xs ml-1 text-gray-500">(kg)</span>
                               {renderSortIcon('diff')}
                             </div>
                           </th>
@@ -905,7 +985,7 @@ const InventoryPage: React.FC = () => {
                                 </button>
                               </td>
                             )}
-                            <td className="text-center border-b border-r border-gray-300 p-[0.7%]">
+                            <td className="text-center border-b border-r border-gray-300 p-[0.68%]">
                               <input
                                 type="date"
                                 value={
@@ -939,7 +1019,7 @@ const InventoryPage: React.FC = () => {
                                 className="w-[90%] bg-white/70 p-2 rounded-xl h-[40px] text-center hover:bg-white"
                               />
                             </td>
-                            <td className="text-center border-b border-r border-gray-300 p-[0.7%]">
+                            <td className="text-center border-b border-r border-gray-300 p-[0.68%]">
                               <input
                                 type="text"
                                 value={newItem.productName || ''}
@@ -950,7 +1030,7 @@ const InventoryPage: React.FC = () => {
                                 className="w-[90%] bg-white/70 p-2 rounded-xl h-[40px] hover:bg-white"
                               />
                             </td>
-                            <td className="text-center border-b border-r border-gray-300 p-[0.7%] ">
+                            <td className="text-center border-b border-r border-gray-300 p-[0.68%] ">
                               <input
                                 type="text"
                                 value={newItem.supplier || ''}
@@ -961,7 +1041,7 @@ const InventoryPage: React.FC = () => {
                                 className="w-[90%] bg-white/70 p-2 rounded-xl h-[40px] hover:bg-white"
                               />
                             </td>
-                            <td className="text-center border-b border-r border-gray-300 p-[0.7%]">
+                            <td className="text-center border-b border-r border-gray-300 p-[0.68%]">
                               <div className="relative">
                                 <input
                                   type="text"
@@ -977,47 +1057,41 @@ const InventoryPage: React.FC = () => {
                                 </span>
                               </div>
                             </td>
-                            <td className="text-center border-b border-r border-gray-300 p-[0.7%]">
+                            <td className="text-center border-b border-r border-gray-300 p-[0.68%]">
                               <div className="flex items-center justify-center">
-                                <input
-                                  type="number"
-                                  value={newItem.orderedQuantity || 0}
-                                  onChange={(e) =>
-                                    setNewItem({
-                                      ...newItem,
-                                      orderedQuantity: parseInt(e.target.value) || 0,
-                                    })
-                                  }
-                                  className="w-[60%] bg-white/70 p-2 rounded-xl h-[40px] hover:bg-white"
-                                />
-                                <select
-                                  value={newItem.unit || '개'}
-                                  onChange={(e) => setNewItem({ ...newItem, unit: e.target.value })}
-                                  className="w-[35%] bg-white/70 p-2 rounded-xl h-[40px] ml-1 hover:bg-white"
-                                >
-                                  <option value="개">개</option>
-                                  <option value="kg">kg</option>
-                                  <option value="g">g</option>
-                                  <option value="L">L</option>
-                                  <option value="ml">ml</option>
-                                  <option value="박스">박스</option>
-                                </select>
+                                <div className="flex w-[90%] rounded-xl bg-white/70 hover:bg-white overflow-hidden">
+                                  <input
+                                    type="number"
+                                    value={newItem.orderedQuantity || 0}
+                                    onChange={(e) =>
+                                      setNewItem({
+                                        ...newItem,
+                                        orderedQuantity: parseInt(e.target.value) || 0,
+                                      })
+                                    }
+                                    className="w-full p-2.5 text-left border-none bg-transparent outline-none pl-4"
+                                  />
+                                </div>
                               </div>
                             </td>
-                            <td className="text-center border-b border-r border-gray-300 p-[0.7%]">
-                              <input
-                                type="number"
-                                value={newItem.usedQuantity || 0}
-                                onChange={(e) =>
-                                  setNewItem({
-                                    ...newItem,
-                                    usedQuantity: parseInt(e.target.value) || 0,
-                                  })
-                                }
-                                className="w-[90%] bg-white/70 p-2 rounded-xl h-[40px] hover:bg-white"
-                              />
+                            <td className="text-center border-b border-r border-gray-300 p-[0.68%]">
+                              <div className="flex items-center justify-center">
+                                <div className="flex w-[90%] rounded-xl bg-white/70 hover:bg-white overflow-hidden">
+                                  <input
+                                    type="number"
+                                    value={newItem.usedQuantity || 0}
+                                    onChange={(e) =>
+                                      setNewItem({
+                                        ...newItem,
+                                        usedQuantity: parseInt(e.target.value) || 0,
+                                      })
+                                    }
+                                    className="w-full p-2.5 text-left border-none bg-transparent outline-none pl-4"
+                                  />
+                                </div>
+                              </div>
                             </td>
-                            <td className="text-center border-b border-gray-300 font-medium p-[0.7%]">
+                            <td className="text-center border-b border-gray-300 font-medium p-[0.68%]">
                               <div className="flex justify-center space-x-2">
                                 <button
                                   onClick={saveNewRow}

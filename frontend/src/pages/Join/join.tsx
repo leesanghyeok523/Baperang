@@ -73,7 +73,6 @@ const JoinPage: React.FC = () => {
 
   // 학교 검색 - 도시나 학교 이름이 변경될 때 실행
   useEffect(() => {
-    console.log('학교 검색 트리거:', { city: formData.city, schoolName: formData.schoolName });
     if (formData.city && formData.schoolName.length > 0) {
       // API 요청 디바운스 - 타이핑 중에 너무 많은 요청을 보내지 않도록
       const debounceTimeout = setTimeout(() => {
@@ -97,7 +96,6 @@ const JoinPage: React.FC = () => {
       }
 
       const data = await response.json();
-      console.log('도시 목록 응답 데이터:', data);
 
       // 백엔드 응답 형식에 맞게 처리 (사진에 보이는 cities 배열)
       if (Array.isArray(data)) {
@@ -106,18 +104,14 @@ const JoinPage: React.FC = () => {
         // 응답이 객체일 경우 cities 배열 추출
         setCities(data.cities || []);
       }
-    } catch (error) {
-      console.error('도시 목록 가져오기 오류:', error);
+    } catch (_) {
+      // 오류 처리
     }
   };
 
   // 학교 검색
   const fetchSchools = async () => {
     if (!formData.city || formData.schoolName.length === 0) {
-      console.log('학교 검색 조건 불충족:', {
-        city: formData.city,
-        schoolName: formData.schoolName,
-      });
       return;
     }
 
@@ -137,17 +131,11 @@ const JoinPage: React.FC = () => {
       const response = await fetch(apiUrl);
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('서버 오류 응답:', errorText);
         throw new Error(`서버 오류: ${response.status}`);
       }
 
       // 응답 데이터 파싱
-      const contentType = response.headers.get('content-type');
-      console.log('응답 Content-Type:', contentType);
-
       const data = await response.json();
-      console.log('학교 검색 원본 응답 데이터:', data);
 
       // 백엔드 응답 형식에 맞게 처리
       let schoolsList: string[] = [];
@@ -155,20 +143,15 @@ const JoinPage: React.FC = () => {
       if (data && Array.isArray(data.schools)) {
         // { schools: [...] } 형식의 응답
         schoolsList = data.schools;
-        console.log('객체 내 schools 배열 형식 감지');
       } else if (Array.isArray(data)) {
         // 배열 형식의 응답
         schoolsList = data;
-        console.log('직접 배열 형식 감지');
-      } else {
-        console.log('예상치 못한 응답 형식:', typeof data, data);
       }
 
       // 상태 업데이트
       setSchools(schoolsList);
       setShowSchoolDropdown(schoolsList.length > 0);
-    } catch (error) {
-      console.error('학교 검색 오류:', error);
+    } catch (_) {
       setShowSchoolDropdown(false);
     } finally {
       setIsLoadingSchools(false);
@@ -190,15 +173,6 @@ const JoinPage: React.FC = () => {
         ...prev,
         [name]: value,
       };
-
-      // 학교 필드가 변경되면 드롭다운 표시 조건 확인
-      if (name === 'schoolName') {
-        const shouldShowDropdown = newData.city !== '' && value.length > 0;
-        console.log(`학교 드롭다운 표시 여부: ${shouldShowDropdown}`, {
-          city: newData.city,
-          schoolName: value,
-        });
-      }
 
       return newData;
     });
@@ -245,10 +219,6 @@ const JoinPage: React.FC = () => {
     setIdCheckLoading(true);
 
     try {
-      // 요청 데이터 출력
-      const requestData = { loginId: formData.loginId };
-      console.log('중복 확인 요청 데이터:', requestData);
-
       // 아이디 중복 확인 API 호출
       const response = await fetch(API_CONFIG.getUrl(API_CONFIG.ENDPOINTS.AUTH.VALIDATE_ID), {
         method: 'POST',
@@ -259,13 +229,10 @@ const JoinPage: React.FC = () => {
       // 응답이 HTML인지 확인
       const contentType = response.headers.get('content-type');
       if (contentType && contentType.includes('text/html')) {
-        console.error('HTML 응답 수신됨 - API 경로 문제 가능성 있음');
         throw new Error('서버가 유효한 JSON 응답을 반환하지 않습니다');
       }
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('서버 오류 응답:', errorText);
         throw new Error(`서버 오류: ${response.status}`);
       }
 
@@ -281,8 +248,7 @@ const JoinPage: React.FC = () => {
           loginId: '이미 사용 중인 아이디입니다.',
         }));
       }
-    } catch (error) {
-      console.error('아이디 중복 확인 중 오류:', error);
+    } catch (_) {
       setErrors((prev) => ({
         ...prev,
         loginId: '중복 확인 중 오류가 발생했습니다.',
@@ -358,7 +324,6 @@ const JoinPage: React.FC = () => {
         city: formData.city,
         schoolName: formData.schoolName,
       };
-      console.log('회원가입 요청 데이터:', requestData);
 
       // 회원가입 API 호출
       const response = await fetch(API_CONFIG.getUrl(API_CONFIG.ENDPOINTS.AUTH.SIGNUP), {
@@ -367,22 +332,14 @@ const JoinPage: React.FC = () => {
         body: JSON.stringify(requestData),
       });
 
-      console.log('회원가입 응답 상태:', response.status, response.statusText);
-
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('서버 오류 응답:', errorText);
         throw new Error(`서버 오류: ${response.status}`);
       }
-
-      const data = await response.json();
-      console.log('회원가입 응답 데이터:', data);
 
       // 성공 시 로그인 페이지로 이동
       showSuccessAlert('회원가입이 완료되었습니다.');
       navigate('/login');
     } catch (error) {
-      console.error('회원가입 오류:', error);
       showErrorAlert(
         '회원가입 오류',
         error instanceof Error ? error.message : '회원가입 중 오류가 발생했습니다.'

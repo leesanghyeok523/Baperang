@@ -36,8 +36,7 @@ export const validateToken = async (): Promise<boolean> => {
     }
 
     return false;
-  } catch (error) {
-    console.error('토큰 검증 중 오류 발생:', error);
+  } catch (_) {
     return false;
   }
 };
