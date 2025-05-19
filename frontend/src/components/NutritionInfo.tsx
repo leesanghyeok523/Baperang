@@ -49,7 +49,6 @@ const NutritionInfo: React.FC<NutritionInfoProps> = ({ selectedMenu, currentDate
           setNutritionData({});
         }
       } catch (error) {
-        console.error('영양소 정보 가져오기 오류:', error);
         setNutritionData({});
       } finally {
         setLoading(false);

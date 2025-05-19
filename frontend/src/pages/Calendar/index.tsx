@@ -87,11 +87,10 @@ const parseMenuResponse = (rawData: unknown): MenuResponse => {
     }
     // 데이터가 없는 경우 빈 배열 반환
     else {
-      console.log('메뉴 데이터가 없습니다.');
       // 빈 days 배열 반환 (days는 이미 빈 배열로 초기화됨)
     }
   } catch (error) {
-    console.error('메뉴 데이터 파싱 오류:', error);
+    // 오류 처리
   }
 
   return { days };
@@ -177,22 +176,12 @@ const Calendar = () => {
     try {
       setLoading(true);
 
-      console.log('fetchMenuData 호출됨', {
-        year: selectedYear,
-        month: selectedMonth + 1,
-        isFutureMonth: isFutureMonth(),
-        isForceUpdate,
-      });
-
       // 미래 달 여부와 상관없이 항상 메뉴 데이터 조회
 
       if (!accessToken) {
-        console.error('인증 토큰이 없습니다. 로그인이 필요합니다.');
         setLoading(false);
         return;
       }
-
-      console.log('인증 토큰:', accessToken.substring(0, 20) + '...');
 
       const endpoint = API_CONFIG.ENDPOINTS.MEAL.MENU_CALENDAR;
       const url = API_CONFIG.getUrl(endpoint, {
@@ -200,17 +189,10 @@ const Calendar = () => {
         month: (selectedMonth + 1).toString(),
       });
 
-      console.log('API 요청 URL:', url);
-
       // 토큰 형식 확인 및 처리
       const authHeaderValue = accessToken.startsWith('Bearer ')
         ? accessToken
         : `Bearer ${accessToken}`;
-
-      console.log('요청 헤더:', {
-        Authorization: authHeaderValue.substring(0, 20) + '...',
-        'Content-Type': 'application/json',
-      });
 
       const response = await axios.get(url, {
         headers: {
@@ -219,11 +201,8 @@ const Calendar = () => {
         },
       });
 
-      console.log('API 응답:', response.data);
-
       // 응답 데이터 파싱
       const parsedData = parseMenuResponse(response.data);
-      console.log('파싱된 데이터:', parsedData);
 
       // 메뉴 데이터 변환
       const newMenuData: MenuDataType = {};
@@ -254,24 +233,12 @@ const Calendar = () => {
         }
       });
 
-      console.log('변환된 메뉴 데이터:', newMenuData);
-      console.log('메뉴 데이터 키:', Object.keys(newMenuData));
-
       setMenuData(newMenuData);
       // 강제 업데이트 후 플래그 초기화
       if (isForceUpdate) {
         setIsForceUpdate(false);
       }
     } catch (error) {
-      console.error('메뉴 데이터 가져오기 오류:', error);
-      // 에러 상세 정보 출력
-      if (axios.isAxiosError(error)) {
-        console.error('API 요청 오류 상세:', {
-          status: error.response?.status,
-          statusText: error.response?.statusText,
-          data: error.response?.data,
-        });
-      }
       // 강제 업데이트 후 플래그 초기화
       if (isForceUpdate) {
         setIsForceUpdate(false);
@@ -285,7 +252,6 @@ const Calendar = () => {
   const fetchMonthlyWasteData = async (): Promise<DailyWasteRate[]> => {
     try {
       if (!accessToken) {
-        console.error('인증 토큰이 없습니다. 로그인이 필요합니다.');
         return [];
       }
 
@@ -328,14 +294,6 @@ const Calendar = () => {
 
       return [];
     } catch (error) {
-      console.error('월간 잔반률 데이터 가져오기 오류:', error);
-      if (axios.isAxiosError(error)) {
-        console.error('API 요청 오류 상세:', {
-          status: error.response?.status,
-          statusText: error.response?.statusText,
-          data: error.response?.data,
-        });
-      }
       return [];
     }
   };
@@ -383,7 +341,6 @@ const Calendar = () => {
   const getDishWasteData = async (dateString: string): Promise<DishWasteRate[]> => {
     try {
       if (!accessToken) {
-        console.error('인증 토큰이 없습니다. 로그인이 필요합니다.');
         return [{ name: '로그인이 필요합니다', 잔반률: 0 }];
       }
 
@@ -415,8 +372,6 @@ const Calendar = () => {
       // 해당 날짜에 잔반률 데이터가 없는 경우
       return [{ name: '잔반률 데이터 없음', 잔반률: 0 }];
     } catch (error) {
-      console.error('일별 잔반률 데이터 가져오기 오류:', error);
-
       // 해당 날짜에 메뉴가 있는 경우 월간 데이터에서 가져온 평균 잔반률로 표시
       if (dateString in menuData && menuData[dateString].menu) {
         const dayWasteRate = monthlyWasteData.find((data) => data.date === dateString);
@@ -468,7 +423,6 @@ const Calendar = () => {
   // 메뉴 데이터 새로고침 (식단 생성 후 호출될 콜백)
   const refreshMenuData = () => {
     // 현재 선택된 달에서 강제 업데이트 수행
-    console.log('메뉴 데이터 새로고침', { selectedYear, selectedMonth });
 
     // 강제 업데이트 플래그 설정
     setIsForceUpdate(true);
@@ -535,7 +489,6 @@ const Calendar = () => {
                 });
 
                 setMenuData((current) => ({ ...current, ...processedData }));
-                console.log('메뉴 데이터 업데이트됨:', processedData);
               }}
               onMenuGenerated={refreshMenuData}
               setGeneratingMenu={setGeneratingMenu}

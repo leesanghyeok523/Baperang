@@ -270,7 +270,9 @@ export interface InventoryItem {
   price: number;
   orderedQuantity: number;
   usedQuantity: number;
-  unit: string;
+  unit?: string;
+  orderUnit?: string;
+  useUnit?: string;
 }
 
 // 로그인 관련 타입

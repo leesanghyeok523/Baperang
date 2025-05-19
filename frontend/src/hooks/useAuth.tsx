@@ -54,8 +54,8 @@ const useAuth = () => {
     try {
       await logout();
       navigate(redirectPath);
-    } catch (err) {
-      console.error('로그아웃 에러:', err);
+    } catch (_) {
+      // 오류 처리
     }
   };
 

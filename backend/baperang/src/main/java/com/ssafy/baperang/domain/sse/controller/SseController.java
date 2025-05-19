@@ -1,19 +1,20 @@
-package com.ssafy.baperang.domain.satisfaction.controller;
+package com.ssafy.baperang.domain.sse.controller;
 
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import com.ssafy.baperang.domain.satisfaction.service.SatisfactionService;
-import com.ssafy.baperang.domain.satisfaction.dto.request.SatisfactionRequestDto;
-import com.ssafy.baperang.domain.satisfaction.dto.response.SatisfactionResponseDto;
+import com.ssafy.baperang.domain.sse.dto.request.SatisfactionRequestDto;
+import com.ssafy.baperang.domain.sse.dto.response.SatisfactionResponseDto;
+import com.ssafy.baperang.domain.sse.service.SseService;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -21,20 +22,19 @@ import lombok.extern.slf4j.Slf4j;
 @RestController
 @RequestMapping("/api/v1/sse")
 @RequiredArgsConstructor
-public class SatisfactionController {
+public class SseController {
 
-    private final SatisfactionService satisfactionService;
+    private final SseService satisfactionService;
     
     /**
      * SSE 연결을 위한 엔드포인트
      * 클라이언트는 이 엔드포인트로 EventSource 연결을 맺을 수 있음
      * @return SseEmitter 객체
      */
-    @GetMapping(
-        value = "/subscribe", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @GetMapping(value = "/subscribe", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter subscribe(
         @RequestHeader("Authorization") String authorizationHeader,
-        @RequestParam String schoolName) {
+        @RequestParam("schoolName") String schoolName) {
         log.info("새로운 SSE 구독 요청 수신");
         String token = authorizationHeader.substring(7);
 
@@ -47,6 +47,7 @@ public class SatisfactionController {
         @RequestBody SatisfactionRequestDto satisfactionRequestDto) {
         try {
             String token = authorizationHeader.substring(7);
+            log.info("투표 처리 요청 수신");
             SatisfactionResponseDto satisfactionResponseDto = satisfactionService.processVote(
                 token,
                 satisfactionRequestDto.getSchoolName(),
@@ -54,8 +55,8 @@ public class SatisfactionController {
                 satisfactionRequestDto.getSatisfactionScore()
             );
             return ResponseEntity.ok(satisfactionResponseDto);
-    } catch (Exception e) {
-        return ResponseEntity.badRequest().body("투표 처리 중 오류 발생: " + e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("투표 처리 중 오류 발생: " + e.getMessage());
+        }
     }
-}
 } 

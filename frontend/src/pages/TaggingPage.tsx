@@ -42,8 +42,8 @@ const TaggingPage = () => {
       if (data.streamUrl) {
         setCameraStream(data.streamUrl);
       }
-    } catch (error) {
-      console.error('카메라 스트림을 가져오는 데 실패했습니다:', error);
+    } catch (_) {
+      // 오류 처리
     }
   };
 
@@ -64,8 +64,8 @@ const TaggingPage = () => {
           isTagged: true,
         });
       }
-    } catch (error) {
-      console.error('NFC 정보를 가져오는 데 실패했습니다:', error);
+    } catch (_) {
+      // 오류 처리
     }
   };
 
