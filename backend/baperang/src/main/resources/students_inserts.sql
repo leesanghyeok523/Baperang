@@ -1,6 +1,6 @@
 INSERT INTO student (school_pk, student_name, gender, grade, class, number, height, weight, content, content_date, image, image_date)
 VALUES
-(1573, '이상화', '남자', 2, 6, 17, 180.0, 83.3, NULL, NULL, NULL, NULL),
+(1574, '이상화', '남자', 2, 6, 17, 180.0, 83.3, NULL, NULL, NULL, NULL),
 (1574, '이성진', '남자', 3, 8, 1, 168.9, 67.6, NULL, NULL, NULL, NULL),
 (1574, '김지우', '남자', 3, 2, 1, 164.9, 48.4, NULL, NULL, NULL, NULL),
 (1574, '김현준', '남자', 1, 5, 1, 176.9, 70.5, NULL, NULL, NULL, NULL),
