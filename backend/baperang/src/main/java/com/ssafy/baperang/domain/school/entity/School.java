@@ -36,6 +36,9 @@ public class School {
     @Column(name = "city", nullable = false, length = 20)
     private String city;
 
+    @Column(name = "make_month")
+    private Integer makeMonth;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
@@ -48,5 +51,9 @@ public class School {
     public School(String schoolName, String city) {
         this.schoolName = schoolName;
         this.city = city;
+    }
+    
+    public void updateMakeMonth(Integer month) {
+        this.makeMonth = month;
     }
 }

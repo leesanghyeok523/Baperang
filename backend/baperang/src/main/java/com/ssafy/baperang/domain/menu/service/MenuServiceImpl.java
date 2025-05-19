@@ -31,6 +31,7 @@ import com.ssafy.baperang.domain.menu.repository.MenuRepository;
 import com.ssafy.baperang.domain.menunutrient.entity.MenuNutrient;
 import com.ssafy.baperang.domain.menunutrient.repository.MenuNutrientRepository;
 import com.ssafy.baperang.domain.school.entity.School;
+import com.ssafy.baperang.domain.school.repository.SchoolRepository;
 import com.ssafy.baperang.domain.user.entity.User;
 import com.ssafy.baperang.domain.user.repository.UserRepository;
 import com.ssafy.baperang.global.exception.BaperangErrorCode;
@@ -53,6 +54,8 @@ public class MenuServiceImpl implements MenuService {
     private String aiServerBaseUrl;
 
     private static final String MENU_PLAN_ENDPOINT = "/ai/menu-plan";
+
+    private final SchoolRepository schoolRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -353,6 +356,11 @@ public class MenuServiceImpl implements MenuService {
 
             School school = user.getSchool();
 
+            if (school.getMakeMonth() == LocalDate.now().getMonthValue()) {
+                log.info("makeMonthMenu - 이미 메뉴 생성 완료");
+                return ErrorResponseDto.of(BaperangErrorCode.ALREADY_MADE_MENU);
+            }
+
             // 다음 달의 년도와 월 계산
             LocalDate today = LocalDate.now();
             LocalDate nextMonth = today.plusMonths(1);
@@ -363,6 +371,9 @@ public class MenuServiceImpl implements MenuService {
             YearMonth nextYearMonth = YearMonth.of(year, month);
             LocalDate startDate = nextYearMonth.atDay(1);
             LocalDate endDate = nextYearMonth.atEndOfMonth();
+            
+            // Update the makeMonth field
+            school.updateMakeMonth(month);
             
             // 다음 달에 이미 메뉴가 있는지 확인
             List<Menu> nextMonthMenus = menuRepository.findBySchoolAndMenuDateBetweenOrderByMenuDate(
