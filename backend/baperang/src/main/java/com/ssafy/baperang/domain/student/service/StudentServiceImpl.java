@@ -1,13 +1,11 @@
 package com.ssafy.baperang.domain.student.service;
 
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -42,6 +40,7 @@ public class StudentServiceImpl implements StudentService {
     private final UserRepository userRepository;
     private final LeftoverRepository leftoverRepository;
     private final MenuRepository menuRepository;
+    private final DecimalFormat df = new DecimalFormat("#.##", new DecimalFormatSymbols(Locale.US));
 
     @Override
     @Transactional(readOnly = true)
@@ -108,11 +107,13 @@ public class StudentServiceImpl implements StudentService {
             // Bmi 계산
             float height = student.getHeight() / 100.0f;
             float bmi = student.getWeight() / (height * height);
-
             bmi = Math.round(bmi * 10) / 10.0f;
 
+            // 한 주간 잔반율 평균 계산
+            Float weeklyLeftoverAverage = calculateWeeklyLeftoverAverage(student);
+
             // Entity를 DTO로 변환하여 반환
-            StudentDetailResponseDto responseDto = StudentDetailResponseDto.fromEntity(studentOpt.get());
+            StudentDetailResponseDto responseDto = StudentDetailResponseDto.fromEntity(student);
 
             // bmi 필드 설정 (새 DTO 생성)
             responseDto = StudentDetailResponseDto.builder()
@@ -127,6 +128,7 @@ public class StudentServiceImpl implements StudentService {
                     .content(responseDto.getContent())
                     .schoolName(responseDto.getSchoolName())
                     .bmi(bmi)
+                    .weeklyLeftoverAverage(weeklyLeftoverAverage)
                     .build();
 
             log.info("getStudentDetail 함수 성공 종료 - 학생 ID: {}, 이름: {}",
@@ -139,6 +141,8 @@ public class StudentServiceImpl implements StudentService {
             return ErrorResponseDto.of(BaperangErrorCode.INTERNAL_SERVER_ERROR);
         }
     }
+
+
 
     @Override
     @Transactional
@@ -327,5 +331,41 @@ public class StudentServiceImpl implements StudentService {
             log.error("getStudentLeftover 함수 실행 중 오류 발생: {}", e.getMessage(), e);
             return ErrorResponseDto.of(BaperangErrorCode.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    /**
+     * 한 주간 전체 잔반율 평균 계산
+     * 오늘을 미포함한 7일간의 전체 잔반율 평균을 계산합니다.
+     */
+    private Float calculateWeeklyLeftoverAverage(Student student) {
+        // HealthReportService와 동일한 날짜 계산 로직
+        LocalDate endDate = LocalDate.now().minusDays(1);    // 어제
+        LocalDate startDate = endDate.minusDays(6);          // 7일 전
+
+        log.info("한 주간 전체 잔반율 계산 - 학생: {}, 기간: {} ~ {} (오늘 미포함 7일간)",
+                student.getStudentName(), startDate, endDate);
+
+        // 해당 기간의 잔반 데이터 조회
+        List<Leftover> weeklyLeftovers = leftoverRepository
+                .findByStudentAndLeftoverDateBetween(student, startDate, endDate);
+
+        if (weeklyLeftovers.isEmpty()) {
+            log.info("한 주간 잔반 데이터 없음 - 학생: {}", student.getStudentName());
+            return 0.0f;
+        }
+
+        // 전체 잔반율 평균 계산
+        double average = weeklyLeftovers.stream()
+                .mapToDouble(leftover -> leftover.getLeftoverRate().doubleValue())
+                .average()
+                .orElse(0.0);
+
+        // HealthReportService와 동일한 DecimalFormat 적용
+        Float result = Float.parseFloat(df.format(average));
+
+        log.info("한 주간 전체 잔반율 계산 완료 - 학생: {}, 평균: {}%",
+                student.getStudentName(), result);
+
+        return result;
     }
 }
