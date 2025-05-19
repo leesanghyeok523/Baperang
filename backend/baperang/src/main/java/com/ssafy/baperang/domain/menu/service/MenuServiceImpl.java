@@ -356,7 +356,8 @@ public class MenuServiceImpl implements MenuService {
 
             School school = user.getSchool();
 
-            if (school.getMakeMonth() == LocalDate.now().getMonthValue()) {
+            Integer schoolMakeMonth = school.getMakeMonth();
+            if (schoolMakeMonth != null && schoolMakeMonth == LocalDate.now().getMonthValue()) {
                 log.info("makeMonthMenu - 이미 메뉴 생성 완료");
                 return ErrorResponseDto.of(BaperangErrorCode.ALREADY_MADE_MENU);
             }
