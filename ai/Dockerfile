@@ -22,6 +22,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 4) 실제 애플리케이션 복사 (context: ai/app → 컨테이너 /app/)
 COPY app/ ./app
 
-# 5) 엔트리포인트 설정
+# 5) 모델 캐시 디렉토리 생성
+RUN mkdir -p /app/model_cache
+
+# 6) MiDaS 모델 미리 다운로드
+RUN python -c "import torch; torch.hub.load('intel-isl/MiDaS', 'DPT_Large', trust_repo=True)"
+
+
+# 7) 엔트리포인트 설정
 EXPOSE 8001
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]
