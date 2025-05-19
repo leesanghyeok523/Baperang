@@ -1,4 +1,4 @@
-package com.ssafy.baperang.domain.satisfaction.dto.response;
+package com.ssafy.baperang.domain.sse.dto.response;
 
 import java.util.List;
 
