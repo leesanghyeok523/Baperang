@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { MealCompletionRateProps } from '../types/types';
 
-const MealCompletionRate: React.FC<MealCompletionRateProps> = ({ completionRate }) => {
+const MealCompletionRate: React.FC<MealCompletionRateProps> = ({
+  completionRate,
+  totalStudents,
+  completedStudents,
+}) => {
   // 완료율이 범위를 벗어나지 않도록 보정
   const targetRate = Math.max(0, Math.min(100, completionRate));
 
@@ -53,9 +57,10 @@ const MealCompletionRate: React.FC<MealCompletionRateProps> = ({ completionRate 
           }}
         ></div>
 
-        {/* 퍼센트 숫자 */}
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-          <span className="text-5xl font-bold text-black">{Math.round(animatedRate)}%</span>
+        {/* 분수 형태의 표시: 완료명수/총명수 */}
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex items-baseline">
+          <span className="text-6xl font-bold text-black pr-2">{completedStudents}</span>
+          <span className="text-3xl font-bold text-gray-900">/ {totalStudents}</span>
         </div>
       </div>
 

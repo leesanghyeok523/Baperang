@@ -13,6 +13,8 @@ const RateToggleCard: React.FC<RateToggleCardProps> = ({ data }) => {
 
   // 임시 식사 완료율 데이터 (실제로는 API나 props로 받아야 함)
   const completionRate = 80;
+  const totalStudents = 100; // 임시 전체 학생 수
+  const completedStudents = 80; // 임시 완료한 학생 수
 
   const handleLeftClick = () => {
     // 왼쪽으로 전환 (현재 모드에서 -1, 0보다 작아지면 마지막 모드로)
@@ -46,7 +48,13 @@ const RateToggleCard: React.FC<RateToggleCardProps> = ({ data }) => {
       case 1:
         return <PreferenceChart data={data} />;
       case 2:
-        return <MealCompletionRate completionRate={completionRate} />;
+        return (
+          <MealCompletionRate
+            completionRate={completionRate}
+            totalStudents={totalStudents}
+            completedStudents={completedStudents}
+          />
+        );
       default:
         return <WasteRateCard data={data} />;
     }

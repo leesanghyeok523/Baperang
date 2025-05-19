@@ -6,6 +6,7 @@ import axios from 'axios';
 import { useAuthStore } from '../../store/authStore';
 import { EventSourcePolyfill } from 'event-source-polyfill';
 import { showErrorAlert, showSuccessAlert } from '../../utils/sweetalert';
+import { FaHeart } from 'react-icons/fa';
 
 // 만족도 레벨 정의
 const satisfactionLevels = [
@@ -65,14 +66,14 @@ const VoteAnimation: React.FC<VoteAnimationProps> = ({ selectedValue, onComplete
   return (
     <div className="absolute top-0 left-0 w-full h-full z-20 pointer-events-none">
       <div
-        className="font-bold text-lg text-red-500 bg-white rounded-full w-9 h-9 flex items-center justify-center absolute top-1/2"
+        className="font-bold text-2xl rounded-full w-12 h-12 flex items-center justify-center absolute top-1/2"
         style={{
           left: `calc(${(selectedValue - 1) * 20}% + 10%)`,
           transform: 'translate(-50%, -80%)', // 위치 조정
           animation: `vote-animation ${animationDurationMs / 1000}s forwards`,
         }}
       >
-        +1
+        <FaHeart size={25} color="red" />
       </div>
     </div>
   );
@@ -508,7 +509,7 @@ const SatisfactionSurvey = () => {
         `}
       </style>
 
-      <div className="w-full max-w-3xl rounded-lg p-6 backdrop-blur-sm relative max-h-screen overflow-hidden">
+      <div className="w-full max-w-3xl rounded-lg p-6 relative max-h-screen overflow-hidden">
         <div className="text-center mb-4">
           <h1 className="text-3xl font-bold">오늘 식사는 어떠셨나요?</h1>
         </div>
