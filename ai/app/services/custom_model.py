@@ -13,6 +13,7 @@ import argparse
 import re
 from torchvision import transforms
 import random
+import onnxruntime as ort
 
 # RNG 시드 고정
 SEED = 42
@@ -166,17 +167,30 @@ def predict_depth(image, midas_model, midas_transform, device='cpu', roi_mask=No
     
     # MiDaS 입력을 위한 전처리
     img_proc = preprocess_image_for_midas(img)
-    input_batch = midas_transform(img_proc).unsqueeze(0).to(device)
+    input_batch = midas_transform(img_proc).unsqueeze(0)
     
-    # 깊이 추정
-    with torch.no_grad():
-        prediction = midas_model(input_batch)
-        prediction = torch.nn.functional.interpolate(
-            prediction.unsqueeze(1),
-            size=(original_h, original_w),  # 원본 크기로 복원
-            mode="bicubic",
-            align_corners=False,
-        ).squeeze()
+    # ONNX Runtime 또는 PyTorch 모델로 예측
+    if isinstance(midas_model, ort.InferenceSession):
+        # ONNX Runtime 사용
+        input_name = midas_model.get_inputs()[0].name
+        output_name = midas_model.get_outputs()[0].name
+        # 입력 텐서를 numpy 배열로 변환
+        input_data = input_batch.numpy()
+        prediction = midas_model.run([output_name], {input_name: input_data})[0]
+        prediction = torch.from_numpy(prediction)
+    else:
+        # PyTorch 모델 사용
+        input_batch = input_batch.to(device)
+        with torch.no_grad():
+            prediction = midas_model(input_batch)
+    
+    # 깊이 맵 크기 조정
+    prediction = torch.nn.functional.interpolate(
+        prediction.unsqueeze(1),
+        size=(original_h, original_w),
+        mode="bicubic",
+        align_corners=False,
+    ).squeeze()
     
     # CPU로 이동 및 넘파이 배열로 변환
     depth_map = prediction.cpu().numpy()
@@ -392,13 +406,24 @@ def predict_resnet(image, model, device='cpu'):
         image = Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
     
     # 텐서로 변환
-    img_tensor = preprocess(image).unsqueeze(0).to(device)
+    img_tensor = preprocess(image).unsqueeze(0)
     
-    # 예측
-    with torch.no_grad():
-        outputs = model(img_tensor)
-        probs = F.softmax(outputs, dim=1)
-        
+    # ONNX Runtime 또는 PyTorch 모델로 예측
+    if isinstance(model, ort.InferenceSession):
+        # ONNX Runtime 사용
+        input_name = model.get_inputs()[0].name
+        output_name = model.get_outputs()[0].name
+        # 입력 텐서를 numpy 배열로 변환
+        input_data = img_tensor.numpy()
+        outputs = model.run([output_name], {input_name: input_data})[0]
+        probs = F.softmax(torch.from_numpy(outputs), dim=1)
+    else:
+        # PyTorch 모델 사용
+        img_tensor = img_tensor.to(device)
+        with torch.no_grad():
+            outputs = model(img_tensor)
+            probs = F.softmax(outputs, dim=1)
+    
     # 결과 추출
     probs = probs.cpu().numpy().squeeze()
     class_idx = np.argmax(probs)

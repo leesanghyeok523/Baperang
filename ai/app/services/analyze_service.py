@@ -5,13 +5,16 @@ import random
 import boto3
 import os
 import asyncio
+from concurrent.futures import ProcessPoolExecutor
 from ..config import settings
 import requests
 import cv2
 import numpy as np
 from .custom_model import analyze_food_image_custom, load_resnet_model, load_midas_model, preprocess_image_for_midas
-from .worker_utils import reseed_every_thread
 import torch
+import onnx
+import onnxruntime as ort
+from torch.onnx import export
 
 # RNG 시드 고정
 SEED = 42
@@ -20,9 +23,88 @@ np.random.seed(SEED)      # NumPy RNG
 torch.manual_seed(SEED)   # PyTorch
 cv2.setRNGSeed(SEED)      # OpenCV RNG
 
-# CPU 스레드 수 제한
-torch.set_num_threads(1)
-os.environ["OMP_NUM_THREADS"] = "1"
+# 전역 모델 레퍼런스
+_WORKER_RESNET = None
+_WORKER_MIDAS = None
+_WORKER_TRANSFORM = None
+_WORKER_RESNET_SESSION = None
+_WORKER_MIDAS_SESSION = None
+
+def convert_to_onnx(model, dummy_input, output_path):
+    """PyTorch 모델을 ONNX 형식으로 변환"""
+    try:
+        export(
+            model,
+            dummy_input,
+            output_path,
+            export_params=True,
+            opset_version=12,
+            do_constant_folding=True,
+            input_names=['input'],
+            output_names=['output'],
+            dynamic_axes={'input': {0: 'batch_size'},
+                         'output': {0: 'batch_size'}}
+        )
+        return True
+    except Exception as e:
+        print(f"ONNX 변환 실패: {e}")
+        return False
+
+def _init_worker(models_path: str):
+    """
+    프로세스 풀 워커가 처음 기동될 때 한 번만 호출됩니다.
+    여기서 모델을 로드해 이후 분석 호출 지연을 제거합니다.
+    """
+    global _WORKER_RESNET, _WORKER_MIDAS, _WORKER_TRANSFORM
+    global _WORKER_RESNET_SESSION, _WORKER_MIDAS_SESSION
+
+    # OpenBLAS/MKL, PyTorch 스레드 제한
+    os.environ["OMP_NUM_THREADS"] = "1"
+    os.environ["MKL_NUM_THREADS"] = "1"
+    torch.set_num_threads(1)
+
+    # ONNX 모델 경로
+    onnx_dir = os.path.join(os.path.dirname(models_path), 'onnx')
+    os.makedirs(onnx_dir, exist_ok=True)
+    resnet_onnx_path = os.path.join(onnx_dir, 'resnet.onnx')
+
+    # ResNet 모델 로드 및 ONNX 변환
+    resnet_model = load_resnet_model(models_path, device="cpu")
+    if not os.path.exists(resnet_onnx_path):
+        dummy_input = torch.randn(1, 3, 224, 224)
+        if convert_to_onnx(resnet_model, dummy_input, resnet_onnx_path):
+            print("ResNet ONNX 변환 성공")
+    
+    # MiDaS 모델 로드 (ONNX 변환 없이)
+    midas_model, midas_transform = load_midas_model(device="cpu")
+
+    # ONNX Runtime 세션 생성 (ResNet만)
+    if os.path.exists(resnet_onnx_path):
+        _WORKER_RESNET_SESSION = ort.InferenceSession(
+            resnet_onnx_path,
+            providers=['CPUExecutionProvider']
+        )
+    else:
+        _WORKER_RESNET = resnet_model
+
+    # MiDaS는 PyTorch 모델 그대로 사용
+    _WORKER_MIDAS = midas_model
+    _WORKER_TRANSFORM = midas_transform
+
+def _analyze_worker(target_img, reference_img, image_name: str):
+    """워커 프로세스에서 이미지 분석을 수행"""
+    # ONNX Runtime 세션이 있는 경우 해당 세션 사용
+    resnet_model = _WORKER_RESNET_SESSION if _WORKER_RESNET_SESSION else _WORKER_RESNET
+    midas_model = _WORKER_MIDAS_SESSION if _WORKER_MIDAS_SESSION else _WORKER_MIDAS
+    
+    return analyze_food_image_custom(
+        target_image_path=target_img,
+        reference_image_path=reference_img,
+        resnet_model=resnet_model,
+        midas_model=midas_model,
+        midas_transform=_WORKER_TRANSFORM,
+        image_name=image_name,
+    )
 
 # 메모리 캐시를 위한 딕셔너리
 reference_cache = {}
@@ -102,26 +184,18 @@ def _analyze_with_reseed(*args, **kwargs):
 async def analyze_image_parallel(
     image: np.ndarray,
     reference: np.ndarray,
-    resnet_model: Any,
-    midas_model: Any,
-    midas_transform: Any,
-    image_name: str
+    image_name: str,
+    executor: ProcessPoolExecutor
 ) -> Dict[str, Any]:
     """단일 이미지 분석을 비동기로 실행"""
     start = time.time()
     
-    # CPU 바운드 작업을 별도의 스레드에서 실행
-    loop = asyncio.get_event_loop()
+    # CPU 바운드 작업을 워커 프로세스에서 실행
+    loop = asyncio.get_running_loop()
     result = await loop.run_in_executor(
-        None,
-        lambda: _analyze_with_reseed(
-            target_image_path=image,
-            reference_image_path=reference,
-            resnet_model=resnet_model,
-            midas_model=midas_model,
-            midas_transform=midas_transform,
-            image_name=image_name,
-        )
+        executor,
+        _analyze_worker,
+        image, reference, image_name
     )
     
     elapsed = time.time() - start
@@ -131,44 +205,43 @@ async def analyze_image_parallel(
 
 async def process_before_images_parallel(
     before_images: Dict[str, str],
-    resnet_model: Any,
-    midas_model: Any,
-    midas_transform: Any
+    executor: ProcessPoolExecutor
 ) -> Dict[str, Dict[str, Any]]:
     """식전 이미지들을 병렬로 처리"""
-    async def process_single_image(category: str, url: str) -> tuple[str, Dict[str, Any]]:
+    async def download_and_crop(category: str, url: str) -> tuple[str, np.ndarray, np.ndarray]:
         # 이미지 다운로드
         img = await download_image_async(url, session)
         # 중앙 crop
         reference = crop_center(img, cache_key=f"reference_{category}")
-        # 분석
-        result = await analyze_image_parallel(
-            img, reference, resnet_model, midas_model, midas_transform, url
-        )
-        return category, result
+        return category, img, reference
 
     # aiohttp 세션 생성
     async with aiohttp.ClientSession() as session:
-        # 모든 이미지에 대한 태스크 생성
-        tasks = [process_single_image(category, url) for category, url in before_images.items()]
+        # 모든 이미지 다운로드 및 크롭을 병렬로 실행
+        download_tasks = [download_and_crop(category, url) for category, url in before_images.items()]
+        download_results = await asyncio.gather(*download_tasks)
         
-        # 모든 태스크를 병렬로 실행
-        results = await asyncio.gather(*tasks)
+        # 분석 태스크 생성
+        analysis_tasks = []
+        for category, img, reference in download_results:
+            task = analyze_image_parallel(img, reference, before_images[category], executor)
+            analysis_tasks.append((category, task))
+        
+        # 분석 태스크를 병렬로 실행
+        results = await asyncio.gather(*[task for _, task in analysis_tasks])
         
         # 결과를 딕셔너리로 변환
-        return dict(results)
+        return {category: result for (category, _), result in zip(analysis_tasks, results)}
 
 async def process_after_images_parallel(
     after_images: Dict[str, str],
     before_results: Dict[str, Dict[str, Any]],
-    resnet_model: Any,
-    midas_model: Any,
-    midas_transform: Any
+    executor: ProcessPoolExecutor
 ) -> Dict[str, Dict[str, Any]]:
     """식후 이미지들을 병렬로 처리"""
-    async def process_single_image(category: str, url: str) -> tuple[str, Dict[str, Any]]:
+    async def download_and_get_reference(category: str, url: str) -> tuple[str, np.ndarray, np.ndarray]:
         if category not in before_results:
-            return category, None
+            return category, None, None
             
         # 이미지 다운로드
         img = await download_image_async(url, session)
@@ -176,22 +249,28 @@ async def process_after_images_parallel(
         reference = reference_cache.get(f"reference_{category}")
         if reference is None:
             reference = crop_center(img, cache_key=f"reference_{category}")
-        # 분석
-        result = await analyze_image_parallel(
-            img, reference, resnet_model, midas_model, midas_transform, url
-        )
-        return category, result
+        return category, img, reference
 
     # aiohttp 세션 생성
     async with aiohttp.ClientSession() as session:
-        # 모든 이미지에 대한 태스크 생성
-        tasks = [process_single_image(category, url) for category, url in after_images.items()]
+        # 모든 이미지 다운로드 및 참조 이미지 가져오기를 병렬로 실행
+        download_tasks = [download_and_get_reference(category, url) for category, url in after_images.items()]
+        download_results = await asyncio.gather(*download_tasks)
         
-        # 모든 태스크를 병렬로 실행
-        results = await asyncio.gather(*tasks)
+        # 분석 태스크 생성
+        analysis_tasks = []
+        for category, img, reference in download_results:
+            if img is not None and reference is not None:
+                task = analyze_image_parallel(img, reference, after_images[category], executor)
+                analysis_tasks.append((category, task))
+            else:
+                analysis_tasks.append((category, None))
+        
+        # 분석 태스크를 병렬로 실행
+        results = await asyncio.gather(*[task if task is not None else None for _, task in analysis_tasks])
         
         # 결과를 딕셔너리로 변환
-        return dict(results)
+        return {category: result for (category, _), result in zip(analysis_tasks, results)}
 
 class AnalyzeService:
     """잔반 분석 서비스"""
@@ -199,18 +278,19 @@ class AnalyzeService:
     def __init__(self):
         if settings.DEBUG:
             print("[ANALYZE] Initializing analyze service and loading models...")
-        self.device = torch.device("cpu")
         
-        # 모델 싱글톤으로 로드
+        # 모델 가중치 경로
         weights_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'weights', 'new_opencv_ckpt_b84_e200.pth')
+        
+        # 워커 풀 생성 (3 프로세스)
+        self._executor = ProcessPoolExecutor(
+            max_workers=3,
+            initializer=_init_worker,
+            initargs=(weights_path,),
+        )
+        
         if settings.DEBUG:
-            print("[ANALYZE] Loading ResNet model...")
-        self.resnet_model = load_resnet_model(weights_path, device='cpu')
-        if settings.DEBUG:
-            print("[ANALYZE] Loading MiDaS model...")
-        self.midas_model, self.midas_transform = load_midas_model(device='cpu')
-        if settings.DEBUG:
-            print("[ANALYZE] All models loaded successfully")
+            print("[ANALYZE] Process pool initialized with 3 workers")
 
     async def analyze_leftover_images(
         self,
@@ -223,7 +303,7 @@ class AnalyzeService:
         # 식전 이미지 병렬 처리
         before_start = time.time()
         before_results = await process_before_images_parallel(
-            before_images, self.resnet_model, self.midas_model, self.midas_transform
+            before_images, self._executor
         )
         before_elapsed = time.time() - before_start
         if settings.DEBUG:
@@ -232,7 +312,7 @@ class AnalyzeService:
         # 식후 이미지 병렬 처리
         after_start = time.time()
         after_results = await process_after_images_parallel(
-            after_images, before_results, self.resnet_model, self.midas_model, self.midas_transform
+            after_images, before_results, self._executor
         )
         after_elapsed = time.time() - after_start
         if settings.DEBUG:
