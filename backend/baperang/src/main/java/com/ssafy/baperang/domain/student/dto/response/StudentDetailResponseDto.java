@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.Map;
 
 @Getter
 @NoArgsConstructor
@@ -24,6 +25,7 @@ public class StudentDetailResponseDto {
     private String content;
     private String schoolName;
     private Float bmi;
+    private Float weeklyLeftoverAverage;
 
     // Entity에서 DTO로 변환하는 정적 메소드
     public static StudentDetailResponseDto fromEntity(Student student) {
