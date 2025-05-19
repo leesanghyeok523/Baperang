@@ -1,6 +1,6 @@
 package com.ssafy.baperang.domain.user.service;
 
-import com.ssafy.baperang.domain.user.dto.request.UpdateUserRequestDto;
+import com.ssafy.baperang.domain.user.dto.request.*;
 import com.ssafy.baperang.domain.user.dto.response.*;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -9,8 +9,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.ssafy.baperang.domain.school.entity.School;
 import com.ssafy.baperang.domain.school.repository.SchoolRepository;
-import com.ssafy.baperang.domain.user.dto.request.LoginRequestDto;
-import com.ssafy.baperang.domain.user.dto.request.SignupRequestDto;
 import com.ssafy.baperang.domain.user.dto.response.ValidateTokenResponseDto;
 import com.ssafy.baperang.domain.user.entity.User;
 import com.ssafy.baperang.domain.user.repository.UserRepository;
@@ -372,5 +370,116 @@ public class UserServiceImpl implements UserService{
         return ValidateTokenResponseDto.builder()
                 .message("토큰 유효함")
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public Object findUserId(FindIdRequestDto requestDto) {
+        log.info("findUserId 함수 실행");
+
+        try {
+            if (requestDto.getNutritionistName() == null || requestDto.getNutritionistName().trim().isEmpty()) {
+                log.info("영양사 이름 입력되지 않음");
+                return ErrorResponseDto.of(BaperangErrorCode.INVALID_INPUT_VALUE);
+            }
+
+            if (requestDto.getSchoolName() == null || requestDto.getSchoolName().trim().isEmpty()) {
+                log.info("학교명 입력되지 않음");
+                return ErrorResponseDto.of(BaperangErrorCode.INVALID_INPUT_VALUE);
+            }
+
+            if (requestDto.getCity() == null || requestDto.getCity().trim().isEmpty()) {
+                log.info("도시 입력되지 않음");
+                return ErrorResponseDto.of(BaperangErrorCode.INVALID_INPUT_VALUE);
+            }
+
+            User user = userRepository.findByNutritionistNameAndSchoolInfo(
+                    requestDto.getNutritionistName().trim(),
+                    requestDto.getSchoolName().trim(),
+                    requestDto.getCity().trim()
+            ).orElse(null);
+
+            if (user == null) {
+                log.info("해당 정보와 일치하는 사용자를 찾을 수 없음");
+                return ErrorResponseDto.of(BaperangErrorCode.USER_NOT_FOUND);
+            }
+
+            FindIdResponseDto responseDto = FindIdResponseDto.builder()
+                    .loginId(user.getLoginId())
+                    .build();
+
+            log.info("findUserId 함수 성공 종료 - loginId: {}", user.getLoginId());
+            return responseDto;
+        } catch (Exception e) {
+            log.error("findUserId 함수 예외 발생: {}", e.getMessage(), e);
+            return ErrorResponseDto.of(BaperangErrorCode.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @Override
+    @Transactional
+    public Object changePassword(NewPasswordRequestDto requestDto) {
+        log.info("changePassword 함수 실행");
+
+        try {
+            // 입력값 검증
+            if (requestDto.getLoginId() == null || requestDto.getLoginId().trim().isEmpty()) {
+                log.info("changePassword - 로그인 ID가 입력되지 않음");
+                return ErrorResponseDto.of(BaperangErrorCode.INVALID_INPUT_VALUE);
+            }
+
+            if (requestDto.getNutritionistName() == null || requestDto.getNutritionistName().trim().isEmpty()) {
+                log.info("changePassword - 영양사 이름이 입력되지 않음");
+                return ErrorResponseDto.of(BaperangErrorCode.INVALID_INPUT_VALUE);
+            }
+
+            if (requestDto.getSchoolName() == null || requestDto.getSchoolName().trim().isEmpty()) {
+                log.info("changePassword - 학교명이 입력되지 않음");
+                return ErrorResponseDto.of(BaperangErrorCode.INVALID_INPUT_VALUE);
+            }
+
+            if (requestDto.getCity() == null || requestDto.getCity().trim().isEmpty()) {
+                log.info("changePassword - 도시명이 입력되지 않음");
+                return ErrorResponseDto.of(BaperangErrorCode.INVALID_INPUT_VALUE);
+            }
+
+            if (requestDto.getNewPassword() == null || requestDto.getNewPassword().trim().isEmpty()) {
+                log.info("changePassword - 새 비밀번호가 입력되지 않음");
+                return ErrorResponseDto.of(BaperangErrorCode.INVALID_INPUT_VALUE);
+            }
+
+            // 사용자 조회 (모든 정보가 일치하는 사용자 찾기)
+            User user = userRepository.findByLoginIdAndNutritionistNameAndSchoolInfo(
+                    requestDto.getLoginId().trim(),
+                    requestDto.getNutritionistName().trim(),
+                    requestDto.getSchoolName().trim(),
+                    requestDto.getCity().trim()
+            ).orElse(null);
+
+            if (user == null) {
+                log.info("changePassword - 해당 정보와 일치하는 사용자를 찾을 수 없음");
+                return ErrorResponseDto.of(BaperangErrorCode.USER_NOT_FOUND);
+            }
+
+            // 새 비밀번호 암호화
+            String encodedNewPassword = bCryptPasswordEncoder.encode(requestDto.getNewPassword());
+
+            // 비밀번호 업데이트 (User 엔티티의 updateUser 메서드 활용)
+            user.updateUser(null, encodedNewPassword, null);
+
+            // 변경 사항 저장
+            userRepository.saveAndFlush(user);
+
+            log.info("changePassword 함수 성공 종료 - loginId: {}", user.getLoginId());
+
+            // 성공 응답 반환
+            return NewPasswordResponseDto.builder()
+                    .message("비밀번호 변경이 완료 되었습니다.")
+                    .build();
+
+        } catch (Exception e) {
+            log.error("changePassword 함수 예외 발생: {}", e.getMessage(), e);
+            return ErrorResponseDto.of(BaperangErrorCode.INTERNAL_SERVER_ERROR);
+        }
     }
 }
