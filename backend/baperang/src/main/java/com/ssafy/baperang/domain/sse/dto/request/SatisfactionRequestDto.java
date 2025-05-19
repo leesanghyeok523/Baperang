@@ -1,4 +1,4 @@
-package com.ssafy.baperang.domain.satisfaction.dto.request;
+package com.ssafy.baperang.domain.sse.dto.request;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

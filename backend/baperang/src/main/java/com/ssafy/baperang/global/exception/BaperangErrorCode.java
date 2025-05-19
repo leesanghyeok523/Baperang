@@ -27,6 +27,7 @@ public enum BaperangErrorCode {
 
     // 검증 관련 에러 (400-499)
     INVALID_INPUT_VALUE(400, "V001", "잘못된 입력값입니다."),
+    SCHOOL_NOT_FOUND(404, "S001", "학교 정보를 찾을 수 없습니다."),
 
     // 서버 에러 (500-599)
     INTERNAL_SERVER_ERROR(500, "S001", "서버 내부 오류가 발생했습니다."),
