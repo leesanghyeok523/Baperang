@@ -3,6 +3,7 @@ import styled, { keyframes } from 'styled-components';
 
 interface LoadingAnimationProps {
   message?: string;
+  type?: 'menu' | 'report';
 }
 
 const bounce = keyframes`
@@ -49,15 +50,35 @@ const Message = styled.div`
   margin-top: 10px;
 `;
 
-const LoadingAnimation: React.FC<LoadingAnimationProps> = ({ message = '식단 생성중...' }) => {
-  return (
-    <Container>
-      <ImageContainer>
+const LoadingAnimation: React.FC<LoadingAnimationProps> = ({
+  message = '식단 생성중...',
+  type = 'menu',
+}) => {
+  const renderImages = () => {
+    if (type === 'report') {
+      return (
+        <>
+          <FoodImage src="/images/items/loading5.png" alt="음식 5" delay={0} />
+          <FoodImage src="/images/items/loading6.png" alt="음식 6" delay={0.2} />
+          <FoodImage src="/images/items/loading7.png" alt="음식 7" delay={0.4} />
+          <FoodImage src="/images/items/loading8.png" alt="음식 8" delay={0.6} />
+        </>
+      );
+    }
+
+    return (
+      <>
         <FoodImage src="/images/items/loading1.png" alt="음식 1" delay={0} />
         <FoodImage src="/images/items/loading2.png" alt="음식 2" delay={0.2} />
         <FoodImage src="/images/items/loading3.png" alt="음식 3" delay={0.4} />
         <FoodImage src="/images/items/loading4.png" alt="음식 4" delay={0.6} />
-      </ImageContainer>
+      </>
+    );
+  };
+
+  return (
+    <Container>
+      <ImageContainer>{renderImages()}</ImageContainer>
       <Message>{message}</Message>
     </Container>
   );
