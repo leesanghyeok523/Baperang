@@ -1,23 +1,26 @@
-# app.py
 from flask import Flask, render_template, Response, jsonify
-import threading, time, os, logging, requests, boto3, cv2, queue
-import numpy as np
-from ultralytics import YOLO
+import cv2, os, boto3, logging, queue, time, requests, io
 from smartcard.CardMonitoring import CardMonitor,CardObserver
-from smartcard.System import readers
-from smartcard.util import toHexString
 from smartcard.Exceptions import NoCardException
-from botocore.client import Config
-from flask_cors import CORS
-import base64
 from dotenv import load_dotenv
 
+load_dotenv()
 
 app = Flask(__name__)
+cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+cap.set(cv2.CAP_PROP_FOURCC, fourcc)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 960)
+pk_queue = queue.Queue()
 
-load_dotenv()
-# CORS 설정 추가 - 프론트엔드의 요청을 허용
-CORS(app, resources={r"/*": {"origins": "*"}})
+global is_detected, cnt_record, detection_flag, processing_flag, curremt_student_info
+current_student_info = {"isTagged": False}
+processing_flag = False
+detection_flag = False
+is_detected = False
+cnt_record = 0
+
 
 SERVER_URL=os.environ["SERVER_URL"]
 AWS_ACCESS_KEY_ID=os.environ["AWS_ACCESS_KEY_ID"]
@@ -36,7 +39,7 @@ logging.basicConfig(
     format='%(asctime)s [%(levelname)s] %(message)s'
 )
 
-pk_queue = queue.Queue()
+logging.getLogger('werkzeug').setLevel(logging.WARNING)
 
 def extract_ndef_text():
     from smartcard.System import readers
@@ -96,7 +99,6 @@ def extract_ndef_text():
 
     return text
 
-
 class NFCObserver(CardObserver):
     def update(self, observable, actions):
         added, _ = actions
@@ -120,58 +122,60 @@ def start_nfc_monitor():
     monitor.addObserver(observer)
     logging.info("start")
 
+def get_current_student_info():
+    global current_student_info, processing_flag
+
+    if processing_flag and current_student_info["isTagged"]:
+        return current_student_info
+
+    try:
+        with pk_queue.mutex:
+            if pk_queue.queue:
+                text_data = pk_queue.queue[0]
+                student_pk, grade, class_num, number, student_name, gender, status = text_data.split()
+                current_student_info = {
+                    "pk":       student_pk,
+                    "grade":    grade,
+                    "class":    class_num,
+                    "number":   number,
+                    "name":     student_name,
+                    "gender":   gender,
+                    "status":   status,
+                    "isTagged": True
+                }
+                return current_student_info
+            
+    except Exception as e:
+        logging.error(f"get_current_student_info error: {e}")
+
+    if not processing_flag:
+        current_student_info = {"isTagged": False}
+    return current_student_info
 
 class TrayDetector:
-    def __init__(self, camera_id=0):
-        self.camera_id = camera_id
-        self.focus_threshold        = 150.0
-        self.region_presence_threshold = 2000.0
-        self.detection_count     = 0
-        self.required_detections = 5
+    def __init__(self):
+        self.focus_threshold     = 60.0
         self.cooldown_time       = 5
         self.vert_split_ratio = (11, 15)
         self.top_col_ratios = (11, 13, 11)
         self.bot_col_ratios = (17, 15)
 
-
 detector = TrayDetector()
 
-# 최신 Flask 버전에서는 before_first_request 대신 다른 방법 사용
-def boot_services():
-    threading.Thread(target=start_nfc_monitor, daemon=True).start()
-    logging.info("service reset")
-
-# 서버 시작 시 초기화 코드
-with app.app_context():
-    boot_services()
-    
-
 def gen_frames():
-    # 카메라와 식판 사이거리 32CM
-    cap = cv2.VideoCapture(detector.camera_id, cv2.CAP_DSHOW)
-    fourcc = cv2.VideoWriter_fourcc(*'MJPG')
-    cap.set(cv2.CAP_PROP_FOURCC, fourcc)
-    cap.set(cv2.CAP_PROP_AUTOFOCUS, 1)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH,  1024)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 768)
-
-    if not cap.isOpened():
-        logging.error("camera open error")
-        return
-
-    logging.info("tray detect start(exit: 'q')")
+    global cnt_record, is_detected
+    
     last_capture = 0
 
-    try:
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                break
+    while True:
+        ref, frame = cap.read()
 
-            # 현재 시간 기록
+        if not ref:
+            break
+
+        else:
             now = time.time()
-            
-            # 프레임 기본 처리
+
             h, w = frame.shape[:2]
 
             margin_x = int(w * 0.05)
@@ -206,14 +210,9 @@ def gen_frames():
                 x2 = margin_x + int(inner_w * acc / sum_bot)
                 regions[name] = (x1, split_y, x2, margin_y + inner_h)
 
-            region_ok = True
             for name,(x1,y1,x2,y2) in regions.items():
-                roi = gray[y1:y2, x1:x2]
-                var = roi.var()
                 cv2.rectangle(frame,(x1,y1),(x2,y2),(0,255,0),2)
-                if var < detector.region_presence_threshold:
-                    region_ok = False
-            
+
             cv2.rectangle(
                 frame,
                 (margin_x, margin_y),
@@ -227,10 +226,29 @@ def gen_frames():
                         0.8,(0,255,255),2)
             
             # 태깅 후에만 식판 검출 수행
-            if (focus >= detector.focus_threshold and
-                # region_ok and
+            if (focus >= detector.focus_threshold and not pk_queue.empty()):
+                cnt_record += 1
+                
+                if cnt_record == 10:
+                    cnt_record = 0
+                    is_detected = True
+            
+            else:
+                cnt_record -= 1
+                if cnt_record < 0:
+                    cnt_record = 0
+                
+            if (is_detected and
                 now - last_capture > detector.cooldown_time and
                 not pk_queue.empty()):
+
+                global detection_flag, processing_flag, current_student_info
+                processing_flag = True
+                
+                is_detected = False
+
+                with pk_queue.mutex:
+                    text = pk_queue.queue[0]
 
                 text = pk_queue.get()
                 student_pk, grade, class_num, number, name, gender, status = text.split()
@@ -249,164 +267,83 @@ def gen_frames():
                     
                 for rname,(x1,y1,x2,y2) in regions.items():
                     crop = frame[y1:y2, x1:x2]
+                    
+                    h, w = crop.shape[:2]
+                    
+                    scale = 2.0
+                    
+                    new_w, new_h = int(w * scale), int(h * scale)
+                    
+                    crop_resized = cv2.resize(
+                        crop,
+                        (new_w, new_h),
+                        interpolation=cv2.INTER_LINEAR
+                    )
+                    
                     fname = f"{name}_{status}_{rname}.jpg"
-                    cv2.imwrite(fname, crop)
+                    
+                    success, encoded_image = cv2.imencode('.jpg', crop_resized, [cv2.IMWRITE_JPEG_QUALITY, 100])
+                    if not success:
+                        logging.warning(f'인코딩 실패 {rname}')
 
-                    client.upload_file(
-                        Filename=fname, Bucket=BUCKET, Key=fname,
+                    image_buffer = io.BytesIO(encoded_image.tobytes())
+                    image_buffer.seek(0)
+
+                    client.upload_fileobj(
+                        Fileobj=image_buffer, Bucket=BUCKET, Key=fname,
                         ExtraArgs={'ACL':'public-read',
                                    'ContentType':'image/jpeg'}
                     )
-                    os.remove(fname)
+
                     payload['s3Url'][rname] = (
                       f'https://{BUCKET}.s3.{AWS_DEFAULT_REGION}.amazonaws.com/{fname}'
                     )
-                    logging.info(f"Uploaded {rname}")
-
-                logging.info(payload['s3Url'])
-
+                    
+                logging.info(f"Uploaded success")
+                
                 try:
-                    resp = requests.post(SERVER_URL, json=payload, timeout=5)
+                    resp = requests.post(SERVER_URL, json=payload, timeout=1)
                     logging.info(f"POST {resp.status_code}")
                 except Exception as e:
                     logging.error(f"POST error: {e}")
 
+                with pk_queue.mutex:
+                    if pk_queue.queue and pk_queue.queue == text:
+                        pk_queue.get()
+
+                processing_flag = False
+                detection_flag = True
                 last_capture = now
-                detector.detection_count = 0
-                
-                # 텍스트 표시
-                cv2.putText(frame, "식판을 인식해주세요", (int(w*0.3), 30), 
-                          cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2)
-            else:
-                # 태깅 전 상태 - 안내 메시지만 표시
-                cv2.putText(frame, "학생증을 인식시켜주세요", (int(w*0.3), 30), 
-                          cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2)
 
-            # 디버깅 화면 표시
-            cv2.imshow("Camera", frame)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+            ref, buffer = cv2.imencode('.jpg', frame)
+            frame = buffer.tobytes()
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
             
-            # 웹으로 프레임 전송
-            ret2, buf = cv2.imencode('.jpg', frame)
-            if not ret2:
-                continue
-            frame_bytes = buf.tobytes()
-            yield (
-                b'--frame\r\n'
-                b'Content-Type: image/jpeg\r\n\r\n' +
-                frame_bytes + b'\r\n'
-            )
-    
-    except Exception as e:
-        logging.error(f"detect loop error: {e}")
-    finally:
-        cap.release()
-        cv2.destroyAllWindows()
-    
-    
-
-
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    student_info = get_current_student_info()
+    return render_template('index.html', studentInfo=student_info)
 
+@app.route('/detection-status')
+def detection_status():
+    global detection_flag
+    flag = detection_flag
+    processing = processing_flag
+    detection_flag = False
+    return jsonify({'detected': flag, 'processing': processing})
 
 @app.route('/video_feed')
 def video_feed():
-    return Response(
-        gen_frames(),
-        mimetype='multipart/x-mixed-replace; boundary=frame'
-    )
+    return Response(gen_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
-# 카메라 프레임을 base64로 변환하여 반환하는 엔드포인트
-@app.route('/camera-stream')
-def camera_stream():
-    try:
-        # 카메라 캡처
-        cap = cv2.VideoCapture(detector.camera_id)
-        if not cap.isOpened():
-            return jsonify({"error": "카메라를 열 수 없습니다"}), 500
-            
-        ret, frame = cap.read()
-        cap.release()
-        
-        if not ret:
-            return jsonify({"error": "카메라에서 이미지를 캡처할 수 없습니다"}), 500
-        
-        # 기본 크기 설정
-        h, w = frame.shape[:2]
-        
-        # NFC 태깅 정보가 있는지 확인 (큐가 비어있지 않으면 태깅된 상태)
-        tagged = not pk_queue.empty()
-        
-        if tagged:
-            # 태깅 후 식판 검출 실행
-            det = detector.detect_tray(frame)
-            raw = det.boxes.data.cpu().numpy() if det.boxes is not None else np.empty((0, 6))
-            boxes = raw[:, :4].astype(int)
-            
-            # ROI 영역 표시
-            x1, y1 = int(w*0.1), int(h*0.1)
-            x2, y2 = int(w*0.9), int(h*0.9)
-            cv2.rectangle(frame, (x1, y1), (x2, y2), (255,0,0), 2)
-            
-            # 검출된 객체에 사각형 그리기
-            for (x1b, y1b, x2b, y2b) in boxes:
-                cv2.rectangle(frame, (x1b, y1b), (x2b, y2b), (0,255,0), 2)
-                
-            # 텍스트 표시
-            cv2.putText(frame, "식판을 인식해주세요", (int(w*0.3), 30), 
-                      cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2)
-        else:
-            # 태깅 전 - 안내 텍스트만 표시
-            cv2.putText(frame, "학생증을 인식시켜주세요", (int(w*0.3), 30), 
-                      cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2)
-        
-        # 이미지를 base64로 인코딩
-        _, buffer = cv2.imencode('.jpg', frame)
-        img_base64 = base64.b64encode(buffer).decode('utf-8')
-        
-        return jsonify({
-            "streamUrl": f"data:image/jpeg;base64,{img_base64}",
-            "timestamp": time.time(),
-            "tagged": tagged
-        })
-    except Exception as e:
-        logging.error(f"카메라 스트림 에러: {e}")
-        return jsonify({"error": str(e)}), 500
-
-# NFC 태깅 정보를 반환하는 엔드포인트
 @app.route('/nfc-info')
 def nfc_info():
-    try:
-        if not pk_queue.empty():
-            # 큐에서 데이터를 꺼내지 않고 확인만 함 (peek)
-            with pk_queue.mutex:
-                if pk_queue.queue:
-                    text_data = pk_queue.queue[0]  # 첫 번째 항목만 확인
-                    student_pk, grade, class_num, number, student_name, gender, status = text_data.split()
-                    
-                    return jsonify({
-                        "pk": student_pk,
-                        "grade": grade,
-                        "class": class_num,
-                        "number": number,
-                        "name": student_name,
-                        "gender": gender,
-                        "status": status,
-                        "isTagged": True
-                    })
-        
-        # 태깅된 정보가 없는 경우
-        return jsonify({
-            "isTagged": False
-        })
-    except Exception as e:
-        logging.error(f"NFC 정보 제공 에러: {e}")
-        return jsonify({"error": str(e), "isTagged": False}), 500
+    return jsonify(get_current_student_info())
 
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)
+if __name__ == "__main__":
+    start_nfc_monitor()
+    app.run(host='192.168.30.163', port='8080')
+
