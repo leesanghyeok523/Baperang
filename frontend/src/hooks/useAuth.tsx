@@ -54,8 +54,9 @@ const useAuth = () => {
     try {
       await logout();
       navigate(redirectPath);
-    } catch (_) {
-      // 오류 처리
+    } catch {
+      // 오류가 발생해도 로그아웃은 진행
+      navigate(redirectPath);
     }
   };
 
