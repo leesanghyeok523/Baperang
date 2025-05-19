@@ -83,7 +83,6 @@ const formatMenuDataForCalendar = (data: MenuResponse | MenuDay[] | MenuDay): Ca
     };
   }
 
-  console.log('변환된 메뉴 데이터:', formattedData);
   return formattedData;
 };
 
@@ -133,21 +132,16 @@ const CalendarHeader = ({
   // 메뉴 데이터 조회 함수
   const fetchMenuData = async (year: number, month: number) => {
     try {
-      console.log('fetchMenuData 호출됨:', { year, month, type: typeof month });
-
       // year와 month 유효성 검사 및 보정
       if (isNaN(year) || year <= 0) {
-        console.warn(`유효하지 않은 연도 값: ${year}, 현재 연도로 설정합니다.`);
         year = new Date().getFullYear();
       }
 
       if (isNaN(month) || month < 0 || month > 11) {
-        console.warn(`유효하지 않은 월 값: ${month}, 현재 월로 설정합니다.`);
         month = new Date().getMonth();
       }
 
       if (!token) {
-        console.error('토큰이 없습니다.');
         return;
       }
 
@@ -155,18 +149,12 @@ const CalendarHeader = ({
       // month는 0-based이므로 API 요청 시 1을 더함
       const monthValue = month + 1;
 
-      console.log(`API 요청 준비: year=${year}, month=${monthValue}`);
-
       const url = API_CONFIG.getUrl(API_CONFIG.ENDPOINTS.MEAL.MENU_CALENDAR, {
         year: year.toString(),
         month: monthValue.toString(),
       });
 
-      console.log('API 요청 URL:', url);
-
       const authHeaderValue = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
-
-      console.log(`${year}년 ${monthValue}월 메뉴 데이터 조회 요청`);
 
       const response = await axios.get<MenuResponse | MenuDay[]>(url, {
         headers: {
@@ -174,8 +162,6 @@ const CalendarHeader = ({
           'Content-Type': 'application/json',
         },
       });
-
-      console.log('메뉴 데이터 조회 성공:', response.data);
 
       // API 응답 데이터를 캘린더 형식으로 변환
       const formattedData = formatMenuDataForCalendar(response.data);
@@ -187,8 +173,6 @@ const CalendarHeader = ({
         alert('다음 달 식단이 조회되었습니다.');
       }
     } catch (error: unknown) {
-      console.error('메뉴 데이터 조회 실패:', error);
-
       // 에러 응답 처리
       const axiosError = error as AxiosError;
       if (axiosError.response) {
@@ -211,9 +195,6 @@ const CalendarHeader = ({
 
   // 현재 선택된 달의 메뉴 데이터 불러오기
   const loadCurrentMonthMenuData = async () => {
-    // 디버깅 로그 추가
-    console.log('loadCurrentMonthMenuData 호출됨:', { selectedYear, selectedMonth });
-
     // 값이 undefined인 경우 현재 날짜로 설정
     const year =
       typeof selectedYear === 'number' && !isNaN(selectedYear)
@@ -228,8 +209,6 @@ const CalendarHeader = ({
         ? selectedMonth
         : new Date().getMonth();
 
-    console.log(`메뉴 데이터 요청: ${year}년 ${month + 1}월`);
-
     // 선택된 달의 메뉴 조회
     await fetchMenuData(year, month);
   };
@@ -237,21 +216,14 @@ const CalendarHeader = ({
   // 다음달 메뉴 생성 함수
   const makeMonthMenu = async () => {
     try {
-      console.log('### makeMonthMenu 함수 호출됨 ###');
-
       // 토큰이 유효한지 확인
       if (!token) {
-        console.error('토큰이 없습니다.');
         return false;
       }
-
-      console.log('토큰 확인됨');
 
       // API 요청 URL 및 헤더 설정
       const url = API_CONFIG.ENDPOINTS.MEAL.MAKE_MONTH_MENU;
       const authHeaderValue = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
-
-      console.log('API URL:', url);
 
       // 선택된 달이 유효한지 확인
       if (
@@ -260,20 +232,17 @@ const CalendarHeader = ({
         isNaN(selectedYear) ||
         isNaN(selectedMonth)
       ) {
-        console.error('선택된 연도/월이 유효하지 않습니다:', { selectedYear, selectedMonth });
         return false;
       }
 
       // month는 0-based이므로 API 요청 시 1을 더함
       const requestMonth = selectedMonth + 1;
-      console.log(`${selectedYear}년 ${requestMonth}월 식단 생성 요청`);
 
       // API 요청 바디 출력
       const requestBody = {
         year: selectedYear,
         month: requestMonth,
       };
-      console.log('요청 바디:', requestBody);
 
       const response = await axios.post<MenuResponse | MenuDay[]>(
         url,
@@ -285,8 +254,6 @@ const CalendarHeader = ({
           },
         }
       );
-
-      console.log('월간 식단 생성 응답:', response.data);
 
       // 이미 다음 달 메뉴가 생성된 경우에 대한 처리
       if (
@@ -304,8 +271,6 @@ const CalendarHeader = ({
         return false;
       } else {
         // 새로 생성된 메뉴 데이터 처리
-        console.log('새 메뉴 데이터:', response.data);
-
         // API 응답 데이터를 캘린더 형식으로 변환
         const formattedData = formatMenuDataForCalendar(response.data);
 
@@ -326,8 +291,6 @@ const CalendarHeader = ({
 
       return false;
     } catch (error: unknown) {
-      console.error('월간 식단 생성 실패:', error);
-
       // 로딩 상태 해제
       if (setGeneratingMenu) {
         setGeneratingMenu(false);
@@ -361,24 +324,11 @@ const CalendarHeader = ({
   };
 
   const handleMenuButtonClick = () => {
-    // 디버깅 로그 추가
-    console.log('### 메뉴 버튼 클릭됨 ###');
-    console.log('상태 정보:', {
-      selectedYear,
-      selectedMonth,
-      isFutureMonth,
-      isNextMonth,
-      showWasteChart,
-      hasMenu,
-    });
-
     if (showWasteChart) {
       // 잔반율 화면에서 캘린더로 돌아갈 때
-      console.log('잔반율 화면에서 캘린더로 전환');
       toggleView();
     } else if (isFutureMonth && isNextMonth) {
       // 다음 달일 때만 식단 생성 버튼 처리
-      console.log('다음 달 확인:', { isFutureMonth, isNextMonth, hasMenu });
 
       // 로딩 상태 설정
       if (setGeneratingMenu) {
@@ -386,19 +336,15 @@ const CalendarHeader = ({
       }
 
       // 메뉴 생성 기능 호출
-      console.log('메뉴 생성 기능 호출 시작');
       makeMonthMenu()
         .then((result) => {
-          console.log('메뉴 생성 결과:', result);
           // onMenuGenerated 콜백이 없는 경우만 로컬에서 데이터 로드 (이중 로드 방지)
-          console.log('메뉴 생성 후 데이터 로드:', { selectedYear, selectedMonth });
           // onMenuGenerated가 없는 경우에만 로컬에서 loadCurrentMonthMenuData 호출
           if (!onMenuGenerated) {
             loadCurrentMonthMenuData();
           }
         })
         .catch((error) => {
-          console.error('메뉴 생성 중 오류 발생:', error);
           // 오류 발생 시 로딩 상태 해제
           if (setGeneratingMenu) {
             setGeneratingMenu(false);
@@ -407,7 +353,6 @@ const CalendarHeader = ({
       // 캘린더 뷰 유지 (토글하지 않음)
     } else if (!isFutureMonth) {
       // 과거 또는 현재 월에서 잔반율 보기 버튼 클릭 시
-      console.log('현재 월에서 잔반율 보기로 전환');
       toggleView();
     }
   };

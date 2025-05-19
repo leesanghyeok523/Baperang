@@ -37,8 +37,6 @@ const LoginPage: React.FC = () => {
       await handleLogin(formData);
       // 에러가 없다면 useAuth 내부에서 자동으로 리다이렉트됨
     } catch (error) {
-      console.error('로그인 오류:', error);
-
       // 에러 메시지 추출
       let errorMessage = '로그인 중 오류가 발생했습니다. 다시 시도해주세요.';
 
