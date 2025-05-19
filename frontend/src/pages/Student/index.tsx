@@ -85,8 +85,7 @@ const StudentManagement = () => {
           },
         }
       );
-      console.log(response)
-
+      
       // API 응답을 내부 형식으로 변환
       const formattedStudents: StudentType[] = response.data.students.map((student) => ({
         id: student.studentId,
@@ -95,7 +94,6 @@ const StudentManagement = () => {
         classNum: student.classNum,
         studentNum: student.number,
         gender: student.gender || 'blank', // 기본값 설정
-        wasteRate: Math.floor(Math.random() * 40), // 임시 데이터
       }));
 
       setStudents(formattedStudents);
