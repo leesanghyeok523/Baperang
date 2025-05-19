@@ -1,10 +1,10 @@
 package com.ssafy.baperang.domain.leftover.repository;
 
 import com.ssafy.baperang.domain.leftover.dto.response.LeftoverDateResponseDto;
-import com.ssafy.baperang.domain.leftover.dto.response.LeftoverMonthResponseDto;
 import com.ssafy.baperang.domain.leftover.entity.Leftover;
 import com.ssafy.baperang.domain.menu.entity.Menu;
 import com.ssafy.baperang.domain.student.entity.Student;
+import com.ssafy.baperang.domain.school.entity.School;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -37,4 +37,8 @@ public interface LeftoverJpaRepository extends JpaRepository<Leftover, Long> {
     List<Leftover> findByStudentAndLeftoverDateBetween(Student student, LocalDate startDate, LocalDate endDate);
 
     List<Leftover> findByStudentAndLeftoverDateIn(Student student, Collection<LocalDate> dates);
+
+    // 학교와 날짜 기준 잔반율 입력 학생 수 카운트
+    @Query("SELECT COUNT(DISTINCT l.student.id) FROM Leftover l WHERE l.leftoverDate = :date AND l.student.school = :school")
+    long countDistinctStudentByDateAndSchool(@Param("date") LocalDate date, @Param("school") School school);
 }
