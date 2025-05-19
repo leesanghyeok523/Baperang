@@ -334,6 +334,22 @@ public class SseServiceImpl implements SseService {
                         .data(filteredLeftovers));
                 
                 log.info("초기 잔반율 데이터 전송 완료 (학교: {}, 메뉴 수: {})", schoolName, filteredLeftovers.size());
+
+                // 초기 식사 완료율 정보 전송
+                long totalStudents = studentRepository.countBySchool(school);
+                long completedStudents = leftoverRepository.countDistinctStudentByDateAndSchool(today, school);
+                int completionRate = (totalStudents == 0) ? 0 : (int) Math.round((completedStudents * 100.0) / totalStudents);
+                
+                Map<String, Object> completionData = new java.util.HashMap<>();
+                completionData.put("completionRate", completionRate);
+                completionData.put("totalStudents", totalStudents);
+                completionData.put("completedStudents", completedStudents);
+                
+                emitter.send(SseEmitter.event()
+                        .name("initial-completion-rate")
+                        .data(completionData));
+                
+                log.info("초기 식사 완료율 데이터 전송 완료 (학교: {}, 완료율: {}%)", schoolName, completionRate);
             } else {
                 log.info("초기 잔반율 데이터 없음 - 학교 {} 오늘의 메뉴 정보가 없습니다.", schoolName);
                 // 메뉴가 없는 경우 빈 목록 전송
@@ -482,7 +498,7 @@ public class SseServiceImpl implements SseService {
         long totalStudents = studentRepository.countBySchool(school);
         long completedStudents = leftoverRepository.countDistinctStudentByDateAndSchool(today, school);
         int completionRate = (totalStudents == 0) ? 0 : (int) Math.round((completedStudents * 100.0) / totalStudents);
-        // Map으로 데이터 구성
+        
         Map<String, Object> completionData = new java.util.HashMap<>();
         completionData.put("completionRate", completionRate);
         completionData.put("totalStudents", totalStudents);
