@@ -1,12 +1,9 @@
 package com.ssafy.baperang.domain.user.controller;
 
-import com.ssafy.baperang.domain.user.dto.request.UpdateUserRequestDto;
+import com.ssafy.baperang.domain.user.dto.request.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import com.ssafy.baperang.domain.user.dto.request.LoginRequestDto;
-import com.ssafy.baperang.domain.user.dto.request.SignupRequestDto;
-import com.ssafy.baperang.domain.user.dto.request.ValidateIdRequestDto;
 import com.ssafy.baperang.domain.user.dto.response.ErrorResponseDto;
 import com.ssafy.baperang.domain.user.dto.response.ValidateIdResponseDto;
 import com.ssafy.baperang.domain.user.service.UserService;
@@ -171,6 +168,40 @@ public class UserController {
         }
 
         log.info("updateUser 컨트롤러 함수 정상 응답");
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/find-id")
+    @Operation(summary = "ID 찾기", description = "ID 찾기 기능")
+    public ResponseEntity<?> findUserId(@RequestBody FindIdRequestDto requestDto) {
+        log.info("findUserId 컨트롤러 함수 호출");
+
+        Object result = userService.findUserId(requestDto);
+
+        if (result instanceof ErrorResponseDto) {
+            ErrorResponseDto errorResponse = (ErrorResponseDto) result;
+            log.info("findUserId 컨트롤러 함수 에러 응답");
+            return ResponseEntity.status(errorResponse.getStatus()).body(result);
+        }
+
+        log.info("findUserId 컨트롤러 함수 정상 응답");
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/new-password")
+    @Operation(summary = "비밀번호 변경", description = "비밀번호 찾기 및 변경 기능")
+    public ResponseEntity<?> changePassword(@RequestBody NewPasswordRequestDto requestDto) {
+        log.info("changePassword 컨트롤러 함수 호출");
+
+        Object result = userService.changePassword(requestDto);
+
+        if (result instanceof ErrorResponseDto) {
+            ErrorResponseDto errorResponse = (ErrorResponseDto) result;
+            log.info("changePassword 컨트롤러 함수 에러 응답");
+            return ResponseEntity.status(errorResponse.getStatus()).body(result);
+        }
+
+        log.info("changePassword 컨트롤러 함수 정상 응답");
         return ResponseEntity.ok(result);
     }
 }
