@@ -107,7 +107,6 @@ const StudentManagement = () => {
 
       setLoading(false);
     } catch (err) {
-      console.error('학생 목록을 가져오는 중 오류 발생:', err);
       setError('학생 데이터를 불러오는 데 실패했습니다.');
       setLoading(false);
     }
@@ -158,8 +157,7 @@ const StudentManagement = () => {
         };
 
         setSelectedStudent(updatedStudent);
-      } catch (err) {
-        console.error('학생 상세 정보를 가져오는 중 오류 발생:', err);
+      } catch (_) {
         alert('학생 상세 정보를 불러오는 데 실패했습니다.');
       }
     },
@@ -221,9 +219,6 @@ const StudentManagement = () => {
 
   // AI 건강 리포트 생성 함수
   const generateAIReport = async () => {
-
-
-
     if (!selectedStudent) return;
 
     try {
@@ -237,7 +232,6 @@ const StudentManagement = () => {
       }
 
       // 학생 ID로 건강 리포트 API 호출
-      console.log('토큰 정보:', accessToken);
       const response = await axios.get(
         API_CONFIG.getUrlWithPathParams(API_CONFIG.ENDPOINTS.STUDENT.HEALTH_REPORT, [
           selectedStudent.id.toString(),
@@ -253,97 +247,107 @@ const StudentManagement = () => {
 
       // API 응답 데이터
       const reportData = response.data;
-      console.log(reportData)
 
       interface LeftoverDatum {
         food: string;
         amount: number;
       }
-      
-      // 잔반 TOP3
-      const leftoverMostData: LeftoverDatum[] =
-        (Object.values(reportData.leftoverMost) as string[])
-          .map((food, i) => ({ food, amount: 3 - i }));
 
-      const leftoverLeastData: LeftoverDatum[] =
-        (Object.values(reportData.leftoverLeast) as string[])
-          .map((food, i) => ({ food, amount: 3 - i }));
+      // 잔반 TOP3
+      const leftoverMostData: LeftoverDatum[] = (
+        Object.values(reportData.leftoverMost) as string[]
+      ).map((food, i) => ({ food, amount: 3 - i }));
+
+      const leftoverLeastData: LeftoverDatum[] = (
+        Object.values(reportData.leftoverLeast) as string[]
+      ).map((food, i) => ({ food, amount: 3 - i }));
 
       const medal = ['🥇', '🥈', '🥉'];
       const makeRanking = (arr: string[]) =>
         `<ol style="margin:0;padding:0 0 0 1.2em;list-style:none;font-size:14px;line-height:1.8;">
-           ${arr.map((food, i) =>
-             `<li style="display:flex;align-items:center;gap:6px;">
+           ${arr
+             .map(
+               (food, i) =>
+                 `<li style="display:flex;align-items:center;gap:6px;">
                 <span style="font-size:18px;">${medal[i] ?? i + 1}</span>${food}
-              </li>`).join('')}
+              </li>`
+             )
+             .join('')}
          </ol>`;
 
       /* 잔반 TOP3 문자열 준비 */
-      const leastRankingHTML = makeRanking(leftoverLeastData.map(d => d.food));
-      const mostRankingHTML  = makeRanking(leftoverMostData .map(d => d.food));
+      const leastRankingHTML = makeRanking(leftoverLeastData.map((d) => d.food));
+      const mostRankingHTML = makeRanking(leftoverMostData.map((d) => d.food));
 
       // 7일 영양소
-      interface NutrientDay { carbo: number; protein: number; fat: number; }
-      interface NutrientChartDatum extends NutrientDay { date: string; }
-      
-      const nutrientData: NutrientChartDatum[] =
-        (Object.entries(reportData.nutrient) as [string, NutrientDay][])
-          .map(([date, v]) => ({
-          date: date.slice(5),       // "05-11"
-          ...(v as NutrientDay),     // 타입 단언
-        }));
-      
-      const lineW = 700, lineH = 250;
+      interface NutrientDay {
+        carbo: number;
+        protein: number;
+        fat: number;
+      }
+      interface NutrientChartDatum extends NutrientDay {
+        date: string;
+      }
+
+      const nutrientData: NutrientChartDatum[] = (
+        Object.entries(reportData.nutrient) as [string, NutrientDay][]
+      ).map(([date, v]) => ({
+        date: date.slice(5), // "05-11"
+        ...(v as NutrientDay), // 타입 단언
+      }));
+
+      const lineW = 700,
+        lineH = 250;
 
       const makeLineSVG = (key: keyof NutrientDay, color: string, label: string) =>
         renderToStaticMarkup(
-          <LineChart 
-            width={lineW} 
-            height={lineH} 
+          <LineChart
+            width={lineW}
+            height={lineH}
             data={nutrientData}
             margin={{ top: 50, right: 40, left: 40, bottom: 20 }}
           >
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis 
-              dataKey="date" 
-              tickFormatter={(value) => value.replace("-", "/")} 
+            <XAxis
+              dataKey="date"
+              tickFormatter={(value) => value.replace('-', '/')}
               tick={{ fontSize: 12 }} // 글자 크기 증가
               height={35} // 높이 증가
             />
-            <YAxis 
-              label={{ 
-                value: "섭취량(g)", 
-                angle: -90, 
-                position: "insideLeft", 
+            <YAxis
+              label={{
+                value: '섭취량(g)',
+                angle: -90,
+                position: 'insideLeft',
                 style: { fontSize: 12 }, // 글자 크기 증가
-                offset: -10
+                offset: -10,
               }}
               tick={{ fontSize: 12 }} // 글자 크기 증가
               width={50} // 너비 증가
-              domain={[0, 'auto']} 
+              domain={[0, 'auto']}
             />
             <Tooltip formatter={(value) => [`${value}g`, label]} />
-            <Line 
+            <Line
               name={label}
-              type="monotone" 
-              dataKey={key} 
+              type="monotone"
+              dataKey={key}
               stroke={color}
               strokeWidth={3} // 선 두께 증가
-              dot={{ r: 6, strokeWidth: 2, fill: "white" }} // 점 크기 증가
-              label={{ 
-                position: "top", 
-                formatter: (value) => value > 0 ? value : "", 
-                style: { fontSize: 12, fill: color, fontWeight: "bold" }, // 글자 크기 증가
-                offset: 10
+              dot={{ r: 6, strokeWidth: 2, fill: 'white' }} // 점 크기 증가
+              label={{
+                position: 'top',
+                formatter: (value) => (value > 0 ? value : ''),
+                style: { fontSize: 12, fill: color, fontWeight: 'bold' }, // 글자 크기 증가
+                offset: 10,
               }}
               activeDot={{ r: 8 }} // 활성 점 크기 증가
             />
           </LineChart>
         );
-    
-      const carboSVG   = makeLineSVG('carbo',   '#8884d8', '탄수화물');
+
+      const carboSVG = makeLineSVG('carbo', '#8884d8', '탄수화물');
       const proteinSVG = makeLineSVG('protein', '#ff7300', '단백질');
-      const fatSVG     = makeLineSVG('fat',     '#82ca9d', '지방');
+      const fatSVG = makeLineSVG('fat', '#82ca9d', '지방');
 
       // 현재 날짜
       const today = new Date();
@@ -467,8 +471,7 @@ const StudentManagement = () => {
 
       setAiReport(report);
       setLoading(false);
-    } catch (err) {
-      console.error('AI 건강 리포트 생성 중 오류 발생:', err);
+    } catch (_) {
       setError('AI 건강 리포트를 생성하는 데 실패했습니다.');
       setLoading(false);
     }
@@ -537,7 +540,7 @@ const StudentManagement = () => {
 
       // 이미지를 PDF에 추가
       let heightLeft = imgHeight;
-      let position   = 0;
+      let position = 0;
 
       pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
       heightLeft -= pdf.internal.pageSize.getHeight();
@@ -772,7 +775,6 @@ const StudentManagement = () => {
                             }`}
                             alt={selectedStudent.name}
                             className="w-full h-full object-cover rounded-full"
-              
                             onError={(e) => {
                               // 이미지 로드 실패시 기본 이미지로 대체
                               e.currentTarget.src = '/images/student/blank.png';

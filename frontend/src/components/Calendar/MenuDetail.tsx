@@ -142,7 +142,6 @@ const MenuDetail = ({ selectedDate, menuData, onMenuUpdate }: MenuDetailProps) =
         }
       }
     } catch (error) {
-      console.error('정보 조회 오류:', error);
       showToast('정보를 가져오는데 실패했습니다.', 'error');
     } finally {
       setLoading(false);
@@ -208,7 +207,6 @@ const MenuDetail = ({ selectedDate, menuData, onMenuUpdate }: MenuDetailProps) =
       // 모달 닫기
       setShowModal(false);
     } catch (error) {
-      console.error('메뉴 업데이트 오류:', error);
       showToast('메뉴 업데이트에 실패했습니다.', 'error');
     } finally {
       setLoading(false);

@@ -108,17 +108,12 @@ export const useAuthStore = create<AuthState>()(
       // 토큰 리프레시 함수
       refreshToken: async () => {
         try {
-          console.log('토큰 리프레시 시도');
-
           const response = await fetch(API_CONFIG.getUrl(API_CONFIG.ENDPOINTS.AUTH.REFRESH_TOKEN), {
             method: 'POST',
             credentials: 'include',
           });
 
-          console.log('리프레시 응답 상태:', response.status);
-
           if (!response.ok) {
-            console.log('토큰 리프레시 실패');
             return false;
           }
 
@@ -128,8 +123,6 @@ export const useAuthStore = create<AuthState>()(
             response.headers.get('Authorization') ||
             response.headers.get('Access-Token') ||
             response.headers.get('access-token');
-
-          console.log('새 액세스 토큰 발급 여부:', !!accessToken);
 
           // 토큰 갱신 성공 시 인증 상태도 함께 업데이트
           if (accessToken) {
@@ -142,7 +135,6 @@ export const useAuthStore = create<AuthState>()(
               accessToken: formattedToken,
               isAuthenticated: true,
             });
-            console.log('토큰 리프레시 성공');
             return true;
           }
 
@@ -158,18 +150,14 @@ export const useAuthStore = create<AuthState>()(
                 accessToken: formattedToken,
                 isAuthenticated: true,
               });
-              console.log('응답 바디에서 토큰 리프레시 성공');
               return true;
             }
-          } catch (error) {
-            console.log('응답 바디 파싱 실패:', error);
+          } catch (_) {
             // 응답 본문 처리 중 오류가 있어도 무시
           }
 
-          console.log('토큰 리프레시 실패 - 토큰 찾을 수 없음');
           return false;
-        } catch (error) {
-          console.error('리프레시 토큰 갱신 중 오류:', error);
+        } catch (_) {
           return false;
         }
       },
@@ -179,13 +167,10 @@ export const useAuthStore = create<AuthState>()(
         const token = get().accessToken;
 
         if (!token) {
-          console.log('토큰 없음 - 유효성 검사 실패');
           return false;
         }
 
         try {
-          console.log('토큰 유효성 검사 요청 시작');
-
           const response = await fetch(
             API_CONFIG.getUrl(API_CONFIG.ENDPOINTS.AUTH.VALIDATE_TOKEN),
             {
@@ -198,23 +183,17 @@ export const useAuthStore = create<AuthState>()(
             }
           );
 
-          console.log('토큰 유효성 검사 응답 상태:', response.status);
-
           if (response.ok) {
-            console.log('토큰 유효함');
             return true;
           }
 
           // 토큰이 유효하지 않으면 리프레시 토큰으로 갱신 시도
           if (response.status === 401) {
-            console.log('토큰 유효하지 않음 - 리프레시 시도');
             return await get().refreshToken();
           }
 
-          console.log('토큰 유효성 검사 실패');
           return false;
         } catch (error) {
-          console.error('토큰 유효성 검사 중 오류:', error);
           return false;
         }
       },
@@ -249,26 +228,22 @@ export const useAuthStore = create<AuthState>()(
                 if (response.ok) {
                   const userData = await response.json();
                   set({ user: userData, isAuthenticated: true });
-                  console.log('사용자 정보 가져오기 성공');
                 } else {
                   // 사용자 정보 가져오기 실패 시 로그아웃
-                  console.error('사용자 정보 가져오기 실패:', response.status);
                   await get().logout();
                 }
               } catch (error) {
-                console.error('사용자 정보 가져오기 오류:', error);
+                // 사용자 정보 가져오기 오류 시 로그아웃
                 await get().logout();
               }
             } else {
               // 토큰 갱신 실패시 로그아웃
-              console.log('토큰 유효성 검사 및 갱신 실패');
               await get().logout();
             }
           } else {
             set({ isAuthenticated: false });
           }
         } catch (error) {
-          console.error('인증 초기화 오류:', error);
           await get().logout();
         } finally {
           set({ isLoading: false });

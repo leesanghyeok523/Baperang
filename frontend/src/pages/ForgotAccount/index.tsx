@@ -61,7 +61,6 @@ const ForgotAccountPage: React.FC = () => {
 
     try {
       // API 요청 준비
-      console.log('아이디 찾기 요청 데이터:', findIdForm);
       const findIdUrl = API_CONFIG.getUrl(API_CONFIG.ENDPOINTS.AUTH.FIND_ID);
 
       // 백엔드로 요청 전송
@@ -71,20 +70,14 @@ const ForgotAccountPage: React.FC = () => {
         body: JSON.stringify(findIdForm),
       });
 
-      console.log('아이디 찾기 응답 상태:', response.status, response.statusText);
-
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('서버 오류 응답:', errorText);
         throw new Error(`서버 오류: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log('아이디 찾기 응답 데이터:', data);
 
       setFoundId(data.loginId);
-    } catch (error) {
-      console.error('아이디 찾기 오류:', error);
+    } catch (_) {
       setError('입력한 정보와 일치하는 계정을 찾을 수 없습니다.');
     } finally {
       setIsLoading(false);
@@ -120,7 +113,6 @@ const ForgotAccountPage: React.FC = () => {
         newPassword,
       };
 
-      console.log('비밀번호 재설정 요청 데이터:', requestData);
       const resetPasswordUrl = API_CONFIG.getUrl(API_CONFIG.ENDPOINTS.AUTH.NEW_PASSWORD);
 
       // 백엔드로 요청 전송
@@ -130,17 +122,11 @@ const ForgotAccountPage: React.FC = () => {
         body: JSON.stringify(requestData),
       });
 
-      console.log('비밀번호 재설정 응답 상태:', response.status, response.statusText);
-
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('서버 오류 응답:', errorText);
         throw new Error(`서버 오류: ${response.status}`);
       }
 
-      const data = await response.json();
-      console.log('비밀번호 재설정 응답 데이터:', data);
-
+      // 결과 설정
       setPasswordResetSuccess(true);
       // 폼 초기화
       setResetPasswordForm({
@@ -151,8 +137,7 @@ const ForgotAccountPage: React.FC = () => {
         newPassword: '',
         confirmPassword: '',
       });
-    } catch (error) {
-      console.error('비밀번호 재설정 오류:', error);
+    } catch (_) {
       setError('입력한 정보와 일치하는 계정을 찾을 수 없거나 비밀번호 재설정에 실패했습니다.');
     } finally {
       setIsLoading(false);

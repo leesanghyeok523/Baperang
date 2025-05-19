@@ -69,9 +69,8 @@ class ApiClient {
       }
 
       return await response.text();
-    } catch (error) {
-      console.error('API 요청 오류:', error);
-      throw error;
+    } catch (_) {
+      throw new Error('API 요청 오류');
     }
   }
 

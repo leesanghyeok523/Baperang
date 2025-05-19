@@ -15,13 +15,9 @@ const ProtectedRoute = () => {
   useEffect(() => {
     const verifyAuth = async () => {
       try {
-        console.log('인증 상태 확인 시작...');
-
         // 이미 인증된 상태이고 토큰이 있는 경우 토큰 유효성 검사
         if (isAuthenticated && accessToken) {
-          console.log('토큰 유효성 검사 중...');
           const isValid = await validateCurrentToken();
-          console.log('토큰 유효성 검사 결과:', isValid);
 
           if (isValid) {
             setChecking(false);
@@ -29,12 +25,8 @@ const ProtectedRoute = () => {
           }
         }
 
-        console.log('인증 초기화 진행 중...');
         // 초기화 함수 호출 (localStorage에서 토큰 복원 및 검증)
         await initializeAuth();
-        console.log('인증 초기화 완료');
-      } catch (error) {
-        console.error('인증 검증 중 오류 발생:', error);
       } finally {
         setChecking(false);
       }
