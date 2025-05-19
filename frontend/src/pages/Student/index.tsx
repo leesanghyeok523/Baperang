@@ -9,6 +9,8 @@ import { useAuthStore } from '../../store/authStore';
 import { StudentListResponse, StudentDetailResponse, StudentType } from '../../types/types';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import LoadingAnimation from '../../components/LoadingAnimation';
+import { showToast } from '../../utils/sweetalert';
 
 const StudentManagement = () => {
   const [selectedGrade, setSelectedGrade] = useState<number | ''>('');
@@ -19,7 +21,7 @@ const StudentManagement = () => {
   const [selectedStudent, setSelectedStudent] = useState<StudentType | null>(null);
   const [aiReport, setAiReport] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [reportLoading, setReportLoading] = useState(false);
 
   // 드롭다운 상태 관리
   const [showGradeDropdown, setShowGradeDropdown] = useState(false);
@@ -72,7 +74,7 @@ const StudentManagement = () => {
 
       // 인증 여부 확인
       if (!isAuthenticated || !accessToken) {
-        setError('로그인이 필요합니다. 다시 로그인해주세요.');
+        showToast('로그인이 필요합니다. 다시 로그인해주세요.', 'error');
         setLoading(false);
         return;
       }
@@ -105,8 +107,8 @@ const StudentManagement = () => {
       }
 
       setLoading(false);
-    } catch (err) {
-      setError('학생 데이터를 불러오는 데 실패했습니다.');
+    } catch {
+      showToast('학생 데이터를 불러오는 데 실패했습니다.', 'error');
       setLoading(false);
     }
   };
@@ -117,7 +119,7 @@ const StudentManagement = () => {
       try {
         // 인증 여부 확인
         if (!isAuthenticated || !accessToken) {
-          alert('로그인이 필요합니다. 다시 로그인해주세요.');
+          showToast('로그인이 필요합니다. 다시 로그인해주세요.', 'error');
           return;
         }
 
@@ -158,8 +160,8 @@ const StudentManagement = () => {
         };
 
         setSelectedStudent(updatedStudent);
-      } catch (_) {
-        alert('학생 상세 정보를 불러오는 데 실패했습니다.');
+      } catch {
+        showToast('학생 상세 정보를 불러오는 데 실패했습니다.', 'error');
       }
     },
     [accessToken, isAuthenticated, students]
@@ -223,12 +225,12 @@ const StudentManagement = () => {
     if (!selectedStudent) return;
 
     try {
-      setLoading(true);
+      setReportLoading(true);
 
       // 인증 여부 확인
       if (!isAuthenticated || !accessToken) {
-        setError('로그인이 필요합니다. 다시 로그인해주세요.');
-        setLoading(false);
+        showToast('로그인이 필요합니다. 다시 로그인해주세요.', 'error');
+        setReportLoading(false);
         return;
       }
 
@@ -471,10 +473,10 @@ const StudentManagement = () => {
       `;
 
       setAiReport(report);
-      setLoading(false);
-    } catch (_) {
-      setError('AI 건강 리포트를 생성하는 데 실패했습니다.');
-      setLoading(false);
+      setReportLoading(false);
+    } catch {
+      showToast('AI 건강 리포트를 생성하는 데 실패했습니다.', 'error');
+      setReportLoading(false);
     }
   };
 
@@ -560,7 +562,6 @@ const StudentManagement = () => {
       pdf.save(fileName);
     } catch (error) {
       console.error('PDF 생성 중 오류 발생:', error);
-      alert('PDF 생성 중 오류가 발생했습니다.');
     }
   };
 
@@ -698,21 +699,21 @@ const StudentManagement = () => {
                       <div className="flex items-center justify-center h-full">
                         <p className="text-gray-500">데이터를 불러오는 중...</p>
                       </div>
-                    ) : error ? (
-                      <div className="flex items-center justify-center h-full">
-                        <p className="text-red-500">{error}</p>
-                      </div>
                     ) : filteredStudents.length > 0 ? (
                       <ul className="space-y-2">
                         {filteredStudents.map((student) => (
                           <li
                             key={student.id}
-                            className={`px-4 py-3 rounded-md cursor-pointer transition-colors ${
+                            className={`px-4 py-3 rounded-md transition-colors ${
                               selectedStudent?.id === student.id
                                 ? 'bg-[#96c059]/20 border border-[#96c059]/30'
                                 : 'bg-white hover:bg-gray-50 border border-gray-100'
-                            }`}
-                            onClick={() => handleSelectStudent(student)}
+                            } ${reportLoading ? 'opacity-50 cursor-default' : 'cursor-pointer'}`}
+                            onClick={() => {
+                              if (!reportLoading) {
+                                handleSelectStudent(student);
+                              }
+                            }}
                           >
                             <div className="flex items-center">
                               <div className="w-10 h-10 flex-shrink-0 mr-3">
@@ -752,9 +753,9 @@ const StudentManagement = () => {
 
               {/* 우측: 학생 상세 정보 및 AI 리포트 */}
               <div className="flex flex-row w-full md:w-2/3 h-full items-center justify-center">
-                {loading ? (
+                {reportLoading ? (
                   <div className="flex items-center justify-center h-full w-full">
-                    <p className="text-gray-500">데이터를 불러오는 중...</p>
+                    <LoadingAnimation type="report" message="AI 건강 리포트 생성 중..." />
                   </div>
                 ) : !selectedStudent ? (
                   <div className="flex items-center justify-center h-full w-full">
@@ -792,10 +793,13 @@ const StudentManagement = () => {
                         <p className="text-xl mb-3">잔반율 : {selectedStudent.wasteRate || 0}%</p>
 
                         <button
-                          className="mt-4 px-8 py-3 bg-[#96c059] text-white rounded-2xl hover:bg-[#7ba348] transition-colors text-base"
-                          onClick={generateAIReport}
+                          className={`mt-4 px-8 py-3 text-white rounded-2xl transition-colors text-base ${
+                            reportLoading ? 'bg-gray-200' : 'bg-[#96c059] hover:bg-[#7ba348]'
+                          }`}
+                          onClick={reportLoading ? undefined : generateAIReport}
+                          disabled={reportLoading}
                         >
-                          AI 건강 리포트 생성
+                          {reportLoading ? '생성 중...' : 'AI 건강 리포트 생성'}
                         </button>
                       </div>
                     </div>

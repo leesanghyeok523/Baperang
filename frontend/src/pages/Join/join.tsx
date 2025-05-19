@@ -104,8 +104,9 @@ const JoinPage: React.FC = () => {
         // 응답이 객체일 경우 cities 배열 추출
         setCities(data.cities || []);
       }
-    } catch (_) {
+    } catch (error) {
       // 오류 처리
+      console.error('도시 목록을 가져오는 중 오류 발생:', error);
     }
   };
 
@@ -114,6 +115,12 @@ const JoinPage: React.FC = () => {
     if (!formData.city || formData.schoolName.length === 0) {
       return;
     }
+
+    // 학교 검색 시작 시 에러 메시지 제거
+    setErrors((prev) => ({
+      ...prev,
+      schoolName: '',
+    }));
 
     setIsLoadingSchools(true);
     setShowSchoolDropdown(true); // 로딩 중에도 드롭다운 표시
@@ -151,8 +158,9 @@ const JoinPage: React.FC = () => {
       // 상태 업데이트
       setSchools(schoolsList);
       setShowSchoolDropdown(schoolsList.length > 0);
-    } catch (_) {
+    } catch (error) {
       setShowSchoolDropdown(false);
+      console.error('학교 검색 중 오류 발생:', error);
     } finally {
       setIsLoadingSchools(false);
     }
@@ -177,11 +185,31 @@ const JoinPage: React.FC = () => {
       return newData;
     });
 
-    // 필드가 변경되면 해당 필드의 오류 메시지 초기화
-    if (errors[name as keyof typeof errors]) {
+    // 사용자가 입력을 시작하면 항상 해당 필드의 오류 메시지 초기화
+    setErrors((prev) => ({
+      ...prev,
+      [name]: '',
+    }));
+  };
+
+  // 도시 드롭다운 표시 함수
+  const handleShowCityDropdown = () => {
+    setShowCityDropdown(true);
+    // 도시 드롭다운을 열 때 에러 메시지 제거
+    setErrors((prev) => ({
+      ...prev,
+      city: '',
+    }));
+  };
+
+  // 학교 드롭다운 포커스 함수
+  const handleSchoolFocus = () => {
+    if (formData.city) {
+      fetchSchools();
+      // 학교 드롭다운을 열 때 에러 메시지 제거
       setErrors((prev) => ({
         ...prev,
-        [name]: '',
+        schoolName: '',
       }));
     }
   };
@@ -195,6 +223,12 @@ const JoinPage: React.FC = () => {
     }));
     setSchools([]); // 학교 목록 초기화
     setShowCityDropdown(false); // 도시 선택 시 드롭다운 닫기
+
+    // 도시 선택 시 에러 메시지 제거
+    setErrors((prev) => ({
+      ...prev,
+      city: '',
+    }));
   };
 
   // 학교 선택 핸들러
@@ -204,6 +238,12 @@ const JoinPage: React.FC = () => {
       schoolName: school,
     }));
     setShowSchoolDropdown(false);
+
+    // 학교 선택 시 에러 메시지 제거
+    setErrors((prev) => ({
+      ...prev,
+      schoolName: '',
+    }));
   };
 
   // 아이디 중복 확인 함수
@@ -248,11 +288,12 @@ const JoinPage: React.FC = () => {
           loginId: '이미 사용 중인 아이디입니다.',
         }));
       }
-    } catch (_) {
+    } catch (error) {
       setErrors((prev) => ({
         ...prev,
         loginId: '중복 확인 중 오류가 발생했습니다.',
       }));
+      console.error('아이디 중복 확인 중 오류 발생:', error);
     } finally {
       setIdCheckLoading(false);
     }
@@ -261,7 +302,15 @@ const JoinPage: React.FC = () => {
   // 폼 유효성 검사
   const validateForm = () => {
     let isValid = true;
-    const newErrors = { ...errors };
+    // 에러 메시지를 완전히 새로 설정
+    const newErrors = {
+      loginId: '',
+      password: '',
+      confirmPassword: '',
+      nutritionistName: '',
+      city: '',
+      schoolName: '',
+    };
 
     // 아이디 검사
     if (!formData.loginId) {
@@ -311,6 +360,16 @@ const JoinPage: React.FC = () => {
 
   // 회원가입 처리
   const handleJoin = async () => {
+    // 이전 에러 메시지 초기화
+    setErrors({
+      loginId: '',
+      password: '',
+      confirmPassword: '',
+      nutritionistName: '',
+      city: '',
+      schoolName: '',
+    });
+
     if (!validateForm()) {
       return;
     }
@@ -404,9 +463,17 @@ const JoinPage: React.FC = () => {
             placeholder="도시를 선택하세요"
             name="city"
             value={formData.city}
-            onChange={handleChange}
+            onChange={(e) => {
+              handleChange(e);
+              // 입력 변경 시 에러 메시지 제거 확실히 하기
+              setErrors((prev) => ({ ...prev, city: '' }));
+            }}
             error={errors.city}
-            onFocus={() => setShowCityDropdown(true)}
+            onFocus={() => {
+              handleShowCityDropdown();
+              // 포커스 시 에러 메시지 제거 확실히 하기
+              setErrors((prev) => ({ ...prev, city: '' }));
+            }}
             readOnly
           />
           {showCityDropdown && cities.length > 0 && (
@@ -421,7 +488,11 @@ const JoinPage: React.FC = () => {
                   key={index}
                   className="p-3 hover:bg-green-50 cursor-pointer border-b border-gray-100 font-medium"
                   style={{ height: '50px', display: 'flex', alignItems: 'center' }}
-                  onClick={() => handleCitySelect(city)}
+                  onClick={() => {
+                    handleCitySelect(city);
+                    // 도시 선택 시 에러 메시지 확실히 제거
+                    setErrors((prev) => ({ ...prev, city: '' }));
+                  }}
                 >
                   {city}
                 </div>
@@ -435,9 +506,18 @@ const JoinPage: React.FC = () => {
             placeholder="학교 이름을 입력하세요"
             name="schoolName"
             value={formData.schoolName}
-            onChange={handleChange}
+            onChange={(e) => {
+              handleChange(e);
+              // 입력 변경 시 에러 메시지 제거 확실히 하기
+              setErrors((prev) => ({ ...prev, schoolName: '' }));
+            }}
             error={errors.schoolName}
             disabled={!formData.city}
+            onFocus={() => {
+              handleSchoolFocus();
+              // 포커스 시 에러 메시지 제거 확실히 하기
+              setErrors((prev) => ({ ...prev, schoolName: '' }));
+            }}
           />
           {showSchoolDropdown && schools.length > 0 && (
             <div
@@ -454,7 +534,11 @@ const JoinPage: React.FC = () => {
                     key={index}
                     className="p-3 hover:bg-green-50 cursor-pointer border-b border-gray-100 font-medium"
                     style={{ height: '53px', display: 'flex', alignItems: 'center' }}
-                    onClick={() => handleSchoolSelect(school)}
+                    onClick={() => {
+                      handleSchoolSelect(school);
+                      // 학교 선택 시 에러 메시지 확실히 제거
+                      setErrors((prev) => ({ ...prev, schoolName: '' }));
+                    }}
                   >
                     {school}
                   </div>
