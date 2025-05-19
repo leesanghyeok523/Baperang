@@ -49,8 +49,8 @@ public class SseServiceImpl implements SseService {
     private final UserRepository userRepository;
     private final LeftoverRepository leftoverRepository;
     private final JwtService jwtService;
-    // 모든 SSE 이벤트 Emitter를 저장하는 맵 (동시성 처리를 위해 ConcurrentHashMap 사용)
-    private final Map<String, SseEmitter> emitters = new ConcurrentHashMap<>();
+    // 학교별로 SSE 이벤트 Emitter를 저장하는 맵 (동시성 처리를 위해 ConcurrentHashMap 사용)
+    private final Map<String, Map<String, SseEmitter>> schoolEmitters = new ConcurrentHashMap<>();
 
     // 각 Emitter 유효 시간 (1시간)
     private static final long SSE_TIMEOUT = 60 * 60 * 1000L;
@@ -83,20 +83,47 @@ public class SseServiceImpl implements SseService {
      * 모든 연결된 클라이언트에게 하트비트 이벤트를 전송
      */
     private void sendHeartbeat() {
-        log.debug("하트비트 이벤트 전송 중... (현재 연결 수: {})", emitters.size());
+        int totalConnections = 0;
+        for (Map<String, SseEmitter> emitters : schoolEmitters.values()) {
+            totalConnections += emitters.size();
+        }
+        log.debug("하트비트 이벤트 전송 중... (현재 연결 수: {})", totalConnections);
         
-        emitters.forEach((id, emitter) -> {
-            try {
-                emitter.send(SseEmitter.event()
-                        .name("heartbeat")
-                        .data(LocalDateTime.now().toString()));
-            } catch (IOException e) {
-                log.error("하트비트 전송 실패 (id: {}): {}", id, e.getMessage());
-                emitters.remove(id);
-            }
+        schoolEmitters.forEach((schoolName, emitters) -> {
+            emitters.forEach((id, emitter) -> {
+                try {
+                    emitter.send(SseEmitter.event()
+                            .name("heartbeat")
+                            .data(LocalDateTime.now().toString()));
+                } catch (IOException e) {
+                    log.error("하트비트 전송 실패 (학교: {}, id: {}): {}", schoolName, id, e.getMessage());
+                    emitters.remove(id);
+                }
+            });
         });
     }
 
+    /**
+     * 특정 학교에만 이벤트를 전송하는 헬퍼 메서드
+     */
+    private void sendEventToSchool(String schoolName, String eventName, Object data) {
+        Map<String, SseEmitter> emitters = schoolEmitters.get(schoolName);
+        if (emitters != null) {
+            emitters.forEach((id, emitter) -> {
+                try {
+                    emitter.send(SseEmitter.event()
+                            .name(eventName)
+                            .data(data));
+                    log.info("학교 {} - SSE 이벤트 '{}' 전송 성공: {}", schoolName, eventName, id);
+                } catch (IOException e) {
+                    log.error("SSE 전송 실패 (학교: {}, id: {}): {}", schoolName, id, e.getMessage());
+                    emitters.remove(id);
+                }
+            });
+        } else {
+            log.info("학교 '{}' 에 연결된 클라이언트가 없습니다.", schoolName);
+        }
+    }
 
     /**
      * 오늘의 메뉴 만족도 정보를 조회하여 반환 (우선순위와 최대 개수에 따라 필터링)
@@ -205,7 +232,7 @@ public class SseServiceImpl implements SseService {
 
     // SSE 구독 처리
     @Override
-    public SseEmitter subscribe(String token) {
+    public SseEmitter subscribe(String token, String schoolName) {
 
         // 토큰 유효성
         if (!jwtService.validateToken(token)) {
@@ -218,14 +245,32 @@ public class SseServiceImpl implements SseService {
 
         // SseEmitter 객체 생성
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT);
-        emitters.put(emitterId, emitter);
+        
+        // 학교별 emitter 맵 가져오기 (없으면 생성)
+        schoolEmitters.computeIfAbsent(schoolName, k -> new ConcurrentHashMap<>())
+            .put(emitterId, emitter);
 
         // SseEmitter가 완료, 타임아웃, 에러 발생 시 맵에서 제거
-        emitter.onCompletion(() -> emitters.remove(emitterId));
-        emitter.onTimeout(() -> emitters.remove(emitterId));
+        emitter.onCompletion(() -> {
+            Map<String, SseEmitter> emitters = schoolEmitters.get(schoolName);
+            if (emitters != null) {
+                emitters.remove(emitterId);
+            }
+        });
+        
+        emitter.onTimeout(() -> {
+            Map<String, SseEmitter> emitters = schoolEmitters.get(schoolName);
+            if (emitters != null) {
+                emitters.remove(emitterId);
+            }
+        });
+        
         emitter.onError(e -> {
-            log.error("SSE 에러 발생: {}", e.getMessage(), e);
-            emitters.remove(emitterId);
+            log.error("SSE 에러 발생 (학교: {}, id: {}): {}", schoolName, emitterId, e.getMessage(), e);
+            Map<String, SseEmitter> emitters = schoolEmitters.get(schoolName);
+            if (emitters != null) {
+                emitters.remove(emitterId);
+            }
         });
 
         Long userPk = jwtService.getUserId(token);
@@ -237,9 +282,6 @@ public class SseServiceImpl implements SseService {
             throw new BaperangCustomException(BaperangErrorCode.USER_NOT_FOUND);
         }
 
-        School school = user.getSchool();
-        String schoolName = school.getSchoolName();
-
         // 최초 연결 시 더미 이벤트 전송 (연결 유지 목적)
         try {
             emitter.send(SseEmitter.event().name("connect").data("SSE 연결됨!"));
@@ -250,10 +292,59 @@ public class SseServiceImpl implements SseService {
                     .name("initial-satisfaction")
                     .data(menuSatisfactions));
             
-            log.info("초기 메뉴 만족도 데이터 전송 완료 (메뉴 수: {})", menuSatisfactions.size());
+            log.info("초기 메뉴 만족도 데이터 전송 완료 (학교: {}, 메뉴 수: {})", schoolName, menuSatisfactions.size());
+
+            // 초기 연결 시 실시간 잔반율 정보 전송
+            School school = user.getSchool();
+            LocalDate today = LocalDate.now();
+            
+            // 해당 학교의 오늘 메뉴 조회
+            List<Menu> menus = menuRepository.findBySchoolAndMenuDate(school, today);
+            
+            if (!menus.isEmpty()) {
+                // 오늘 날짜의 전체 잔반율 정보 조회
+                List<MenuLeftoverRate> leftoverRates = leftoverRepository.findAverageLeftoverRateByDate(today);
+                
+                // 해당 학교 메뉴와 잔반율 정보 매핑
+                List<MenuLeftoverDto> menuLeftovers = menus.stream()
+                    .map(menu -> {
+                        // 해당 메뉴의 잔반율 정보 찾기
+                        Float leftoverRate = leftoverRates.stream()
+                            .filter(rate -> rate.getMenuName().equals(menu.getMenuName()))
+                            .map(MenuLeftoverRate::getLeftoverRate)
+                            .findFirst()
+                            .orElse(0.0f); 
+                        
+                        return MenuLeftoverDto.builder()
+                            .menuName(menu.getMenuName())
+                            .category(menu.getCategory())
+                            .leftoverRate(leftoverRate)
+                            .build();
+                    })
+                    .collect(Collectors.toList());
+                
+                // 카테고리 우선순위에 따라 필터링
+                List<MenuLeftoverDto> filteredLeftovers = filterMenusByCategory(menuLeftovers);
+                
+                // 초기 잔반율 정보 전송
+                emitter.send(SseEmitter.event()
+                        .name("initial-leftover")
+                        .data(filteredLeftovers));
+                
+                log.info("초기 잔반율 데이터 전송 완료 (학교: {}, 메뉴 수: {})", schoolName, filteredLeftovers.size());
+            } else {
+                log.info("초기 잔반율 데이터 없음 - 학교 {} 오늘의 메뉴 정보가 없습니다.", schoolName);
+                // 메뉴가 없는 경우 빈 목록 전송
+                emitter.send(SseEmitter.event()
+                        .name("initial-leftover")
+                        .data(List.of()));
+            }
         } catch (IOException e) {
-            log.error("SSE 연결 중 에러 발생: {}", e.getMessage(), e);
-            emitters.remove(emitterId);
+            log.error("SSE 연결 중 에러 발생 (학교: {}, id: {}): {}", schoolName, emitterId, e.getMessage(), e);
+            Map<String, SseEmitter> emitters = schoolEmitters.get(schoolName);
+            if (emitters != null) {
+                emitters.remove(emitterId);
+            }
         }
 
         return emitter;
@@ -315,18 +406,8 @@ public class SseServiceImpl implements SseService {
         // 카테고리 우선순위에 따라 메뉴 필터링
         List<MenuSatisfactionDto> menuSatisfactions = filterMenusByPriority(allMenus);
         
-        // SSE로 전체 메뉴 만족도 정보 전송
-        emitters.forEach((id, emitter) -> {
-            try {
-                emitter.send(SseEmitter.event()
-                        .name("satisfaction-update")
-                        .data(menuSatisfactions));
-                log.info("SSE 이벤트 전송 성공: {}", id);
-            } catch (IOException e) {
-                log.error("SSE 전송 실패: {}", e.getMessage());
-                emitters.remove(id);
-            }
-        });
+        // 학교별로 SSE로 메뉴 만족도 정보 전송
+        sendEventToSchool(schoolName, "satisfaction-update", menuSatisfactions);
         
         // 8. 응답 데이터 생성
         SatisfactionResponseDto responseDto = SatisfactionResponseDto.builder()
@@ -348,14 +429,15 @@ public class SseServiceImpl implements SseService {
             throw new BaperangCustomException(BaperangErrorCode.SCHOOL_NOT_FOUND);
         }
         
-        log.info("잔반율 정보 조회 및 SSE 전송 - 학교: {}", school.getSchoolName());
+        String schoolName = school.getSchoolName();
+        log.info("잔반율 정보 조회 및 SSE 전송 - 학교: {}", schoolName);
         LocalDate today = LocalDate.now();
         
         // 해당 학교의 오늘 메뉴 조회
         List<Menu> menus = menuRepository.findBySchoolAndMenuDate(school, today);
         
         if (menus.isEmpty()) {
-            log.info("학교 {} - 오늘의 메뉴 정보 없음", school.getSchoolName());
+            log.info("학교 {} - 오늘의 메뉴 정보 없음", schoolName);
             return LeftoverResponseDto.builder()
                 .menuLeftovers(List.of())
                 .build();
@@ -363,7 +445,7 @@ public class SseServiceImpl implements SseService {
         
         // 오늘 날짜의 전체 잔반율 정보 조회
         List<MenuLeftoverRate> leftoverRates = leftoverRepository.findAverageLeftoverRateByDate(today);
-        log.info("학교 {} - 조회된 잔반율 정보: {} 개", school.getSchoolName(), leftoverRates.size());
+        log.info("학교 {} - 조회된 잔반율 정보: {} 개", schoolName, leftoverRates.size());
         
         // 해당 학교 메뉴와 잔반율 정보 매핑
         List<MenuLeftoverDto> menuLeftovers = menus.stream()
@@ -391,18 +473,8 @@ public class SseServiceImpl implements SseService {
             .menuLeftovers(filteredLeftovers)
             .build();
             
-        // SSE로 해당 학교의 잔반율 정보 전송
-        emitters.forEach((id, emitter) -> {
-            try {
-                emitter.send(SseEmitter.event()
-                        .name("leftover-update")
-                        .data(filteredLeftovers));
-                log.info("학교 {} - 잔반율 SSE 이벤트 전송 성공: {}", school.getSchoolName(), id);
-            } catch (IOException e) {
-                log.error("SSE 전송 실패: {}", e.getMessage());
-                emitters.remove(id);
-            }
-        });
+        // 학교별로 SSE로 잔반율 정보 전송
+        sendEventToSchool(schoolName, "leftover-update", filteredLeftovers);
         
         return responseDto;
     }
