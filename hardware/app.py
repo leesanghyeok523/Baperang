@@ -345,5 +345,5 @@ def nfc_info():
 
 if __name__ == "__main__":
     start_nfc_monitor()
-    app.run(host='192.168.30.141', port='8080')
+    app.run(host='192.168.30.163', port='8080')
 
