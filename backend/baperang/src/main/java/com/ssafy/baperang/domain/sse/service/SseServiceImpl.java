@@ -1,11 +1,10 @@
-package com.ssafy.baperang.domain.satisfaction.service;
+package com.ssafy.baperang.domain.sse.service;
 
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -17,12 +16,18 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import com.ssafy.baperang.domain.leftover.dto.response.LeftoverDateResponseDto.MenuLeftoverRate;
+import com.ssafy.baperang.domain.leftover.repository.LeftoverRepository;
 import com.ssafy.baperang.domain.menu.entity.Menu;
 import com.ssafy.baperang.domain.menu.repository.MenuRepository;
-import com.ssafy.baperang.domain.satisfaction.dto.response.SatisfactionResponseDto;
-import com.ssafy.baperang.domain.satisfaction.dto.response.SatisfactionResponseDto.MenuSatisfactionDto;
 import com.ssafy.baperang.domain.school.entity.School;
 import com.ssafy.baperang.domain.school.repository.SchoolRepository;
+import com.ssafy.baperang.domain.sse.dto.response.LeftoverResponseDto;
+import com.ssafy.baperang.domain.sse.dto.response.LeftoverResponseDto.MenuLeftoverDto;
+import com.ssafy.baperang.domain.sse.dto.response.SatisfactionResponseDto;
+import com.ssafy.baperang.domain.sse.dto.response.SatisfactionResponseDto.MenuSatisfactionDto;
+import com.ssafy.baperang.domain.user.entity.User;
+import com.ssafy.baperang.domain.user.repository.UserRepository;
 import com.ssafy.baperang.global.exception.BaperangCustomException;
 import com.ssafy.baperang.global.exception.BaperangErrorCode;
 import com.ssafy.baperang.global.jwt.JwtService;
@@ -37,10 +42,12 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class SatisfactionServiceImpl implements SatisfactionService {
+public class SseServiceImpl implements SseService {
 
     private final SchoolRepository schoolRepository;
     private final MenuRepository menuRepository;
+    private final UserRepository userRepository;
+    private final LeftoverRepository leftoverRepository;
     private final JwtService jwtService;
     // 모든 SSE 이벤트 Emitter를 저장하는 맵 (동시성 처리를 위해 ConcurrentHashMap 사용)
     private final Map<String, SseEmitter> emitters = new ConcurrentHashMap<>();
@@ -123,54 +130,82 @@ public class SatisfactionServiceImpl implements SatisfactionService {
     private List<MenuSatisfactionDto> filterMenusByPriority(List<Menu> menus) {
         DecimalFormat df = new DecimalFormat("#.##");
         
-        // 우선순위가 높은 메뉴들 (rice, soup, main)
-        List<MenuSatisfactionDto> priorityMenus = menus.stream()
-            .filter(menu -> "rice".equals(menu.getCategory()) || 
-                            "soup".equals(menu.getCategory()) || 
-                            "main".equals(menu.getCategory()))
-            .map(menuItem -> {
+        // 메뉴를 카테고리 우선순위에 따라 정렬된 리스트로 변환
+        List<MenuSatisfactionDto> sortedMenus = new ArrayList<>();
+        
+        // 1. rice 카테고리 먼저 추가
+        menus.stream()
+            .filter(menu -> "rice".equals(menu.getCategory()))
+            .forEach(menuItem -> {
                 int votes = menuItem.getVoteCount();
                 double avgSatisfaction = (votes > 0) ? (double) menuItem.getTotalFavorite() / votes : 0;
                 String formattedAvg = df.format(avgSatisfaction);
                 
-                return MenuSatisfactionDto.builder()
+                sortedMenus.add(MenuSatisfactionDto.builder()
                     .menuName(menuItem.getMenuName())
                     .voteCount(votes)
                     .averageSatisfaction(formattedAvg)
-                    .build();
-            })
-            .collect(Collectors.toList());
+                    .build());
+            });
             
-        // 남은 자리가 있으면 side 메뉴 추가
-        if (priorityMenus.size() < MAX_MENU_COUNT) {
-            int remainingSlots = MAX_MENU_COUNT - priorityMenus.size();
+        // 2. soup 카테고리 추가
+        menus.stream()
+            .filter(menu -> "soup".equals(menu.getCategory()))
+            .forEach(menuItem -> {
+                int votes = menuItem.getVoteCount();
+                double avgSatisfaction = (votes > 0) ? (double) menuItem.getTotalFavorite() / votes : 0;
+                String formattedAvg = df.format(avgSatisfaction);
+                
+                sortedMenus.add(MenuSatisfactionDto.builder()
+                    .menuName(menuItem.getMenuName())
+                    .voteCount(votes)
+                    .averageSatisfaction(formattedAvg)
+                    .build());
+            });
             
-            List<MenuSatisfactionDto> sideMenus = menus.stream()
+        // 3. main 카테고리 추가
+        menus.stream()
+            .filter(menu -> "main".equals(menu.getCategory()))
+            .forEach(menuItem -> {
+                int votes = menuItem.getVoteCount();
+                double avgSatisfaction = (votes > 0) ? (double) menuItem.getTotalFavorite() / votes : 0;
+                String formattedAvg = df.format(avgSatisfaction);
+                
+                sortedMenus.add(MenuSatisfactionDto.builder()
+                    .menuName(menuItem.getMenuName())
+                    .voteCount(votes)
+                    .averageSatisfaction(formattedAvg)
+                    .build());
+            });
+            
+        // 4. side 카테고리 추가 (최대 개수 제한)
+        int remainingSlots = MAX_MENU_COUNT - sortedMenus.size();
+        if (remainingSlots > 0) {
+            List<Menu> sideMenus = menus.stream()
                 .filter(menu -> "side".equals(menu.getCategory()))
                 .limit(remainingSlots)
-                .map(menuItem -> {
-                    int votes = menuItem.getVoteCount();
-                    double avgSatisfaction = (votes > 0) ? (double) menuItem.getTotalFavorite() / votes : 0;
-                    String formattedAvg = df.format(avgSatisfaction);
-                    
-                    return MenuSatisfactionDto.builder()
-                        .menuName(menuItem.getMenuName())
-                        .voteCount(votes)
-                        .averageSatisfaction(formattedAvg)
-                        .build();
-                })
                 .collect(Collectors.toList());
                 
-            priorityMenus.addAll(sideMenus);
+            for (Menu menuItem : sideMenus) {
+                int votes = menuItem.getVoteCount();
+                double avgSatisfaction = (votes > 0) ? (double) menuItem.getTotalFavorite() / votes : 0;
+                String formattedAvg = df.format(avgSatisfaction);
+                
+                sortedMenus.add(MenuSatisfactionDto.builder()
+                    .menuName(menuItem.getMenuName())
+                    .voteCount(votes)
+                    .averageSatisfaction(formattedAvg)
+                    .build());
+            }
         }
         
-        log.info("필터링된 메뉴 수: {}", priorityMenus.size());
-        return priorityMenus;
+        log.info("필터링된 메뉴 수: {}", sortedMenus.size());
+        return sortedMenus;
     }
 
     // SSE 구독 처리
     @Override
-    public SseEmitter subscribe(String token, String schoolName) {
+    public SseEmitter subscribe(String token) {
 
         // 토큰 유효성
         if (!jwtService.validateToken(token)) {
@@ -192,6 +227,18 @@ public class SatisfactionServiceImpl implements SatisfactionService {
             log.error("SSE 에러 발생: {}", e.getMessage(), e);
             emitters.remove(emitterId);
         });
+
+        Long userPk = jwtService.getUserId(token);
+        User user = userRepository.findById(userPk)
+                .orElse(null);
+
+        if (user == null) {
+            log.info("processLeftoverRate - 사용자 정보 없음");
+            throw new BaperangCustomException(BaperangErrorCode.USER_NOT_FOUND);
+        }
+
+        School school = user.getSchool();
+        String schoolName = school.getSchoolName();
 
         // 최초 연결 시 더미 이벤트 전송 (연결 유지 목적)
         try {
@@ -287,5 +334,110 @@ public class SatisfactionServiceImpl implements SatisfactionService {
                 .build();
         
         return responseDto;
+    }
+
+    @Override
+    public LeftoverResponseDto processLeftoverRate(Long userPk) {
+        // 사용자와 학교 정보 조회
+        User user = userRepository.findById(userPk)
+                .orElseThrow(() -> new BaperangCustomException(BaperangErrorCode.USER_NOT_FOUND));
+
+        School school = user.getSchool();
+        if (school == null) {
+            log.info("processLeftoverRate - 학교 정보 없음");
+            throw new BaperangCustomException(BaperangErrorCode.SCHOOL_NOT_FOUND);
+        }
+        
+        log.info("잔반율 정보 조회 및 SSE 전송 - 학교: {}", school.getSchoolName());
+        LocalDate today = LocalDate.now();
+        
+        // 해당 학교의 오늘 메뉴 조회
+        List<Menu> menus = menuRepository.findBySchoolAndMenuDate(school, today);
+        
+        if (menus.isEmpty()) {
+            log.info("학교 {} - 오늘의 메뉴 정보 없음", school.getSchoolName());
+            return LeftoverResponseDto.builder()
+                .menuLeftovers(List.of())
+                .build();
+        }
+        
+        // 오늘 날짜의 전체 잔반율 정보 조회
+        List<MenuLeftoverRate> leftoverRates = leftoverRepository.findAverageLeftoverRateByDate(today);
+        log.info("학교 {} - 조회된 잔반율 정보: {} 개", school.getSchoolName(), leftoverRates.size());
+        
+        // 해당 학교 메뉴와 잔반율 정보 매핑
+        List<MenuLeftoverDto> menuLeftovers = menus.stream()
+            .map(menu -> {
+                // 해당 메뉴의 잔반율 정보 찾기
+                Float leftoverRate = leftoverRates.stream()
+                    .filter(rate -> rate.getMenuName().equals(menu.getMenuName()))
+                    .map(MenuLeftoverRate::getLeftoverRate)
+                    .findFirst()
+                    .orElse(0.0f); 
+                
+                return MenuLeftoverDto.builder()
+                    .menuName(menu.getMenuName())
+                    .category(menu.getCategory())
+                    .leftoverRate(leftoverRate)
+                    .build();
+            })
+            .collect(Collectors.toList());
+        
+        // 카테고리 우선순위에 따라 필터링
+        List<MenuLeftoverDto> filteredLeftovers = filterMenusByCategory(menuLeftovers);
+        
+        // 응답 DTO 생성
+        LeftoverResponseDto responseDto = LeftoverResponseDto.builder()
+            .menuLeftovers(filteredLeftovers)
+            .build();
+            
+        // SSE로 해당 학교의 잔반율 정보 전송
+        emitters.forEach((id, emitter) -> {
+            try {
+                emitter.send(SseEmitter.event()
+                        .name("leftover-update")
+                        .data(filteredLeftovers));
+                log.info("학교 {} - 잔반율 SSE 이벤트 전송 성공: {}", school.getSchoolName(), id);
+            } catch (IOException e) {
+                log.error("SSE 전송 실패: {}", e.getMessage());
+                emitters.remove(id);
+            }
+        });
+        
+        return responseDto;
+    }
+    
+    /**
+     * 카테고리 우선순위에 따라 메뉴 필터링
+     */
+    private List<MenuLeftoverDto> filterMenusByCategory(List<MenuLeftoverDto> menuLeftovers) {
+        // 메뉴를 카테고리 우선순위에 따라 정렬된 리스트로 변환
+        List<MenuLeftoverDto> sortedMenus = new ArrayList<>();
+        
+        // 1. rice 카테고리 먼저 추가
+        sortedMenus.addAll(menuLeftovers.stream()
+            .filter(menu -> "rice".equals(menu.getCategory()))
+            .collect(Collectors.toList()));
+            
+        // 2. soup 카테고리 추가
+        sortedMenus.addAll(menuLeftovers.stream()
+            .filter(menu -> "soup".equals(menu.getCategory()))
+            .collect(Collectors.toList()));
+            
+        // 3. main 카테고리 추가
+        sortedMenus.addAll(menuLeftovers.stream()
+            .filter(menu -> "main".equals(menu.getCategory()))
+            .collect(Collectors.toList()));
+            
+        // 4. side 카테고리 추가 (최대 개수 제한)
+        int remainingSlots = MAX_MENU_COUNT - sortedMenus.size();
+        if (remainingSlots > 0) {
+            sortedMenus.addAll(menuLeftovers.stream()
+                .filter(menu -> "side".equals(menu.getCategory()))
+                .limit(remainingSlots)
+                .collect(Collectors.toList()));
+        }
+        
+        return sortedMenus;
     }
 }

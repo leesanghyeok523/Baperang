@@ -1,7 +1,19 @@
 package com.ssafy.baperang.domain.student.service;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.ssafy.baperang.domain.leftover.dto.response.ErrorResponseDto;
-import com.ssafy.baperang.domain.student.dto.response.SaveLeftoverResponseDto;
 import com.ssafy.baperang.domain.leftover.entity.Leftover;
 import com.ssafy.baperang.domain.leftover.repository.LeftoverRepository;
 import com.ssafy.baperang.domain.menu.entity.Menu;
@@ -9,6 +21,7 @@ import com.ssafy.baperang.domain.menu.repository.MenuRepository;
 import com.ssafy.baperang.domain.school.entity.School;
 import com.ssafy.baperang.domain.student.dto.request.SaveStudentLeftoverRequestDto;
 import com.ssafy.baperang.domain.student.dto.response.GetStudentLeftoverResponseDto;
+import com.ssafy.baperang.domain.student.dto.response.SaveLeftoverResponseDto;
 import com.ssafy.baperang.domain.student.dto.response.StudentDetailResponseDto;
 import com.ssafy.baperang.domain.student.dto.response.StudentNamesResponseDto;
 import com.ssafy.baperang.domain.student.entity.Student;
@@ -16,16 +29,9 @@ import com.ssafy.baperang.domain.student.repository.StudentRepository;
 import com.ssafy.baperang.domain.user.entity.User;
 import com.ssafy.baperang.domain.user.repository.UserRepository;
 import com.ssafy.baperang.global.exception.BaperangErrorCode;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
-import java.util.*;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -237,7 +243,7 @@ public class StudentServiceImpl implements StudentService {
                 }
             }
 
-            log.info("saveStudentLeftover 함수 성공 종료 - 저장된 잔반 데이터 수: {}", savedLeftovers.size());
+                        log.info("saveStudentLeftover 함수 성공 종료 - 저장된 잔반 데이터 수: {}", savedLeftovers.size());
 
             // 성공 응답 반환
             return SaveLeftoverResponseDto.builder()

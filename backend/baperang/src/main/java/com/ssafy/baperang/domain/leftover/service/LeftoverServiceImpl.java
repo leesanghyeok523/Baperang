@@ -11,6 +11,7 @@ import com.ssafy.baperang.domain.school.entity.School;
 import com.ssafy.baperang.domain.student.entity.Student;
 import com.ssafy.baperang.domain.student.repository.StudentRepository;
 import com.ssafy.baperang.global.exception.BaperangErrorCode;
+import com.ssafy.baperang.domain.sse.service.SseService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -36,6 +37,7 @@ public class LeftoverServiceImpl implements LeftoverService {
     private final MenuRepository menuRepository;
     private final StudentRepository studentRepository;
     private final DecimalFormat df = new DecimalFormat("#.##", new DecimalFormatSymbols(Locale.US));
+    private final SseService sseService;
 
 
     @Override
@@ -295,6 +297,16 @@ public class LeftoverServiceImpl implements LeftoverService {
             }
 
             log.info("학생 ID: {}의 메뉴 {}개 잔반율 저장 완료", studentId, savedLeftovers.size());
+
+            // 잔반 데이터 저장 후 SSE 알림 발송
+            try {
+                // 학생 ID로 SSE 알림 전송 (학생 정보를 통해 학교 정보를 가져옴)
+                sseService.processLeftoverRate(studentId);
+                log.info("학생 ID: {}의 잔반 데이터 업데이트에 대한 SSE 알림 발송 완료", studentId);
+            } catch (Exception e) {
+                // SSE 알림 실패는 잔반 데이터 저장 성공에 영향을 주지 않음
+                log.error("SSE 알림 발송 실패: {}", e.getMessage());
+            }
 
             Map<String, Object> result = new HashMap<>();
             result.put("success", true);
