@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
-cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
 fourcc = cv2.VideoWriter_fourcc(*'MJPG')
 cap.set(cv2.CAP_PROP_FOURCC, fourcc)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
@@ -154,11 +154,11 @@ def get_current_student_info():
 
 class TrayDetector:
     def __init__(self):
-        self.focus_threshold     = 60.0
+        self.focus_threshold     = 46.0
         self.cooldown_time       = 5
         self.vert_split_ratio = (11, 15)
-        self.top_col_ratios = (11, 13, 11)
-        self.bot_col_ratios = (17, 15)
+        self.top_col_ratios = (10, 13.8, 10)
+        self.bot_col_ratios = (15, 17)
 
 detector = TrayDetector()
 
@@ -173,13 +173,16 @@ def gen_frames():
         if not ref:
             break
 
+
         else:
+            frame = cv2.flip(frame, 0)
+
             now = time.time()
 
             h, w = frame.shape[:2]
 
-            margin_x = int(w * 0.05)
-            margin_y = int(h * 0.05)
+            margin_x = int(w * 0.03)
+            margin_y = int(h * 0.03)
 
             inner_w  = w - 2 * margin_x
             inner_h  = h - 2 * margin_y
@@ -345,5 +348,5 @@ def nfc_info():
 
 if __name__ == "__main__":
     start_nfc_monitor()
-    app.run(host='192.168.30.163', port='8080')
+    app.run(host='0.0.0.0', port='8080')
 
