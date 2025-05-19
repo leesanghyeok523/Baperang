@@ -62,7 +62,6 @@ const MainPage = () => {
     });
 
     // 초기 만족도 데이터 이벤트 처리 추가
-    // @ts-expect-error EventSourcePolyfill 타입 정의 불일치
     eventSource.addEventListener('initial-satisfaction', (event: SSEMessageEvent) => {
       try {
         const menuSatisfactions = JSON.parse(event.data);
@@ -92,7 +91,6 @@ const MainPage = () => {
     });
 
     // 초기 잔반률 데이터 이벤트 처리
-    // @ts-expect-error EventSourcePolyfill 타입 정의 불일치
     eventSource.addEventListener('initial-leftover', (event: SSEMessageEvent) => {
       try {
         const menuLeftovers = JSON.parse(event.data);
@@ -128,7 +126,6 @@ const MainPage = () => {
     });
 
     // 초기 식사 완료율 데이터 이벤트 처리
-    // @ts-expect-error EventSourcePolyfill 타입 정의 불일치
     eventSource.addEventListener('initial-completion', (event: SSEMessageEvent) => {
       try {
         const completionData = JSON.parse(event.data);
@@ -148,7 +145,6 @@ const MainPage = () => {
 
     // 투표 이벤트 처리
     // EventSourcePolyfill의 타입 호환성 문제로 타입 검사 예외 처리
-    // @ts-expect-error EventSourcePolyfill 타입 정의 불일치
     eventSource.addEventListener('satisfaction-update', (event: SSEMessageEvent) => {
       try {
         const data = JSON.parse(event.data) as SatisfactionUpdate;
@@ -223,7 +219,6 @@ const MainPage = () => {
     });
 
     // 잔반률 업데이트 이벤트 처리
-    // @ts-expect-error EventSourcePolyfill 타입 정의 불일치
     eventSource.addEventListener('leftover-update', (event: SSEMessageEvent) => {
       try {
         const data = JSON.parse(event.data);
@@ -284,7 +279,6 @@ const MainPage = () => {
     });
 
     // 식사 완료율 업데이트 이벤트 처리
-    // @ts-expect-error EventSourcePolyfill 타입 정의 불일치
     eventSource.addEventListener('completion-update', (event: SSEMessageEvent) => {
       try {
         const data = JSON.parse(event.data);
@@ -316,7 +310,6 @@ const MainPage = () => {
     eventSource.onmessage = () => {};
 
     // 에러 처리
-    // @ts-expect-error EventSourcePolyfill 타입 정의 불일치
     eventSource.onerror = (error: Event) => {
       console.error('SSE 연결 오류:', error);
       eventSource.close();
