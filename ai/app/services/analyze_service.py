@@ -221,17 +221,21 @@ async def process_before_images_parallel(
         download_tasks = [download_and_crop(category, url) for category, url in before_images.items()]
         download_results = await asyncio.gather(*download_tasks)
         
-        # 분석 태스크 생성
+        # 분석 태스크 생성 및 실행
         analysis_tasks = []
         for category, img, reference in download_results:
             task = analyze_image_parallel(img, reference, before_images[category], executor)
             analysis_tasks.append((category, task))
         
-        # 분석 태스크를 병렬로 실행
-        results = await asyncio.gather(*[task for _, task in analysis_tasks])
+        # 분석 태스크를 병렬로 실행 (최대 3개씩)
+        results = {}
+        for i in range(0, len(analysis_tasks), 3):
+            batch = analysis_tasks[i:i+3]
+            batch_results = await asyncio.gather(*[task for _, task in batch])
+            for (category, _), result in zip(batch, batch_results):
+                results[category] = result
         
-        # 결과를 딕셔너리로 변환
-        return {category: result for (category, _), result in zip(analysis_tasks, results)}
+        return results
 
 async def process_after_images_parallel(
     after_images: Dict[str, str],
@@ -257,7 +261,7 @@ async def process_after_images_parallel(
         download_tasks = [download_and_get_reference(category, url) for category, url in after_images.items()]
         download_results = await asyncio.gather(*download_tasks)
         
-        # 분석 태스크 생성
+        # 분석 태스크 생성 및 실행
         analysis_tasks = []
         for category, img, reference in download_results:
             if img is not None and reference is not None:
@@ -266,11 +270,15 @@ async def process_after_images_parallel(
             else:
                 analysis_tasks.append((category, None))
         
-        # 분석 태스크를 병렬로 실행
-        results = await asyncio.gather(*[task if task is not None else None for _, task in analysis_tasks])
+        # 분석 태스크를 병렬로 실행 (최대 3개씩)
+        results = {}
+        for i in range(0, len(analysis_tasks), 3):
+            batch = analysis_tasks[i:i+3]
+            batch_results = await asyncio.gather(*[task if task is not None else None for _, task in batch])
+            for (category, _), result in zip(batch, batch_results):
+                results[category] = result
         
-        # 결과를 딕셔너리로 변환
-        return {category: result for (category, _), result in zip(analysis_tasks, results)}
+        return results
 
 class AnalyzeService:
     """잔반 분석 서비스"""

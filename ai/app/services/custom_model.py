@@ -118,13 +118,13 @@ def back_projection(
     return black_ratio, result_img, ~mask_bool
 
 def preprocess_image_for_midas(img: np.ndarray) -> np.ndarray:
-    """MiDaS 모델을 위한 이미지 전처리 (384x384 고정 크기)"""
+    """MiDaS 모델을 위한 이미지 전처리 (256x256 고정 크기)"""
     h, w = img.shape[:2]
-    scale = 384 / max(h, w)
+    scale = 256 / max(h, w)  # 384 -> 256으로 변경
     img = cv2.resize(img, (int(w*scale), int(h*scale)))
-    # 검정 패딩으로 384×384
-    square = np.zeros((384, 384, 3), np.uint8)
-    y, x = (384-img.shape[0])//2, (384-img.shape[1])//2
+    # 검정 패딩으로 256×256
+    square = np.zeros((256, 256, 3), np.uint8)  # 384 -> 256으로 변경
+    y, x = (256-img.shape[0])//2, (256-img.shape[1])//2
     square[y:y+img.shape[0], x:x+img.shape[1]] = img
     return square
 
@@ -184,11 +184,11 @@ def predict_depth(image, midas_model, midas_transform, device='cpu', roi_mask=No
         with torch.no_grad():
             prediction = midas_model(input_batch)
     
-    # 깊이 맵 크기 조정
+    # 깊이 맵 크기 조정 (더 빠른 보간법 사용)
     prediction = torch.nn.functional.interpolate(
         prediction.unsqueeze(1),
         size=(original_h, original_w),
-        mode="bicubic",
+        mode="bilinear",  # bicubic -> bilinear로 변경
         align_corners=False,
     ).squeeze()
     
