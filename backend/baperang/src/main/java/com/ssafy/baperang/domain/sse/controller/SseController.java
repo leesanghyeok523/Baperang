@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -32,11 +33,12 @@ public class SseController {
      */
     @GetMapping(value = "/subscribe", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter subscribe(
-        @RequestHeader("Authorization") String authorizationHeader) {
+        @RequestHeader("Authorization") String authorizationHeader,
+        @RequestParam("schoolName") String schoolName) {
         log.info("새로운 SSE 구독 요청 수신");
         String token = authorizationHeader.substring(7);
 
-        return satisfactionService.subscribe(token);
+        return satisfactionService.subscribe(token, schoolName);
     }
 
     @PostMapping("/vote")
