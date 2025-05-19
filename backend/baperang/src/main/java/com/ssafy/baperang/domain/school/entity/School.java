@@ -51,6 +51,7 @@ public class School {
     public School(String schoolName, String city) {
         this.schoolName = schoolName;
         this.city = city;
+        this.makeMonth = 0;
     }
     
     public void updateMakeMonth(Integer month) {
