@@ -28,6 +28,7 @@ import com.ssafy.baperang.domain.sse.dto.response.SatisfactionResponseDto;
 import com.ssafy.baperang.domain.sse.dto.response.SatisfactionResponseDto.MenuSatisfactionDto;
 import com.ssafy.baperang.domain.user.entity.User;
 import com.ssafy.baperang.domain.user.repository.UserRepository;
+import com.ssafy.baperang.domain.student.repository.StudentRepository;
 import com.ssafy.baperang.global.exception.BaperangCustomException;
 import com.ssafy.baperang.global.exception.BaperangErrorCode;
 import com.ssafy.baperang.global.jwt.JwtService;
@@ -49,6 +50,7 @@ public class SseServiceImpl implements SseService {
     private final UserRepository userRepository;
     private final LeftoverRepository leftoverRepository;
     private final JwtService jwtService;
+    private final StudentRepository studentRepository;
     // 학교별로 SSE 이벤트 Emitter를 저장하는 맵 (동시성 처리를 위해 ConcurrentHashMap 사용)
     private final Map<String, Map<String, SseEmitter>> schoolEmitters = new ConcurrentHashMap<>();
 
@@ -475,6 +477,18 @@ public class SseServiceImpl implements SseService {
             
         // 학교별로 SSE로 잔반율 정보 전송
         sendEventToSchool(schoolName, "leftover-update", filteredLeftovers);
+        
+        // ====== 식사 완료율 계산 및 SSE 전송 ======
+        long totalStudents = studentRepository.countBySchool(school);
+        long completedStudents = leftoverRepository.countDistinctStudentByDateAndSchool(today, school);
+        int completionRate = (totalStudents == 0) ? 0 : (int) Math.round((completedStudents * 100.0) / totalStudents);
+        // Map으로 데이터 구성
+        Map<String, Object> completionData = new java.util.HashMap<>();
+        completionData.put("completionRate", completionRate);
+        completionData.put("totalStudents", totalStudents);
+        completionData.put("completedStudents", completedStudents);
+        sendEventToSchool(schoolName, "completion-rate-update", completionData);
+        // ======================================
         
         return responseDto;
     }

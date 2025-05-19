@@ -32,4 +32,7 @@ public interface LeftoverRepository {
 
     List<Leftover> findByStudentAndLeftoverDateIn(Student student, Collection<LocalDate> dates);
 
+    // 학교와 날짜 기준 잔반율 입력 학생 수 카운트
+    long countDistinctStudentByDateAndSchool(LocalDate date, com.ssafy.baperang.domain.school.entity.School school);
+
 }

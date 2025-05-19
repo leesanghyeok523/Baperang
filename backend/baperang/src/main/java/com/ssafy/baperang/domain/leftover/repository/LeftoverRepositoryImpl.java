@@ -52,4 +52,9 @@ public class LeftoverRepositoryImpl implements LeftoverRepository {
     public List<Leftover> findByStudentAndLeftoverDateIn(Student student, Collection<LocalDate> dates) {
         return leftoverJpaRepository.findByStudentAndLeftoverDateIn(student, dates);
     }
+
+    @Override
+    public long countDistinctStudentByDateAndSchool(LocalDate date, com.ssafy.baperang.domain.school.entity.School school) {
+        return leftoverJpaRepository.countDistinctStudentByDateAndSchool(date, school);
+    }
 }

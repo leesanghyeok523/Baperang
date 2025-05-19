@@ -32,4 +32,7 @@ public interface StudentJpaRepository extends JpaRepository<Student, Long> {
             School school, int grade, int classNum, int number);
 
     List<Student> findBySchoolIdOrderByGradeAscClassNumAscNumberAsc(Long schoolId);
+
+    // 학교별 전체 학생 수 카운트
+    long countBySchool(School school);
 }
