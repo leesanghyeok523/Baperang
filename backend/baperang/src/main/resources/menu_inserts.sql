@@ -1,5 +1,5 @@
 INSERT INTO NUTRIENT (nutrient_name, unit) VALUES
-  ('칼로리',   'kcal'),
+  ('열량',   'kcal'),
   ('탄수화물',    'g'),
   ('당류',        'g'),
   ('지방',        'g'),

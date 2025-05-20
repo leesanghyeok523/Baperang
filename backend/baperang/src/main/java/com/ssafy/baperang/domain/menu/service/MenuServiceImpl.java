@@ -144,7 +144,7 @@ public class MenuServiceImpl implements MenuService {
                             .collect(Collectors.toList());
 
                     // 카테고리별로 정렬된 메뉴 이름 목록
-                    List<String> sortedMenuNames = sortMenusByCategory(menuNames, school);
+                    List<String> sortedMenuNames = sortMenusByCategory(menuNames, school, currentDate);
 
                     // 정렬된 메뉴 이름에 해당하는 Menu 엔티티 매핑
                     Map<String, Menu> menuMap = dayMenus.stream()
@@ -234,7 +234,7 @@ public class MenuServiceImpl implements MenuService {
             }
 
             // 카테고리별로 정렬된 메뉴
-            List<String> sortedMenu = sortMenusByCategory(menu, school);
+            List<String> sortedMenu = sortMenusByCategory(menu, school, parsedDate);
             
             // 총 칼로리 계산
             double totalCalories = 0.0;
@@ -245,7 +245,7 @@ public class MenuServiceImpl implements MenuService {
                     if (dbMenu != null) {
                         List<MenuNutrient> menuNutrients = menuNutrientRepository.findByMenu(dbMenu);
                         for (MenuNutrient nutrient : menuNutrients) {
-                            // "열량" 또는 "칼로리"라는 이름을 가진 영양소 찾기
+                            // "열량", "칼로리", "에너지" 등의 이름을 가진 영양소 찾기
                             String nutrientName = nutrient.getNutrient().getNutrientName();
                             if ("열량".equals(nutrientName) || "칼로리".equals(nutrientName) || "에너지".equals(nutrientName)) {
                                 totalCalories += nutrient.getAmount();
@@ -304,7 +304,7 @@ public class MenuServiceImpl implements MenuService {
             }
 
             // 카테고리별로 정렬된 메뉴 반환
-            return sortMenusByCategory(menu, school);
+            return sortMenusByCategory(menu, school, today);
         } catch (Exception e) {
             log.error("오늘 메뉴 조회 중 오류 발생: {}", e.getMessage(), e);
             return ErrorResponseDto.of(BaperangErrorCode.INTERNAL_SERVER_ERROR);
@@ -829,10 +829,10 @@ public class MenuServiceImpl implements MenuService {
             return ErrorResponseDto.of(BaperangErrorCode.INTERNAL_SERVER_ERROR);
         }
     }
-
-    private List<String> sortMenusByCategory(List<String> menus, School school) {
-        // 해당 날짜의 모든 메뉴 엔티티 조회
-        List<Menu> menuEntities = menuRepository.findBySchoolAndMenuDate(school, LocalDate.now());
+    
+    private List<String> sortMenusByCategory(List<String> menus, School school, LocalDate date) {
+        // 지정된 날짜의 모든 메뉴 엔티티 조회
+        List<Menu> menuEntities = menuRepository.findBySchoolAndMenuDate(school, date);
         
         // 카테고리별 우선순위 맵
         Map<String, Integer> categoryPriority = new HashMap<>();
