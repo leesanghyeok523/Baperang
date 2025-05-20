@@ -1,3 +1,18 @@
+export interface NutrientInfo {
+  kcal: number;        // 에너지(kcal)
+  carbo: number;       // 탄수화물(g)
+  protein: number;     // 단백질(g)
+  fat: number;         // 지방(g)
+  iron: number;        // 철(mg)
+  magnesium: number;   // 마그네슘(mg)
+  zinc: number;        // 아연(mg)
+  calcium: number;     // 칼슘(mg)
+  potassium: number;   // 칼륨(mg)
+  phosphorus: number;  // 인(mg)
+  sugar: number;       // 당류(g)
+  sodium: number;      // 나트륨(mg)
+}
+
 // 학생 관련 타입
 export interface StudentInfo {
   gender: string;
@@ -89,6 +104,7 @@ export interface MenuItem {
   menu?: string[];
   wasteData?: WasteData[];
   holiday?: string[];
+  nutrient?: NutrientInfo;
 }
 
 export interface DayMenuData {

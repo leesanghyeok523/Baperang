@@ -334,7 +334,7 @@ const Calendar = () => {
   };
 
   const handleExcelDownload = () => {
-    downloadMenuExcel(selectedYear, selectedMonth, menuData);
+    downloadMenuExcel(selectedYear, selectedMonth, menuData, accessToken);
   };
 
   // 반찬별 잔반률 데이터 조회
