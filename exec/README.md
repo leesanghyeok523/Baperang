@@ -23,7 +23,7 @@
 | 이슈 관리    | JIRA                       |
 | 형상 관리    | GitLab                     |
 | 커뮤니케이션 | Notion, Mattermost, Discord |
-| 설계        | ERDCloud                   |
+| 설계        | ERDCloud                   |    
 | 디자인       | Figma                     |
 
 </br>
