@@ -38,7 +38,11 @@ const StudentManagement = () => {
 
   // 클래스 목록 (선택된 학년에 따라 달라짐)
   const classOptions = selectedGrade
-    ? [...new Set(students.filter((s) => s.grade === selectedGrade).map((s) => s.classNum))].sort()
+    ? [...new Set(
+      students
+        .filter((s) => s.grade === selectedGrade)
+        .map((s) => Number(s.classNum))
+      )].sort((a, b) => a - b)
     : [];
 
   // 학년 목록 (중복 제거)
@@ -266,13 +270,14 @@ const StudentManagement = () => {
       ).map((food, i) => ({ food, amount: 3 - i }));
 
       const medal = ['🥇', '🥈', '🥉'];
+
       const makeRanking = (arr: string[]) =>
-        `<ol style="margin:0;padding:0 0 0 1.2em;list-style:none;font-size:14px;line-height:1.8;">
+        `<ol style="margin:0;padding:0 0 0 1.2em;list-style:none; font-size:16px;line-height:1.8;">
            ${arr
              .map(
                (food, i) =>
                  `<li style="display:flex;align-items:center;gap:6px;">
-                <span style="font-size:18px;">${medal[i] ?? i + 1}</span>${food}
+                <span style="font-size:26px;">${medal[i] ?? i + 1}</span>${food}
               </li>`
              )
              .join('')}
@@ -313,6 +318,7 @@ const StudentManagement = () => {
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis
               dataKey="date"
+              padding={{ left: 70, right: 70 }} 
               tickFormatter={(value) => value.replace('-', '/')}
               tick={{ fontSize: 12 }} // 글자 크기 증가
               height={35} // 높이 증가
@@ -358,7 +364,7 @@ const StudentManagement = () => {
 
       // HTML 리포트 생성
       const report = `
-        <div style="font-family: 'Noto Sans KR', sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; color: #333; position: relative;">
+        <div style="font-family: 'Paperlogy', sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; color: #333; position: relative;">
           <!-- 헤더 -->
           <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #2c5282; padding-bottom: 10px;">
             <h1 style="font-size: 24px; font-weight: bold; margin: 0; color: #2c5282;">학생 건강 관리 기록부</h1>
@@ -393,16 +399,16 @@ const StudentManagement = () => {
 
           <!-- 건강 분석 결과 -->
           <div style="margin-bottom: 23px;">
-            <h2 style="font-size: 18px; margin: 0 0 10px; padding: 5px 10px; background-color: #2c5282; color: white;">건강 분석 결과</h2>
+            <h2 style="font-weight: 700; font-size: 18px; margin: 0 0 10px; padding: 5px 10px; background-color: #2c5282; color: white;">건강 분석 결과</h2>
             <div style="border: 1px solid #ddd; padding: 15px; background-color: #f9f9f9;">
-              <p style="margin: 0;">${reportData.analyzeReport}</p>
+              <p style="font-size: 16px; margin: 0;">${reportData.analyzeReport}</p>
             </div>
           </div>
 
           <div style="display: flex; gap: 20px; margin-bottom: 20px;">
             <!-- 가장 적게 남긴 TOP3 -->
             <div style="flex: 1;">
-              <h2 style="font-size: 18px; margin: 0 0 10px; padding: 5px 10px; background-color: #2c5282; color: white;">가장 적게 남긴 TOP3</h2>
+              <h2 style="font-weight: 700; font-size: 18px; margin: 0 0 10px; padding: 5px 10px; background-color: #2c5282; color: white;">가장 적게 남긴 TOP3</h2>
               <div style="border: 1px solid #ddd; padding: 15px; background-color: #f9f9f9;">
                 ${leastRankingHTML}
               </div>
@@ -410,7 +416,7 @@ const StudentManagement = () => {
 
             <!-- 가장 많이 남긴 TOP3 -->
             <div style="flex: 1;">
-              <h2 style="font-size: 18px; margin: 0 0 10px; padding: 5px 10px; background-color: #2c5282; color: white;">가장 많이 남긴 TOP3</h2>
+              <h2 style="font-weight: 700; font-size: 18px; margin: 0 0 10px; padding: 5px 10px; background-color: #2c5282; color: white;">가장 많이 남긴 TOP3</h2>
               <div style="border: 1px solid #ddd; padding: 15px; background-color: #f9f9f9;">
                 ${mostRankingHTML}
               </div>
@@ -418,26 +424,26 @@ const StudentManagement = () => {
           </div>
 
           <div style="margin-bottom: 20px;">
-            <h2 style="font-size: 18px; margin: 0 0 10px; padding: 5px 10px; background-color: #2c5282; color: white;">7일간 섭취량</h2>
+            <h2 style="font-weight: 700; font-size: 18px; margin: 0 0 10px; padding: 5px 10px; background-color: #2c5282; color: white;">7일간 섭취량</h2>
             <div style="border: 1px solid #ddd; padding: 15px; background-color: #f9f9f9;">
               <div style="margin-bottom: 20px;">
                 <div style="display: flex; align-items: center; margin-bottom: 5px;">
                   <span style="width: 12px; height: 12px; background-color: #8884d8; display: inline-block; margin-right: 5px;"></span>
-                  <span style="font-size: 14px; font-weight: bold;">탄수화물</span>
+                  <span style="font-size: 18px; font-weight: bold;">탄수화물</span>
                 </div>
                 <div style="overflow: visible; display: flex; justify-content: center; width: 100%;">${carboSVG}</div>
               </div>
               <div style="margin-bottom: 20px;">
                 <div style="display: flex; align-items: center; margin-bottom: 5px;">
                   <span style="width: 12px; height: 12px; background-color: #ff7300; display: inline-block; margin-right: 5px;"></span>
-                  <span style="font-size: 14px; font-weight: bold;">단백질</span>
+                  <span style="font-size: 18px; font-weight: bold;">단백질</span>
                 </div>
                 <div style="overflow: visible; display: flex; justify-content: center; width: 100%;">${proteinSVG}</div>
               </div>
               <div>
                 <div style="display: flex; align-items: center; margin-bottom: 5px;">
                   <span style="width: 12px; height: 12px; background-color: #82ca9d; display: inline-block; margin-right: 5px;"></span>
-                  <span style="font-size: 14px; font-weight: bold;">지방</span>
+                  <span style="font-size: 18px; font-weight: bold;">지방</span>
                 </div>
                 <div style="overflow: visible; display: flex; justify-content: center; width: 100%;">${fatSVG}</div>
               </div>
@@ -446,17 +452,17 @@ const StudentManagement = () => {
 
           <!-- 개선 방안 -->
           <div style="margin-bottom: 20px;">
-            <h2 style="font-size: 18px; margin: 0 0 10px; padding: 5px 10px; background-color: #2c5282; color: white;">개선 방안</h2>
+            <h2 style="font-weight: 700; font-size: 18px; margin: 0 0 10px; padding: 5px 10px; background-color: #2c5282; color: white;">개선 방안</h2>
             <div style="border: 1px solid #ddd; padding: 15px; background-color: #f9f9f9;">
-              <p style="margin: 0;">${reportData.plan}</p>
+              <p style="font-size: 16px; margin: 0;">${reportData.plan}</p>
             </div>
           </div>
 
           <!-- 영양사 소견 -->
           <div style="margin-bottom: 20px;">
-            <h2 style="font-size: 18px; margin: 0 0 10px; padding: 5px 10px; background-color: #2c5282; color: white;">영양사 소견</h2>
+            <h2 style="font-weight: 700; font-size: 18px; margin: 0 0 10px; padding: 5px 10px; background-color: #2c5282; color: white;">영양사 소견</h2>
             <div style="border: 1px solid #ddd; padding: 15px; min-height: 80px; background-color: #f9f9f9;">
-              <p style="margin: 0;">${reportData.opinion}</p>
+              <p style="font-size: 16px; margin: 0;">${reportData.opinion}</p>
             </div>
           </div>
 
