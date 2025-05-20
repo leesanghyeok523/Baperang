@@ -139,11 +139,40 @@ public class Menu {
 
         // 영양소 정보를 별도의 Map으로 그룹화
         Map<String, Object> nutrients = new HashMap<>();
+        
+        // 영양소 데이터를 임시 저장
+        Map<String, String> tempNutrients = new HashMap<>();
         for (MenuNutrient menuNutrient : menuNutrients) {
             String nutrientName = menuNutrient.getNutrient().getNutrientName();
             String nutrientUnit = menuNutrient.getNutrient().getUnit();
             Float amount = menuNutrient.getAmount();
-            nutrients.put(nutrientName, amount + nutrientUnit);
+            tempNutrients.put(nutrientName, amount + nutrientUnit);
+        }
+        
+        // 지정된 순서로 영양소 추가
+        if (tempNutrients.containsKey("열량")) {
+            nutrients.put("열량", tempNutrients.get("열량"));
+            tempNutrients.remove("열량");
+        }
+        
+        if (tempNutrients.containsKey("탄수화물")) {
+            nutrients.put("탄수화물", tempNutrients.get("탄수화물"));
+            tempNutrients.remove("탄수화물");
+        }
+        
+        if (tempNutrients.containsKey("단백질")) {
+            nutrients.put("단백질", tempNutrients.get("단백질"));
+            tempNutrients.remove("단백질");
+        }
+        
+        if (tempNutrients.containsKey("지방")) {
+            nutrients.put("지방", tempNutrients.get("지방"));
+            tempNutrients.remove("지방");
+        }
+        
+        // 나머지 영양소 추가
+        for (Map.Entry<String, String> entry : tempNutrients.entrySet()) {
+            nutrients.put(entry.getKey(), entry.getValue());
         }
         
         // 영양소 정보를 별도 키로 추가
