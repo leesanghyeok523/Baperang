@@ -4,6 +4,7 @@ import com.ssafy.baperang.domain.leftover.dto.response.LeftoverDateResponseDto;
 import com.ssafy.baperang.domain.leftover.entity.Leftover;
 import com.ssafy.baperang.domain.menu.entity.Menu;
 import com.ssafy.baperang.domain.student.entity.Student;
+import com.ssafy.baperang.domain.school.entity.School;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -54,7 +55,7 @@ public class LeftoverRepositoryImpl implements LeftoverRepository {
     }
 
     @Override
-    public long countDistinctStudentByDateAndSchool(LocalDate date, com.ssafy.baperang.domain.school.entity.School school) {
+    public long countDistinctStudentByDateAndSchool(LocalDate date, School school) {
         return leftoverJpaRepository.countDistinctStudentByDateAndSchool(date, school);
     }
 }
