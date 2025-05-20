@@ -63,8 +63,6 @@ public class MenuServiceImpl implements MenuService {
         int year = requestDto.getYear();
         int month = requestDto.getMonth();
 
-        log.info("getMenuCalendar 함수 실행 - 년: {}, 월: {}", year, month);
-
         try {
             // 토큰 유효성
             if (!jwtService.validateToken(token)) {
@@ -180,8 +178,6 @@ public class MenuServiceImpl implements MenuService {
             MenuResponseDto responseDto = MenuResponseDto.builder()
                     .days(daysList)
                     .build();
-
-            log.info("getMenuCalendar 함수 성공 종료 - 일수: {}", daysList.size());
             
             // 객체 내용 로깅을 위해 JSON으로 변환
             try {
@@ -189,7 +185,6 @@ public class MenuServiceImpl implements MenuService {
                 mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
                 mapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
                 String jsonResponse = mapper.writeValueAsString(responseDto);
-                log.info("getMenuCalendar 응답 데이터: {}", jsonResponse);
             } catch (Exception e) {
                 log.error("응답 데이터 변환 중 오류: {}", e.getMessage());
             }
@@ -463,7 +458,6 @@ public class MenuServiceImpl implements MenuService {
             
             // 모든 메뉴 데이터 조회 (전체 데이터)
             List<Menu> allMenus = menuRepository.findBySchool(school);
-            log.info("기존 메뉴 데이터 조회 완료 - 개수: {}", allMenus.size());
             
             // 메뉴 ID 목록 추출
             List<Long> menuIds = allMenus.stream()
@@ -548,8 +542,6 @@ public class MenuServiceImpl implements MenuService {
             requestMap.put("menuPool", menuPool);
             requestMap.put("holidays", holidayMap);
             
-            log.info("makeMonthMenu - 요청 데이터 준비 완료");
-            
             String aiServerUrl = aiServerBaseUrl + MENU_PLAN_ENDPOINT;
 
             RestTemplate restTemplate = new RestTemplate();
@@ -559,8 +551,6 @@ public class MenuServiceImpl implements MenuService {
                 log.error("makeMonthMenu - AI 서버 응답 실패: {}", response.getStatusCode());
                 return ErrorResponseDto.of(BaperangErrorCode.INTERNAL_SERVER_ERROR);
             }
-            
-            log.info("makeMonthMenu - AI 서버 응답 성공");
             
             // AI 서버 응답 처리
             Map<String, Object> responseBody = response.getBody();
