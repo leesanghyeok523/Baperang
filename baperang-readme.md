@@ -7,14 +7,58 @@
 
 ## 프로젝트 소개
 
+***SSAFY 12기 2학기 공통 프로젝트***
+
+⌛ **프로젝트 기간**: 2025.04.14 ~ 2025.05.22 (6주)  
+📆 **상세 기간**: 기획 2주 + 개발 3주 + 버그 해결 1주  
+🔗 [**노션 링크**](https://www.notion.so/E102-1d5552e551b7807bb018e3807042b637)  
+📲 [**배포 URL**](https://k12e102.p.ssafy.io/)  
+📝 [**발표 자료**](https://github.com/your-username/project/blob/main/docs/presentation.pdf)
+
 밥이랑(Baperang)은 AI 기술을 활용한 차세대 스마트 급식 관리 시스템입니다. 급식소의 식단 계획, 영양 분석, 식자재 관리, 잔반량 모니터링 등을 자동화하고 최적화하여 효율적인 급식 운영을 지원합니다. 학교, 기업, 병원 등 다양한 단체 급식 환경에 적용할 수 있으며, 맞춤형 영양 관리와 식품 폐기물 감소에 기여합니다.
+
+## 👥 팀 소개
+<table style="text-align: center;" width="100%">
+  <tr>
+    <th style="text-align: center;" width="16.66%"><img src="https://lab.ssafy.com/s12-fintech-finance-sub1/S12P21E106/-/raw/readme/exec/readme_assets/member/cheon.png" width="150" height="150"/></th>
+    <th style="text-align: center;" width="16.66%"><img src="https://lab.ssafy.com/s12-fintech-finance-sub1/S12P21E106/-/raw/readme/exec/readme_assets/member/min.png" width="150" height="150"/></th>
+    <th style="text-align: center;" width="16.66%"><img src="https://lab.ssafy.com/s12-fintech-finance-sub1/S12P21E106/-/raw/readme/exec/readme_assets/member/jeong.png" width="150" height="150"/></th>
+    <th style="text-align: center;" width="16.66%"><img src="https://lab.ssafy.com/s12-fintech-finance-sub1/S12P21E106/-/raw/readme/exec/readme_assets/member/lee.png" width="150" height="150"/></th>
+    <th style="text-align: center;" width="16.66%"><img src="https://lab.ssafy.com/s12-fintech-finance-sub1/S12P21E106/-/raw/readme/exec/readme_assets/member/choi.png" width="150" height="150"/></th>
+    <th style="text-align: center;" width="16.66%"><img src="https://lab.ssafy.com/s12-fintech-finance-sub1/S12P21E106/-/raw/readme/exec/readme_assets/member/sin.png" width="150" height="150"/></th>
+  </tr>
+  <tr>
+    <td style="text-align: center;" width="16.66%">이상혁<br/><a href="https://github.com/yooniverse7">@yooniverse7</a></td>
+    <td style="text-align: center;" width="16.66%">이종화<br/><a href="https://github.com/Steadystudy">@Steadystudy</a></td>
+    <td style="text-align: center;" width="16.66%">이건욱<br/><a href="https://github.com/ynghan">@ynghan</a></td>
+    <td style="text-align: center;" width="16.66%">김도연<br/><a href="https://github.com/leesanghyeok523">@leesanghyeok523</a></td>
+    <td style="text-align: center;" width="16.66%">이상화<br/><a href="https://github.com/jinmoon23">@jinmoon23</a></td>
+    <td style="text-align: center;" width="16.66%">백민우<br/><a href="https://github.com/yurai770">@yurai770</a></td>
+  </tr>
+  <tr>
+    <td style="text-align: center;" width="16.66%">AI 개발</br> (팀장)</td>
+    <td style="text-align: center;" width="16.66%">AI 개발</td>
+    <td style="text-align: center;" width="16.66%">백엔드 개발</td>
+    <td style="text-align: center;" width="16.66%">프론트 개발</td>
+    <td style="text-align: center;" width="16.66%">IOT 개발</td>
+    <td style="text-align: center;" width="16.66%">인프라 개발</td>
+  </tr>
+  <tr>
+    <td style="text-align: center;" width="16.66%">페이 도메인, 은행 서버 및 금융망 API, 포스 시스템</td>
+    <td style="text-align: center;" width="16.66%">지도 및 NFC, QR 결제 담당</td>
+    <td style="text-align: center;" width="16.66%">인프라 CI/CD 구축, 기프티콘 API, 지라 관리</td>
+    <td style="text-align: center;" width="16.66%">맛집 API, 크롤링, Redis, S3, 소셜로그인, AI 서빙 (Stable diffusion)</td>
+    <td style="text-align: center;" width="16.66%">React-Native 관련 통신 및 기프티콘 생성, 마이페이지 담당</td>
+    <td style="text-align: center;" width="16.66%">NFC 기능, Spring Security, POS 기기 구현</td>
+  </tr>
+</table>
 
 ### 주요 기능
 
 - 🤖 **AI 기반 식단 계획 및 영양 분석**: 영양 균형과 선호도를 고려한 최적 식단 자동 생성
 - 📊 **실시간 식수 인원 및 잔반량 모니터링**: AI 이미지 분석을 통한 정확한 잔반량 측정
 - 📱 **NFC 기반 학생 식수 관리**: 비접촉식 출입 및 식수 인원 자동 집계
-- 📈 **데이터 기반 식자재 소요량 예측**: 식수 인원과 메뉴에 따른 최적 발주량 산출
+- 📈 **데이터 기반 식자재 소요량 예측**: 식사 인원과 메뉴에 따른 최적 발주량 산출
 - 📋 **영양사 맞춤형 식단 관리 도구**: 직관적인 UI로 식단 계획 및 관리 효율화
 - 📲 **학생/학부모 피드백 시스템**: 선호도 조사와 영양 정보 제공으로 참여 독려
 
@@ -47,8 +91,8 @@
 - Python 3.8+
 - PyTorch 2.1+
 - FastAPI 0.110+
-- YOLOv8 (식품 인식)
 - MiDaS/DPT (깊이 추정)
+- ResNet 
 - OpenCV (이미지 처리)
 - LangChain 0.0.268+ (식단 추천)
 
@@ -63,7 +107,7 @@
 ### 필수 요구사항
 - Node.js 18+
 - Java 17
-- Python 3.8+
+- Python 3.10+
 - Docker & Docker Compose
 - MySQL/PostgreSQL
 - NFC Reader (하드웨어 연동 시)
@@ -72,8 +116,8 @@
 
 1. 저장소 클론
 ```bash
-git clone https://github.com/your-username/baperang.git
-cd baperang
+git clone https://lab.ssafy.com/s12-final/S12P31E102.git
+cd S12P31E102
 ```
 
 2. 환경 설정
@@ -109,7 +153,7 @@ cd ai
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-python main.py
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 4. 하드웨어 설정
@@ -126,25 +170,21 @@ python app.py
 ### 1. AI 기반 식단 관리
 - 영양소 균형 자동 계산
 - 급식 선호도 기반 메뉴 추천
-- 식품 알레르기 자동 감지
-- 계절 및 지역 특산물 연계 식단
+- NEIS 업무를 위한 Excel 저장장
 
 ### 2. 잔반량 모니터링 시스템
 - 다중 AI 모델 융합 분석 (역투영, 깊이 추정, ResNet)
 - 음식 종류별 잔반량 자동 측정
 - 개인/학급/학년별 통계 대시보드
-- 시각적 분석 리포트 자동 생성
+- 개인화 건강 리포트 생성성
 
 ### 3. NFC 기반 식수 관리
 - 학생증/카드 기반 비접촉 체크인
 - 실시간 식수 인원 집계
-- 학생 출결 연동 가능
-- 결제 시스템 통합 지원
 
 ### 4. 식자재 관리 및 발주 시스템
-- 식수 인원 기반 소요량 자동 계산
+- 식사 인원 기반 소요량 자동 계산
 - 식자재 재고 관리 및 알림
-- 공급업체 연동 자동 발주
 - 식재료 이력 추적
 
 ### 5. 데이터 분석 대시보드
@@ -155,38 +195,44 @@ python app.py
 
 ## 프로젝트 구조
 ```
-baperang/
-├── frontend/          # React 기반 프론트엔드
-│   ├── src/
-│   │   ├── components/   # UI 컴포넌트
-│   │   ├── pages/        # 페이지 컴포넌트
-│   │   ├── services/     # API 통신 서비스
-│   │   ├── stores/       # 상태 관리 스토어
-│   │   └── ...
-├── backend/           # Spring Boot 기반 백엔드
-│   ├── src/
-│   │   ├── main/
-│   │   │   ├── java/
-│   │   │   │   ├── controllers/  # API 컨트롤러
-│   │   │   │   ├── services/     # 비즈니스 로직
-│   │   │   │   ├── repositories/ # 데이터 액세스
-│   │   │   │   └── ...
-│   │   │   ├── resources/
-│   │   └── ...
-├── ai/                # AI 서비스
-│   ├── app/
-│   │   ├── services/       # AI 서비스 모듈
-│   │   ├── models/         # 모델 정의
-│   │   ├── utils/          # 유틸리티 함수
-│   │   └── ...
-│   ├── weights/            # 모델 가중치 파일
-│   └── ...
-├── hardware/          # 하드웨어 연동 서비스
-│   ├── nfc/               # NFC 리더 모듈
-│   ├── camera/            # 카메라 모듈
-│   └── ...
-├── docker/            # Docker 구성 파일
-└── docs/              # 문서 및 가이드
+S12P31E102/
+├── frontend/                    # 프론트엔드 (React + TypeScript)
+│   ├── src/                    # 소스 코드
+│   ├── public/                 # 정적 파일
+│   ├── package.json           # 의존성 관리
+│   ├── vite.config.ts         # Vite 설정
+│   ├── tailwind.config.js     # Tailwind CSS 설정
+│   └── Dockerfile             # 프론트엔드 도커 설정
+│
+├── backend/                    # 백엔드 (Spring Boot)
+│   └── baperang/             # 메인 백엔드 프로젝트
+│       ├── src/              # 소스 코드
+│       └── build.gradle      # Gradle 설정
+│
+├── ai/                        # AI 서비스 (Python)
+│   ├── app/                  # AI 애플리케이션
+│   │   ├── api/             # API 엔드포인트
+│   │   ├── services/        # 비즈니스 로직
+│   │   ├── core/           # 핵심 기능
+│   │   └── workflows/      # 워크플로우
+│   ├── tests/              # 테스트 코드
+│   ├── requirements.txt    # Python 의존성
+│   └── Dockerfile         # AI 서비스 도커 설정
+│
+├── hardware/                 # 하드웨어 연동 (Python)
+│   ├── templates/          # 웹 템플릿
+│   ├── static/            # 정적 파일
+│   ├── app.py            # 메인 애플리케이션
+│   └── NFC_write.py      # NFC 관련 기능
+│
+├── exec/                    # 실행 스크립트
+├── .git/                    # Git 저장소
+├── .gitlab/                # GitLab 설정
+├── .vscode/               # VS Code 설정
+├── .idea/                 # IntelliJ 설정
+├── menu_output.json      # 메뉴 데이터
+├── Readme.md             # 프로젝트 문서
+└── .gitignore           # Git 무시 파일 목록
 ```
 
 ## API 문서
@@ -222,30 +268,19 @@ baperang/
 - 모든 테스트 통과 확인
 - 코드 스타일 가이드 준수 여부 확인
 
-## 기여 방법
-
-1. 프로젝트를 포크합니다.
-2. 기능 브랜치를 생성합니다 (`git checkout -b feature/amazing-feature`).
-3. 변경사항을 커밋합니다 (`git commit -m 'Feat: 놀라운 기능 추가'`).
-4. 브랜치에 푸시합니다 (`git push origin feature/amazing-feature`).
-5. Pull Request를 생성합니다.
-
-## 라이선스
-
-이 프로젝트는 MIT 라이선스를 따릅니다. 자세한 내용은 [LICENSE](LICENSE) 파일을 참조하세요.
 
 ## 팀원
 
-- **Frontend**: 김개발, 이프론트
-- **Backend**: 박백엔드, 최서버
-- **AI**: 정인공지능, 한딥러닝
-- **Hardware**: 강하드웨어, 윤임베디드
+- **Frontend**: 김도연
+- **Backend**: 이건욱
+- **AI**: 이종화, 이상혁
+- **Infra** : 백민우
+- **Hardware**: 이상화화
 
 ## 문의
 
-- 이메일: contact@baperang.com
-- 프로젝트 링크: [https://github.com/your-username/baperang](https://github.com/your-username/baperang)
-- 웹사이트: [https://baperang.com](https://baperang.com)
+- 프로젝트 링크: [https://lab.ssafy.com/s12-final/S12P31E102.git](hhttps://lab.ssafy.com/s12-final/S12P31E102.git)
+- 웹사이트: [https://k12e102.p.ssafy.io/](https://k12e102.p.ssafy.io/)
 
 ## 스크린샷
 
@@ -262,5 +297,5 @@ baperang/
 
 ## 감사의 말
 
-- 지원과 조언을 아끼지 않은 [지원기관/회사명]에게 감사드립니다.
-- 이 프로젝트는 [지원 프로그램명]의 지원을 받아 개발되었습니다.
+- 지원과 조언을 아끼지 않은 [SSAFY]에게 감사드립니다.
+- 이 프로젝트는 [SSAFY]의 지원을 받아 개발되었습니다.
