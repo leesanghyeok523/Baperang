@@ -81,8 +81,8 @@ const ForgotAccountPage: React.FC = () => {
       } else {
         setCities(data.cities || []);
       }
-    } catch (error) {
-      console.error('도시 목록을 가져오는 중 오류 발생:', error);
+    } catch (_) {
+      // console.error('도시 목록을 가져오는 중 오류 발생:', error);
     }
   };
 
