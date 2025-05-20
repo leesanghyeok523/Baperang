@@ -12,6 +12,7 @@ import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 
 import jakarta.validation.ValidationException;
 
@@ -23,6 +24,14 @@ public class GlobalExceptionHandler {
      * 글로벌 exception handler
      * 핸들하고자 하는 에러에 대한 핸들링 코드를 작성하면 됨
      */
+
+    // SSE 관련 예외 처리 (클라이언트 연결 끊김)
+    @ExceptionHandler(AsyncRequestNotUsableException.class)
+    public ResponseEntity<ErrorResponse> handleAsyncRequestNotUsableException(AsyncRequestNotUsableException ex) {
+        // 로그만 남기고 기본 200 OK 응답 리턴 (이 응답은 사용되지 않음)
+        log.debug("SSE 연결 종료 (무시됨): {}", ex.getMessage());
+        return ResponseEntity.ok().build();
+    }
 
     // 커스텀 예외 처리
     @ExceptionHandler(BaperangCustomException.class)

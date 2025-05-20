@@ -141,6 +141,12 @@ public class SseServiceImpl implements SseService {
                     }
                 }
                 
+                // 이미 완료된 emitter는 제거
+                if (isEmitterCompleted(emitter)) {
+                    idsToRemove.add(id);
+                    continue;
+                }
+                
                 try {
                     // 하트비트 전송
                     emitter.send(SseEmitter.event()
@@ -148,27 +154,49 @@ public class SseServiceImpl implements SseService {
                         .data(LocalDateTime.now().toString()));
                 } catch (Exception e) {
                     log.debug("하트비트 전송 실패, 제거 예정: 학교={}, ID={}", schoolName, id);
-                    try {
-                        emitter.complete();
-                    } catch (Exception ex) {
-                        // 무시 - 이미 완료된 경우일 수 있음
+                    
+                    // 아직 완료되지 않은 경우에만 완료 처리 시도
+                    if (!isEmitterCompleted(emitter)) {
+                        try {
+                            emitter.complete();
+                        } catch (Exception ex) {
+                            // 무시 - 이미 완료된 경우일 수 있음
+                        }
                     }
+                    
                     idsToRemove.add(id);
                 }
             }
             
             // 실패한 emitter들 제거
             if (!idsToRemove.isEmpty()) {
-                synchronized (emitters) {
-                    for (String id : idsToRemove) {
-                        emitters.remove(id);
-                    }
-                }
-                log.debug("학교 {} - {} 개의 비활성 SSE 하트비트 연결 제거됨", schoolName, idsToRemove.size());
+                removeEmittersById(schoolName, idsToRemove);
             }
         }
     }
 
+    /**
+     * SseEmitter가 이미 완료되었는지 확인하는 헬퍼 메서드
+     * 리플렉션을 사용하여 내부 상태 확인 (Spring의 ResponseBodyEmitter 내부 구현에 의존)
+     */
+    private boolean isEmitterCompleted(SseEmitter emitter) {
+        if (emitter == null) {
+            return true; // null이면 완료된 것으로 간주
+        }
+        
+        try {
+            // ResponseBodyEmitter 클래스 (SseEmitter의 부모)에서 private 필드 접근
+            java.lang.reflect.Field completedField = org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter.class
+                .getDeclaredField("complete");
+            completedField.setAccessible(true);
+            Boolean completed = (Boolean) completedField.get(emitter);
+            return completed != null && completed;
+        } catch (Exception e) {
+            // 리플렉션 실패 시, 그냥 완료되지 않은 것으로 간주
+            return false;
+        }
+    }
+    
     /**
      * 특정 학교에만 이벤트를 전송하는 헬퍼 메서드
      */
@@ -192,7 +220,7 @@ public class SseServiceImpl implements SseService {
         
         // 각 emitter에 대해 개별적으로 작업
         for (String id : emitterIds) {
-            SseEmitter emitter;
+            SseEmitter emitter = null;
             
             // emitter 객체 안전하게 가져오기
             synchronized (emitters) {
@@ -203,6 +231,13 @@ public class SseServiceImpl implements SseService {
                 }
             }
             
+            // 이미 완료된 emitter는 제거 목록에 추가하고 넘어감
+            if (isEmitterCompleted(emitter)) {
+                idsToRemove.add(id);
+                log.debug("이미 완료된 emitter 제거 예정: 학교={}, ID={}", schoolName, id);
+                continue;
+            }
+            
             try {
                 // 이벤트 전송
                 emitter.send(SseEmitter.event()
@@ -211,23 +246,57 @@ public class SseServiceImpl implements SseService {
                 log.debug("학교 {} - SSE 이벤트 '{}' 전송 성공: {}", schoolName, eventName, id);
             } catch (Exception e) {
                 log.warn("SSE 전송 실패, 제거 예정: 학교={}, ID={} → {}", schoolName, id, e.getMessage());
-                try {
-                    emitter.complete();
-                } catch (Exception ex) {
-                    log.warn("Emitter 완료 처리 중 추가 예외: {}", ex.getMessage());
+                
+                // 아직 완료되지 않은 경우에만 완료 처리 시도
+                if (!isEmitterCompleted(emitter)) {
+                    try {
+                        emitter.complete();
+                    } catch (Exception ex) {
+                        log.warn("Emitter 완료 처리 중 추가 예외: {}", ex.getMessage());
+                    }
                 }
+                
                 idsToRemove.add(id);
             }
         }
         
         // 실패한 emitter들 제거
         if (!idsToRemove.isEmpty()) {
-            synchronized (emitters) {
-                for (String id : idsToRemove) {
-                    emitters.remove(id);
+            removeEmittersById(schoolName, idsToRemove);
+        }
+    }
+    
+    /**
+     * 지정된 ID 목록에 해당하는 emitter들을 안전하게 제거
+     */
+    private void removeEmittersById(String schoolName, List<String> idsToRemove) {
+        if (idsToRemove.isEmpty()) {
+            return;
+        }
+        
+        Map<String, SseEmitter> emitters = schoolEmitters.get(schoolName);
+        if (emitters == null) {
+            return;
+        }
+        
+        int removedCount = 0;
+        synchronized (emitters) {
+            for (String id : idsToRemove) {
+                if (emitters.remove(id) != null) {
+                    removedCount++;
                 }
             }
-            log.info("학교 {} - {} 개의 비활성 SSE 연결 제거됨", schoolName, idsToRemove.size());
+            
+            // 학교에 남은 연결이 없으면 학교 맵 자체를 제거
+            if (emitters.isEmpty()) {
+                synchronized (schoolEmitters) {
+                    schoolEmitters.remove(schoolName);
+                }
+            }
+        }
+        
+        if (removedCount > 0) {
+            log.info("학교 {} - {} 개의 비활성 SSE 연결 제거됨", schoolName, removedCount);
         }
     }
 
@@ -336,28 +405,6 @@ public class SseServiceImpl implements SseService {
         return sortedMenus;
     }
 
-    /**
-     * SseEmitter를 안전하게 제거하는 내부 메서드
-     */
-    private void safeRemoveEmitter(String schoolName, String emitterId) {
-        if (schoolName == null || emitterId == null) {
-            return;
-        }
-        
-        synchronized (schoolEmitters) {
-            Map<String, SseEmitter> emitters = schoolEmitters.get(schoolName);
-            if (emitters != null) {
-                synchronized (emitters) {
-                    emitters.remove(emitterId);
-                    // 학교에 남은 연결이 없으면 학교 맵 자체를 제거
-                    if (emitters.isEmpty()) {
-                        schoolEmitters.remove(schoolName);
-                    }
-                }
-            }
-        }
-    }
-
     // SSE 구독 처리
     @Override
     public SseEmitter subscribe(String token, String schoolName) {
@@ -388,7 +435,9 @@ public class SseServiceImpl implements SseService {
         // SseEmitter가 완료, 타임아웃, 에러 발생 시 맵에서 제거
         emitter.onCompletion(() -> {
             log.info("SSE 연결 완료(클라이언트 종료): 학교={}, ID={}", schoolName, emitterId);
-            safeRemoveEmitter(schoolName, emitterId);
+            List<String> idToRemove = new ArrayList<>(1);
+            idToRemove.add(emitterId);
+            removeEmittersById(schoolName, idToRemove);
         });
         
         emitter.onTimeout(() -> {
@@ -398,7 +447,9 @@ public class SseServiceImpl implements SseService {
             } catch (Exception e) {
                 log.warn("타임아웃 처리 중 예외 발생: {}", e.getMessage());
             }
-            safeRemoveEmitter(schoolName, emitterId);
+            List<String> idToRemove = new ArrayList<>(1);
+            idToRemove.add(emitterId);
+            removeEmittersById(schoolName, idToRemove);
         });
         
         emitter.onError(e -> {
@@ -408,7 +459,9 @@ public class SseServiceImpl implements SseService {
             } catch (Exception ex) {
                 log.warn("에러 처리 중 예외 발생: {}", ex.getMessage());
             }
-            safeRemoveEmitter(schoolName, emitterId);
+            List<String> idToRemove = new ArrayList<>(1);
+            idToRemove.add(emitterId);
+            removeEmittersById(schoolName, idToRemove);
         });
 
         Long userPk = jwtService.getUserId(token);
@@ -521,7 +574,9 @@ public class SseServiceImpl implements SseService {
                 log.warn("Emitter 완료 처리 중 추가 예외: {}", ex.getMessage());
             }
             
-            safeRemoveEmitter(schoolName, emitterId);
+            List<String> idToRemove = new ArrayList<>(1);
+            idToRemove.add(emitterId);
+            removeEmittersById(schoolName, idToRemove);
         }
 
         return emitter;
