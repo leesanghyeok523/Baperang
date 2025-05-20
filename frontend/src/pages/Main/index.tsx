@@ -35,24 +35,43 @@ const MainPage = () => {
   };
 
   // SSE 구독 설정을 위한 함수
-  const setupSSEConnection = () => {
+  const setupSSEConnection = async () => {
     if (!isAuthenticated || !accessToken) return;
+
+    // 토큰 유효성 검사 및 필요시 갱신
+    const authStore = useAuthStore.getState();
+    let isTokenValid = await authStore.validateCurrentToken();
+    
+    // 토큰이 유효하지 않고 갱신에 실패한 경우
+    if (!isTokenValid) {
+      console.error('토큰이 유효하지 않고 갱신 실패');
+      return;
+    }
+    
+    // 갱신 후 최신 토큰 가져오기
+    const updatedToken = authStore.accessToken;
+    if (!updatedToken) {
+      console.error('액세스 토큰이 없습니다');
+      return;
+    }
 
     // SSE 구독 엔드포인트
     const subscribeUrl = API_CONFIG.getUrl(API_CONFIG.ENDPOINTS.SATISFACTION.SUBSCRIBE);
 
     // useAuthStore에서 현재 로그인한 사용자 정보 가져오기
-    const { user } = useAuthStore.getState();
+    const { user } = authStore;
     const schoolName = user?.schoolName || '명호고등학교';
 
     // schoolName을 쿼리 파라미터로 추가
     const subscribeUrlWithSchool = `${subscribeUrl}?schoolName=${encodeURIComponent(schoolName)}`;
 
     // 토큰 형식 확인 및 처리
-    const authHeaderValue = accessToken.startsWith('Bearer ')
-      ? accessToken
-      : `Bearer ${accessToken}`;
+    const authHeaderValue = updatedToken.startsWith('Bearer ')
+      ? updatedToken
+      : `Bearer ${updatedToken}`;
 
+    console.log('SSE 연결 시도 중 - 토큰 유효성 확인 완료');
+    
     // EventSourcePolyfill 사용 (헤더 지원)
     const eventSource = new EventSourcePolyfill(subscribeUrlWithSchool, {
       headers: {
@@ -144,7 +163,6 @@ const MainPage = () => {
     });
 
     // 투표 이벤트 처리
-    // EventSourcePolyfill의 타입 호환성 문제로 타입 검사 예외 처리
     eventSource.addEventListener('satisfaction-update', (event: SSEMessageEvent) => {
       try {
         const data = JSON.parse(event.data) as SatisfactionUpdate;
@@ -310,14 +328,24 @@ const MainPage = () => {
     eventSource.onmessage = () => {};
 
     // 에러 처리
-    eventSource.onerror = (error: Event) => {
+    eventSource.onerror = async (error: Event) => {
       console.error('SSE 연결 오류:', error);
       eventSource.close();
 
-      // 연결 오류 발생 시 5초 후 재연결 시도
-      setTimeout(() => {
-        setupSSEConnection();
-      }, 5000);
+      // 연결 오류 발생 시 토큰 유효성을 먼저 확인
+      const authStore = useAuthStore.getState();
+      const wasTokenRefreshed = await authStore.refreshToken();
+      
+      if (wasTokenRefreshed) {
+        console.log('토큰 갱신 성공, 즉시 SSE 재연결 시도');
+        setupSSEConnection(); // 토큰 갱신 성공시 즉시 재연결
+      } else {
+        console.log('토큰 갱신 실패 또는 다른 오류, 5초 후 재연결 시도');
+        // 토큰 갱신 실패 또는 다른 오류인 경우 5초 후 재연결 시도
+        setTimeout(() => {
+          setupSSEConnection();
+        }, 5000);
+      }
     };
 
     // 이벤트 소스 객체 반환 (정리 함수에서 사용)
@@ -327,7 +355,13 @@ const MainPage = () => {
   // SSE 구독 설정
   useEffect(() => {
     // SSE 연결 설정
-    const eventSource = setupSSEConnection();
+    let eventSource: EventSourcePolyfill | undefined;
+    
+    const initConnection = async () => {
+      eventSource = await setupSSEConnection();
+    };
+    
+    initConnection();
 
     // 컴포넌트 언마운트 시 SSE 연결 종료
     return () => {
