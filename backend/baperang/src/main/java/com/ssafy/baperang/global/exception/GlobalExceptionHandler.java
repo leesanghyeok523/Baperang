@@ -9,11 +9,13 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 
+import io.jsonwebtoken.JwtException;
 import jakarta.validation.ValidationException;
 
 @ControllerAdvice
@@ -31,6 +33,30 @@ public class GlobalExceptionHandler {
         // 로그만 남기고 기본 200 OK 응답 리턴 (이 응답은 사용되지 않음)
         log.debug("SSE 연결 종료 (무시됨): {}", ex.getMessage());
         return ResponseEntity.ok().build();
+    }
+
+    // HTTP 메소드 지원하지 않음 예외 처리 (SSE 재연결 시 발생 가능)
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleMethodNotSupportedException(HttpRequestMethodNotSupportedException ex) {
+        // SSE 클라이언트가 잘못된 HTTP 메소드로 재연결 시도할 때 발생하는 오류
+        // 로그 레벨을 debug로 낮추고 일반 응답 반환
+        log.debug("지원하지 않는 HTTP 메소드 요청 (무시됨): {}", ex.getMessage());
+        ErrorResponse response = ErrorResponse.of(BaperangErrorCode.INVALID_INPUT_VALUE);
+        return ResponseEntity.status(405)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(response);
+    }
+    
+    // JWT 관련 예외 처리 (SSE 재연결 시 발생 가능)
+    @ExceptionHandler(JwtException.class)
+    public ResponseEntity<ErrorResponse> handleJwtException(JwtException ex) {
+        // SSE 클라이언트가 잘못된 토큰으로 재연결 시도할 때 발생하는 오류
+        // 로그 레벨을 debug로 낮추고 일반 응답 반환
+        log.debug("JWT 토큰 오류 (무시됨): {}", ex.getMessage());
+        ErrorResponse response = ErrorResponse.of(BaperangErrorCode.INVALID_TOKEN);
+        return ResponseEntity.status(401)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(response);
     }
 
     // 커스텀 예외 처리
