@@ -25,6 +25,7 @@ interface PopupPosition {
 
 // 영양소 정보 응답 타입
 interface NutrientResponse {
+  양: number;
   영양소: Record<string, string>;
 }
 
@@ -37,6 +38,7 @@ const MenuDetail = ({ selectedDate, menuData, onMenuUpdate }: MenuDetailProps) =
   const [localMenuData, setLocalMenuData] = useState<MenuDataType>(menuData); // 로컬 상태로 menuData 관리
   const [isNextMonth, setIsNextMonth] = useState(false); // 다음 달 여부
   const [nutritionData, setNutritionData] = useState<Record<string, string>>({}); // 영양소 정보
+  const [servingAmount, setServingAmount] = useState<number | null>(null);
   const { accessToken } = useAuthStore();
   const [dailyCalories, setDailyCalories] = useState<number | null>(null);
   const menuRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -160,6 +162,7 @@ const MenuDetail = ({ selectedDate, menuData, onMenuUpdate }: MenuDetailProps) =
           },
         });
 
+        setServingAmount(response.data.양)
         if (response.data && response.data.영양소) {
           setNutritionData(response.data.영양소);
           setShowModal(true);
@@ -246,6 +249,7 @@ const MenuDetail = ({ selectedDate, menuData, onMenuUpdate }: MenuDetailProps) =
     setAlternatives([]);
     setNutritionData({});
     setSelectedMenu(null);
+    setServingAmount(null);
   };
 
   // 클릭 외부 감지 핸들러
@@ -303,7 +307,7 @@ const MenuDetail = ({ selectedDate, menuData, onMenuUpdate }: MenuDetailProps) =
         <div className="text-base font-semibold text-center mb-3">
           {formattedDate} ({dayOfWeek}) 식단
         </div>
-        <div className="flex-grow flex flex-col h-[380px]">
+        <div className="flex-grow flex flex-col h-[320px]">
           {!hasNoMenu ? (
             // 메뉴가 있는 경우 메뉴 목록 표시
             <div className="flex-grow flex flex-col gap-1 items-center overflow-y-auto">
@@ -364,9 +368,15 @@ const MenuDetail = ({ selectedDate, menuData, onMenuUpdate }: MenuDetailProps) =
               }}
             ></div>
 
-            <div className="text-sm font-bold mb-2 text-center text-orange-500">
+            <div className="text-sm font-bold text-center text-orange-500">
               {isNextMonth ? '이런 메뉴는 어때요?' : '영양소 정보'}
             </div>
+
+            {!isNextMonth && servingAmount !== null && (
+              <div className="mb-2 text-xs text-gray-700 text-center">
+                총 제공량 {servingAmount}g
+              </div>
+            )}
 
             {loading ? (
               <div className="text-center py-2 text-xs">로딩 중...</div>
