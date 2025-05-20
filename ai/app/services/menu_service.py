@@ -134,7 +134,7 @@ class MenuService:
 
             if category_prefs:
                 sorted_items = sorted(category_prefs.items(), key=lambda x: x[1], reverse=True)
-                top_items = sorted_items[:100]
+                top_items = sorted_items[:80]
                 categorized_preference[category] = dict(top_items)
 
         categorized_leftover = {}
@@ -151,12 +151,12 @@ class MenuService:
             
             if category_leftover:
                 sorted_items = sorted(category_leftover.items(), key=lambda x: x[1], reverse=True)
-                top_items = sorted_items[:100]
+                top_items = sorted_items[:80]
                 categorized_leftover[category] = dict(top_items)
 
         optimized_menu_pool = {}
         for category, menus in categorized_menu.items():
-            optimized_menu_pool[category] = menus[:40] if len(menus) > 40 else menus
+            optimized_menu_pool[category] = menus[:35] if len(menus) > 40 else menus
         
         # 영양소 정보 구성
         priority_nutrients = ['kcal', 'protein', 'fat', 'carbo']
