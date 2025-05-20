@@ -26,9 +26,9 @@ import com.ssafy.baperang.domain.sse.dto.response.LeftoverResponseDto;
 import com.ssafy.baperang.domain.sse.dto.response.LeftoverResponseDto.MenuLeftoverDto;
 import com.ssafy.baperang.domain.sse.dto.response.SatisfactionResponseDto;
 import com.ssafy.baperang.domain.sse.dto.response.SatisfactionResponseDto.MenuSatisfactionDto;
+import com.ssafy.baperang.domain.student.repository.StudentRepository;
 import com.ssafy.baperang.domain.user.entity.User;
 import com.ssafy.baperang.domain.user.repository.UserRepository;
-import com.ssafy.baperang.domain.student.repository.StudentRepository;
 import com.ssafy.baperang.global.exception.BaperangCustomException;
 import com.ssafy.baperang.global.exception.BaperangErrorCode;
 import com.ssafy.baperang.global.jwt.JwtService;
@@ -92,16 +92,23 @@ public class SseServiceImpl implements SseService {
         log.debug("하트비트 이벤트 전송 중... (현재 연결 수: {})", totalConnections);
         
         schoolEmitters.forEach((schoolName, emitters) -> {
+            // 제거할 ID 목록을 저장하기 위한 리스트
+            List<String> emittersToRemove = new ArrayList<>();
+            
             emitters.forEach((id, emitter) -> {
                 try {
                     emitter.send(SseEmitter.event()
                             .name("heartbeat")
                             .data(LocalDateTime.now().toString()));
                 } catch (IOException e) {
-                    log.error("하트비트 전송 실패 (학교: {}, id: {}): {}", schoolName, id, e.getMessage());
-                    emitters.remove(id);
+                    log.warn("하트비트 전송 실패, 제거 처리: 학교={}, ID={} → {}", schoolName, id, e.getMessage());
+                    emitter.complete();
+                    emittersToRemove.add(id);
                 }
             });
+            
+            // 실패한 Emitter 제거
+            emittersToRemove.forEach(emitters::remove);
         });
     }
 
@@ -111,6 +118,9 @@ public class SseServiceImpl implements SseService {
     private void sendEventToSchool(String schoolName, String eventName, Object data) {
         Map<String, SseEmitter> emitters = schoolEmitters.get(schoolName);
         if (emitters != null) {
+            // 제거할 ID 목록을 저장하기 위한 리스트
+            List<String> emittersToRemove = new ArrayList<>();
+            
             emitters.forEach((id, emitter) -> {
                 try {
                     emitter.send(SseEmitter.event()
@@ -118,10 +128,14 @@ public class SseServiceImpl implements SseService {
                             .data(data));
                     log.info("학교 {} - SSE 이벤트 '{}' 전송 성공: {}", schoolName, eventName, id);
                 } catch (IOException e) {
-                    log.error("SSE 전송 실패 (학교: {}, id: {}): {}", schoolName, id, e.getMessage());
-                    emitters.remove(id);
+                    log.warn("SSE 전송 실패, 제거 처리: 학교={}, ID={} → {}", schoolName, id, e.getMessage());
+                    emitter.complete();
+                    emittersToRemove.add(id);
                 }
             });
+            
+            // 실패한 Emitter 제거
+            emittersToRemove.forEach(emitters::remove);
         } else {
             log.info("학교 '{}' 에 연결된 클라이언트가 없습니다.", schoolName);
         }
@@ -254,6 +268,7 @@ public class SseServiceImpl implements SseService {
 
         // SseEmitter가 완료, 타임아웃, 에러 발생 시 맵에서 제거
         emitter.onCompletion(() -> {
+            log.info("SSE 연결 완료(클라이언트 종료): 학교={}, ID={}", schoolName, emitterId);
             Map<String, SseEmitter> emitters = schoolEmitters.get(schoolName);
             if (emitters != null) {
                 emitters.remove(emitterId);
@@ -261,6 +276,8 @@ public class SseServiceImpl implements SseService {
         });
         
         emitter.onTimeout(() -> {
+            log.info("SSE 연결 타임아웃 ({}ms): 학교={}, ID={}", SSE_TIMEOUT, schoolName, emitterId);
+            emitter.complete();
             Map<String, SseEmitter> emitters = schoolEmitters.get(schoolName);
             if (emitters != null) {
                 emitters.remove(emitterId);
@@ -268,7 +285,8 @@ public class SseServiceImpl implements SseService {
         });
         
         emitter.onError(e -> {
-            log.error("SSE 에러 발생 (학교: {}, id: {}): {}", schoolName, emitterId, e.getMessage(), e);
+            log.warn("SSE 연결 에러 발생: 학교={}, ID={}, 메시지={}", schoolName, emitterId, e.getMessage());
+            emitter.complete();
             Map<String, SseEmitter> emitters = schoolEmitters.get(schoolName);
             if (emitters != null) {
                 emitters.remove(emitterId);
