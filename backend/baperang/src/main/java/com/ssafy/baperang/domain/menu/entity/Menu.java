@@ -3,6 +3,7 @@ package com.ssafy.baperang.domain.menu.entity;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -133,12 +134,13 @@ public class Menu {
      * @return 영양소 정보가 담긴 Map
      */
     public Map<String, Object> getNutrientInfo(List<MenuNutrient> menuNutrients) {
-        Map<String, Object> result = new HashMap<>();
+        // LinkedHashMap을 사용하여 삽입 순서를 유지
+        Map<String, Object> result = new LinkedHashMap<>();
         result.put("메뉴", this.menuName);
         result.put("양", this.amount);
 
-        // 영양소 정보를 별도의 Map으로 그룹화
-        Map<String, Object> nutrients = new HashMap<>();
+        // 영양소 정보를 별도의 Map으로 그룹화 (LinkedHashMap으로 순서 유지)
+        Map<String, Object> nutrients = new LinkedHashMap<>();
         
         // 영양소 데이터를 임시 저장
         Map<String, String> tempNutrients = new HashMap<>();
@@ -146,13 +148,40 @@ public class Menu {
             String nutrientName = menuNutrient.getNutrient().getNutrientName();
             String nutrientUnit = menuNutrient.getNutrient().getUnit();
             Float amount = menuNutrient.getAmount();
-            tempNutrients.put(nutrientName, amount + nutrientUnit);
+            
+            // 소수점 두 자리까지만 표시 (소수점이 .0으로 끝나면 정수로 표시)
+            String formattedAmount;
+            if (amount != null) {
+                if (amount == Math.floor(amount)) {
+                    formattedAmount = String.format("%.0f", amount);
+                } else {
+                    formattedAmount = String.format("%.2f", amount);
+                }
+                // 소수점 끝에 0 제거 (예: 5.20 -> 5.2)
+                if (formattedAmount.contains(".")) {
+                    formattedAmount = formattedAmount.replaceAll("0+$", "").replaceAll("\\.$", "");
+                }
+                tempNutrients.put(nutrientName, formattedAmount + nutrientUnit);
+            } else {
+                tempNutrients.put(nutrientName, null);
+            }
         }
         
-        // 지정된 순서로 영양소 추가
-        if (tempNutrients.containsKey("열량")) {
-            nutrients.put("열량", tempNutrients.get("열량"));
+        // 지정된 순서로 영양소 추가 - 열량/에너지/칼로리를 첫 번째로
+        String calorieValue = null;
+        if (tempNutrients.containsKey("열량") && tempNutrients.get("열량") != null) {
+            calorieValue = tempNutrients.get("열량");
             tempNutrients.remove("열량");
+        } else if (tempNutrients.containsKey("에너지") && tempNutrients.get("에너지") != null) {
+            calorieValue = tempNutrients.get("에너지");
+            tempNutrients.remove("에너지");
+        } else if (tempNutrients.containsKey("칼로리") && tempNutrients.get("칼로리") != null) {
+            calorieValue = tempNutrients.get("칼로리");
+            tempNutrients.remove("칼로리");
+        }
+        
+        if (calorieValue != null) {
+            nutrients.put("열량", calorieValue);
         }
         
         if (tempNutrients.containsKey("탄수화물")) {
