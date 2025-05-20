@@ -222,17 +222,49 @@ public class MenuServiceImpl implements MenuService {
             }
 
             School school = user.getSchool();
+            LocalDate parsedDate = LocalDate.parse(date);
 
-            List<String> menu = menuRepository.findDistinctMenuNamesBySchoolAndMenuDate(school, LocalDate.parse(date));
+            List<String> menu = menuRepository.findDistinctMenuNamesBySchoolAndMenuDate(school, parsedDate);
 
             if (menu.isEmpty()) {
-                log.info("getOneDayMenu - 오늘 메뉴 없음");
-                menu.add("오늘은 메뉴가 없습니다.");
-                return menu;
+                log.info("getOneDayMenu - 해당 날짜 메뉴 없음");
+                List<String> noMenuMessage = new ArrayList<>();
+                noMenuMessage.add("해당 날짜에 메뉴가 없습니다.");
+                return noMenuMessage;
             }
 
-            // 카테고리별로 정렬된 메뉴 반환
-            return sortMenusByCategory(menu, school);
+            // 카테고리별로 정렬된 메뉴
+            List<String> sortedMenu = sortMenusByCategory(menu, school);
+            
+            // 총 칼로리 계산
+            double totalCalories = 0.0;
+            for (String menuName : menu) {
+                try {
+                    // 메뉴의 영양소 정보 조회
+                    Menu dbMenu = menuRepository.findBySchoolAndMenuDateAndMenuName(school, parsedDate, menuName);
+                    if (dbMenu != null) {
+                        List<MenuNutrient> menuNutrients = menuNutrientRepository.findByMenu(dbMenu);
+                        for (MenuNutrient nutrient : menuNutrients) {
+                            // "열량" 또는 "칼로리"라는 이름을 가진 영양소 찾기
+                            String nutrientName = nutrient.getNutrient().getNutrientName();
+                            if ("열량".equals(nutrientName) || "칼로리".equals(nutrientName) || "에너지".equals(nutrientName)) {
+                                totalCalories += nutrient.getAmount();
+                                break; // 칼로리 찾았으면 이 메뉴에 대한 루프 종료
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    log.warn("메뉴 '{}' 칼로리 조회 중 오류 발생: {}", menuName, e.getMessage());
+                }
+            }
+            
+            // 메뉴 목록과 총 칼로리를 포함한 응답 생성
+            Map<String, Object> result = new HashMap<>();
+            result.put("menu", sortedMenu);
+            result.put("totalCalories", Math.round(totalCalories));
+            
+            log.info("getOneDayMenu - 메뉴 및 총 칼로리 조회 완료: {} kcal", Math.round(totalCalories));
+            return result;
         } catch (Exception e) {
             log.error("오늘 메뉴 조회 중 오류 발생: {}", e.getMessage(), e);
             return ErrorResponseDto.of(BaperangErrorCode.INTERNAL_SERVER_ERROR);

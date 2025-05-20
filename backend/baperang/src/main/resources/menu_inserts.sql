@@ -1,17 +1,17 @@
-INSERT ignore INTO nutrient (nutrient_name, unit) VALUES
-  ('에너지', 'kcal'),
-  ('탄수화물', 'g'),
-  ('당류', 'g'),
-  ('지방', 'g'),
-  ('단백질', 'g'),
-  ('칼슘', 'mg'),
-  ('인', 'mg'),
-  ('나트륨', 'mg'),
-  ('칼륨', 'mg'),
-  ('마그네슘', 'mg'),
-  ('철', 'mg'),
-  ('아연', 'mg'),
-  ('콜레스테롤', 'mg');
+INSERT INTO NUTRIENT (nutrient_name, unit) VALUES
+  ('칼로리',   'kcal'),
+  ('탄수화물',    'g'),
+  ('당류',        'g'),
+  ('지방',        'g'),
+  ('단백질',      'g'),
+  ('칼슘',        'mg'),
+  ('인',          'mg'),
+  ('나트륨',      'mg'),
+  ('칼륨',        'mg'),
+  ('마그네슘',    'mg'),
+  ('철',          'mg'),
+  ('아연',        'mg'),
+  ('콜레스테롤',  'mg');
 
 INSERT INTO menu (school_pk, menu_date, menu_name, category, amount, favorite) VALUES (1574, '2022-02-03', '느타리잔파초무침', 'side', 150, 0);
 INSERT INTO menu (school_pk, menu_date, menu_name, category, amount, favorite) VALUES (1574, '2022-02-03', '당면김말이강정', 'side', 100, 0);
