@@ -1,110 +1,164 @@
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
-import { MenuDataType } from './index';
+
+import { MenuDataType, NutrientInfo } from '../../types/types';
+import { getNutrient } from '../../utils/nutrientApi';
 import { showErrorAlert, showSuccessAlert } from '../../utils/sweetalert';
 
 /**
- * 월별 식단표를 Excel 파일로 다운로드하는 함수
- * @param year 연도
- * @param month 월 (0-11)
- * @param menuData 메뉴 데이터
+ * 월별 식단 + 영양소를 Excel(xlsx)로 저장
  */
-export const downloadMenuExcel = (year: number, month: number, menuData: MenuDataType): void => {
+export const downloadMenuExcel = async (
+  year: number,
+  month: number,              // 0-based
+  menuData: MenuDataType,
+  token: string,
+): Promise<void> => {
   try {
-    // 해당 월의 일수 계산
+    /* ============ (1) 날짜별 영양소 합계가 비어 있으면 채운다 ============ */
+    const dates = Object.keys(menuData);
+    const concurrency = 5;                 // 동시 호출 제한
+    const queue: Promise<void>[] = [];
+
+    for (const date of dates) {
+      if (!menuData[date].nutrient) {
+        const jobs = menuData[date].menu.map((m) => getNutrient(m, date, token));
+        const p = Promise.all(jobs).then((list) => {
+          const sum = list.reduce<NutrientInfo>(
+            (acc, cur) =>
+              cur
+                ? {
+                    kcal: acc.kcal + cur.kcal,
+                    carbo: acc.carbo + cur.carbo,
+                    protein: acc.protein + cur.protein,
+                    fat: acc.fat + cur.fat,
+                    iron: acc.iron + (cur.iron || 0),
+                    magnesium: acc.magnesium + (cur.magnesium || 0),
+                    zinc: acc.zinc + (cur.zinc || 0),
+                    calcium: acc.calcium + (cur.calcium || 0),
+                    potassium: acc.potassium + (cur.potassium || 0),
+                    phosphorus: acc.phosphorus + (cur.phosphorus || 0),
+                    sugar: acc.sugar + (cur.sugar || 0),
+                    sodium: acc.sodium + (cur.sodium || 0),
+                  }
+                : acc,
+            { 
+              kcal: 0, carbo: 0, protein: 0, fat: 0, iron: 0, magnesium: 0, 
+              zinc: 0, calcium: 0, potassium: 0, phosphorus: 0, sugar: 0, sodium: 0 
+            },
+          );
+          menuData[date].nutrient = sum;
+        });
+        queue.push(p);
+        if (queue.length >= concurrency) await Promise.race(queue);
+      }
+    }
+    await Promise.all(queue);
+    /* ===================================================================== */
+
+    // -------------- (2) 첫 번째 시트: 식단 메뉴 -----------------
     const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-    // 먼저 최대 메뉴 수를 계산
-    let maxMenuCount = 0;
-    for (let day = 1; day <= daysInMonth; day++) {
-      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(
-        2,
-        '0'
-      )}`;
-      if (dateStr in menuData && menuData[dateStr].menu.length > maxMenuCount) {
-        maxMenuCount = menuData[dateStr].menu.length;
-      }
+    // 최대 메뉴 칸 수
+    let maxMenu = 0;
+    for (let d = 1; d <= daysInMonth; d++) {
+      const key = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      if (key in menuData) maxMenu = Math.max(maxMenu, menuData[key].menu.length);
     }
 
-    const excelData: string[][] = [];
+    const menuHeader = ['날짜', '요일'];
+    for (let i = 0; i < maxMenu; i++) menuHeader.push(`메뉴 ${i + 1}`);
 
-    // 헤더 행 생성 (날짜, 요일, 메뉴1, 메뉴2, ...)
-    const header = ['날짜', '요일'];
-    for (let i = 0; i < maxMenuCount; i++) {
-      header.push(`메뉴 ${i + 1}`);
-    }
-    excelData.push(header);
-
-    // 요일 이름 배열
+    const menuSheetData: string[][] = [menuHeader];
     const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
 
-    // 모든 날짜에 대해 식단 데이터 수집
-    for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(year, month, day);
-      const mm = String(month + 1).padStart(2, '0');
-      const dd = String(day).padStart(2, '0');
-      const dateStr = `${year}-${mm}-${dd}`;
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateObj = new Date(year, month, d);
+      const key = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 
-      // 요일 구하기
-      const dayOfWeek = date.getDay();
-      const dayName = dayNames[dayOfWeek];
+      const row: string[] = [
+        `${month + 1}월 ${String(d).padStart(2, '0')}일`,
+        dayNames[dateObj.getDay()],
+      ];
 
-      // 기본 행 데이터 (날짜, 요일)
-      const rowData: string[] = [`${mm}월 ${dd}일`, dayName];
+      const menus = menuData[key]?.menu ?? [];
+      for (let i = 0; i < maxMenu; i++) row.push(menus[i] ?? '');
 
-      // 해당 날짜에 메뉴 데이터가 있으면 추가
-      if (dateStr in menuData) {
-        const menuItems = menuData[dateStr].menu;
-        // 각 메뉴 항목을 추가 (부족한 부분은 빈 문자열로 채움)
-        for (let i = 0; i < maxMenuCount; i++) {
-          rowData.push(i < menuItems.length ? menuItems[i] : '');
-        }
-      } else {
-        // 메뉴 없음 (빈 셀 추가)
-        for (let i = 0; i < maxMenuCount; i++) {
-          rowData.push('');
-        }
-      }
-
-      // 행 데이터 추가
-      excelData.push(rowData);
+      menuSheetData.push(row);
     }
 
-    // Excel 워크시트 생성
-    const ws = XLSX.utils.aoa_to_sheet(excelData);
-
-    // 열 너비 설정
-    const colWidths = [
-      { wch: 10 }, // 날짜
-      { wch: 5 }, // 요일
+    // -------------- (3) 두 번째 시트: 영양소 정보 -----------------
+    const nutrientHeader = [
+      '날짜', '요일', '열량(kcal)', '탄수화물(g)', '단백질(g)', '지방(g)',
+      '철(mg)', '마그네슘(mg)', '아연(mg)', '칼슘(mg)', '칼륨(mg)', 
+      '인(mg)', '당류(g)', '나트륨(mg)'
     ];
 
-    // 각 메뉴 열의 너비 설정
-    for (let i = 0; i < maxMenuCount; i++) {
-      colWidths.push({ wch: 20 }); // 메뉴 항목 열 너비
+    const nutrientSheetData: string[][] = [nutrientHeader];
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateObj = new Date(year, month, d);
+      const key = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+
+      const n = menuData[key]?.nutrient;
+      const row: string[] = [
+        `${month + 1}월 ${String(d).padStart(2, '0')}일`,
+        dayNames[dateObj.getDay()],
+        n ? n.kcal.toFixed(1) : '',
+        n ? n.carbo.toFixed(1) : '',
+        n ? n.protein.toFixed(1) : '',
+        n ? n.fat.toFixed(1) : '',
+        n ? n.iron.toFixed(2) : '',
+        n ? n.magnesium.toFixed(2) : '',
+        n ? n.zinc.toFixed(2) : '',
+        n ? n.calcium.toFixed(1) : '',
+        n ? n.potassium.toFixed(1) : '',
+        n ? n.phosphorus.toFixed(1) : '',
+        n ? n.sugar.toFixed(1) : '',
+        n ? n.sodium.toFixed(1) : '',
+      ];
+
+      nutrientSheetData.push(row);
     }
 
-    ws['!cols'] = colWidths;
-
-    // 워크북 생성 및 워크시트 추가
+    // -------------- (4) XLSX 시트 생성 및 파일 저장 -----------------
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, `${year}년 ${month + 1}월 식단표`);
+    
+    // 첫 번째 시트: 식단 메뉴
+    const menuWs = XLSX.utils.aoa_to_sheet(menuSheetData);
+    menuWs['!cols'] = [
+      { wch: 10 },
+      { wch: 5 },
+      ...Array(maxMenu).fill({ wch: 20 }),
+    ];
+    XLSX.utils.book_append_sheet(wb, menuWs, `${year}년 ${month + 1}월 식단표`);
+    
+    // 두 번째 시트: 영양소 정보
+    const nutrientWs = XLSX.utils.aoa_to_sheet(nutrientSheetData);
+    nutrientWs['!cols'] = [
+      { wch: 10 },
+      { wch: 5 },
+      { wch: 10 },
+      { wch: 10 },
+      { wch: 10 },
+      { wch: 10 },
+      { wch: 10 },
+      { wch: 10 },
+      { wch: 10 },
+      { wch: 10 },
+      { wch: 10 },
+      { wch: 10 },
+      { wch: 10 },
+      { wch: 10 },
+    ];
+    XLSX.utils.book_append_sheet(wb, nutrientWs, `${year}년 ${month + 1}월 영양소 정보`);
 
-    // 파일 이름 설정
-    const fileName = `${year}년 ${month + 1}월 식단표.xlsx`;
-
-    // 파일 다운로드 (브라우저 환경에 맞게 조정)
-    // Step 1: XLSX를 바이너리 문자열로 변환
     const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
 
-    // Step 2: Blob 생성
-    const blob = new Blob([wbout], { type: 'application/octet-stream' });
-
-    // Step 3: FileSaver를 사용하여 다운로드
-    saveAs(blob, fileName);
-
+    saveAs(new Blob([wbout], { type: 'application/octet-stream' }), `${year}년 ${month + 1}월 식단표.xlsx`);
     showSuccessAlert('엑셀 파일 다운로드 완료');
-  } catch (_) {
-    showErrorAlert('엑셀 파일 다운로드 오류', '엑셀 파일 다운로드 중 오류가 발생했습니다.');
+  } catch (error) {
+    console.error('Excel 다운로드 오류:', error);
+    showErrorAlert('엑셀 파일 다운로드 오류', '영양소 정보를 포함하는 데 실패했습니다.');
   }
 };
