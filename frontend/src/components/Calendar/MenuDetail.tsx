@@ -38,12 +38,39 @@ const MenuDetail = ({ selectedDate, menuData, onMenuUpdate }: MenuDetailProps) =
   const [isNextMonth, setIsNextMonth] = useState(false); // 다음 달 여부
   const [nutritionData, setNutritionData] = useState<Record<string, string>>({}); // 영양소 정보
   const { accessToken } = useAuthStore();
+  const [dailyCalories, setDailyCalories] = useState<number | null>(null);
   const menuRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   // menuData가 변경되면 localMenuData도 업데이트
   useEffect(() => {
     setLocalMenuData(menuData);
   }, [menuData]);
+
+    useEffect(() => {
+    const fetchCalories = async () => {
+      if (!selectedDate || !accessToken) {
+        setDailyCalories(null);
+        return;
+      }
+      try {
+        const token = accessToken.startsWith('Bearer ')
+          ? accessToken
+          : `Bearer ${accessToken}`;
+        // /api/v1/menu/oneday?date=YYYY-MM-DD
+        const url = API_CONFIG.getUrl(
+          API_CONFIG.ENDPOINTS.MEAL.ONE_DAY,
+          { date: selectedDate }
+        );
+        const res = await axios.get<{ menu: string[]; totalCalories: number }>(url, {
+          headers: { Authorization: token }
+        });
+        setDailyCalories(res.data.totalCalories);
+      } catch {
+        setDailyCalories(null);
+      }
+    };
+    fetchCalories();
+  }, [selectedDate, accessToken]);
 
   // 선택한 날짜가 현재 기준 다음 달인지 확인하는 함수
   const checkIfNextMonth = (dateString: string): boolean => {
@@ -300,6 +327,20 @@ const MenuDetail = ({ selectedDate, menuData, onMenuUpdate }: MenuDetailProps) =
           )}
         </div>
       </div>
+
+      <div className="mt-2 text-center font-semibold text-gray-700 text-base">
+        {dailyCalories !== undefined ? (
+          <>
+            총 열량: {' '}
+            <span className="text-orange-500">
+              {dailyCalories} kcal
+            </span>
+          </>
+        ) : (
+          ''
+        )}
+      </div>
+
 
       {/* 대체 메뉴 또는 영양소 정보 말풍선 팝업 */}
       {showModal && selectedMenu && (
