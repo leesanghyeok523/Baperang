@@ -121,13 +121,10 @@ class MenuService:
             print(f"[MENU][prepare_for_llm] Input menu_data keys: {menu_data.keys()}")
             print(f"[MENU][prepare_for_llm] Input menu_pool size: {len(menu_pool)}")
 
-        # 메뉴 데이터 추출
         extracted_data = self.extract_menu_data(menu_data, menu_pool)
 
-        # 이미 카테고리화된 메뉴 사용
         categorized_menu = extracted_data["categorized_menus"]
 
-        # 카테고리별 선호도 데이터 구성
         categorized_preference = {}
         for category, menus in categorized_menu.items():
             category_prefs = {}
@@ -135,13 +132,11 @@ class MenuService:
                 if menu in extracted_data["menu_preference"]:
                     category_prefs[menu] = extracted_data["menu_preference"][menu]
 
-            # 선호도 기준 상위 10개만 포함
             if category_prefs:
                 sorted_items = sorted(category_prefs.items(), key=lambda x: x[1], reverse=True)
-                top_items = sorted_items[:10]
+                top_items = sorted_items[:100]
                 categorized_preference[category] = dict(top_items)
 
-        # 카테고리별 잔반율 데이터 구성
         categorized_leftover = {}
         for category, menus in categorized_menu.items():
             category_leftover = {}
@@ -154,19 +149,16 @@ class MenuService:
                     print(f"[MENU][prepare_for_llm] Error accessing menu_leftover: {str(e)}")
                     print(f"[MENU][prepare_for_llm] extracted_data structure: {extracted_data.keys()}")
             
-            # 잔반율 기준 상위 10개 포함
             if category_leftover:
                 sorted_items = sorted(category_leftover.items(), key=lambda x: x[1], reverse=True)
-                top_items = sorted_items[:10]
+                top_items = sorted_items[:100]
                 categorized_leftover[category] = dict(top_items)
 
-        # 카테고리별 메뉴 수 제한 (토큰 절약)
         optimized_menu_pool = {}
         for category, menus in categorized_menu.items():
-            optimized_menu_pool[category] = menus[:20] if len(menus) > 20 else menus
+            optimized_menu_pool[category] = menus[:40] if len(menus) > 40 else menus
         
         # 영양소 정보 구성
-        # 발견된 영양소 키 중 우선순위가 높은 것들 선택
         priority_nutrients = ['kcal', 'protein', 'fat', 'carbo']
         nutrition_info = {}
 
@@ -318,7 +310,7 @@ class MenuService:
                         reverse=True
                     )
 
-                    top_menus = sorted_menus[:min(15, len(sorted_menus))]
+                    top_menus = sorted_menus[:min(30, len(sorted_menus))]
 
                     # 상위 15개 중에서 랜덤하게 3개 선택 (메뉴가 3개 미만이면 모두 선택)
                     if len(top_menus) > 3:
@@ -326,7 +318,7 @@ class MenuService:
                     else:
                         alt_menus = top_menus
                     
-                    top_menus = sorted_menus[:min(15, len(sorted_menus))]
+                    top_menus = sorted_menus[:min(30, len(sorted_menus))]
 
                     # 상위 15개 중에서 랜덤하게 3개 선택 (메뉴가 3개 미만이면 모두 선택)
                     if len(top_menus) > 3:
