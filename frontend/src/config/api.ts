@@ -29,6 +29,7 @@ const API_CONFIG = {
       MONTHLY_LEFTOVER: '/api/v1/leftover/month', // /{year}/{month} 파라미터 필요
       MENU_CALENDAR: '/api/v1/menu/calendar', // ?year={year}&month={month} 쿼리 필요
       TODAY_MENU: '/api/v1/menu/today',
+      ONE_DAY: '/api/v1/menu/oneday', 
       AI_SUGGESTION: '/api/v1/menu/suggestion',
       UPDATE_SUGGESTION: '/api/v1/menu/suggestion', // /{date} 파라미터 필요
       MENU_FAVORITE: '/api/v1/menu/favorite',
