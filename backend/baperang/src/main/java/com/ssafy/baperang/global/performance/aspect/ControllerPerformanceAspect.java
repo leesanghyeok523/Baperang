@@ -85,9 +85,6 @@ public class ControllerPerformanceAspect {
                     .build();
             
             repository.save(performance);
-            
-            log.info("[PERFORMANCE] {}.{} - {}ms - {} {} - success: {} - status: {}", 
-                    controllerName, methodName, executionTime, httpMethod, requestPath, isSuccess, statusCode);
         }
     }
 } 
