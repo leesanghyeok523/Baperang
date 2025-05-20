@@ -1,11 +1,9 @@
 package com.ssafy.baperang.domain.sse.service;
 
-import java.io.IOException;
 import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -86,55 +84,89 @@ public class SseServiceImpl implements SseService {
      * 모든 연결된 클라이언트에게 하트비트 이벤트를 전송
      */
     private void sendHeartbeat() {
+        // 모든 연결 수 집계
         int totalConnections = 0;
         for (Map<String, SseEmitter> emitters : schoolEmitters.values()) {
             totalConnections += emitters.size();
         }
+
+        if (totalConnections == 0) {
+            // 연결된 클라이언트가 없으면 조용히 종료
+            return;
+        }
+
         log.debug("하트비트 이벤트 전송 중... (현재 연결 수: {})", totalConnections);
         
-        // 학교별 emitter 맵의 복사본을 생성하여 동시성 이슈 방지
-        Map<String, Map<String, SseEmitter>> schoolEmittersCopy = new HashMap<>(schoolEmitters);
+        // 학교 목록 복사 (ConcurrentModificationException 방지)
+        List<String> schoolNames;
+        synchronized (schoolEmitters) {
+            schoolNames = new ArrayList<>(schoolEmitters.keySet());
+        }
         
-        schoolEmittersCopy.forEach((schoolName, emitters) -> {
-            // 제거할 ID 목록을 저장하기 위한 리스트
-            List<String> emittersToRemove = new ArrayList<>();
+        // 각 학교에 대해
+        for (String schoolName : schoolNames) {
+            Map<String, SseEmitter> emitters;
             
-            // 현재 학교의 emitter 맵도 복사하여 사용
-            Map<String, SseEmitter> emittersCopy = new HashMap<>(emitters);
+            // 학교의 emitter 맵 가져오기
+            synchronized (schoolEmitters) {
+                emitters = schoolEmitters.get(schoolName);
+                if (emitters == null || emitters.isEmpty()) {
+                    continue;
+                }
+            }
             
-            emittersCopy.forEach((id, emitter) -> {
-                try {
-                    // 이 시점에서 emitter가 이미 맵에서 제거되었을 수 있으므로 확인
-                    Map<String, SseEmitter> currentEmitters = schoolEmitters.get(schoolName);
-                    if (currentEmitters == null || !currentEmitters.containsKey(id)) {
-                        return;
+            // 현재 작업할 emitter들의 ID 목록을 미리 복사해두어 변경되지 않게 함
+            List<String> emitterIds;
+            synchronized (emitters) {
+                emitterIds = new ArrayList<>(emitters.keySet());
+            }
+            
+            if (emitterIds.isEmpty()) {
+                continue;
+            }
+            
+            // 나중에 제거할 ID들을 보관할 리스트
+            List<String> idsToRemove = new ArrayList<>();
+            
+            // 각 emitter에 대해 개별적으로 작업
+            for (String id : emitterIds) {
+                SseEmitter emitter;
+                
+                // emitter 객체 안전하게 가져오기
+                synchronized (emitters) {
+                    emitter = emitters.get(id);
+                    if (emitter == null) {
+                        // 이미 제거된 경우 넘어감
+                        continue;
                     }
-                    
+                }
+                
+                try {
+                    // 하트비트 전송
                     emitter.send(SseEmitter.event()
-                            .name("heartbeat")
-                            .data(LocalDateTime.now().toString()));
+                        .name("heartbeat")
+                        .data(LocalDateTime.now().toString()));
                 } catch (Exception e) {
-                    log.warn("하트비트 전송 실패, 제거 처리: 학교={}, ID={} → {}", schoolName, id, e.getMessage());
+                    log.debug("하트비트 전송 실패, 제거 예정: 학교={}, ID={}", schoolName, id);
                     try {
                         emitter.complete();
                     } catch (Exception ex) {
-                        log.warn("Emitter 완료 처리 중 추가 예외 발생: {}", ex.getMessage());
+                        // 무시 - 이미 완료된 경우일 수 있음
                     }
-                    emittersToRemove.add(id);
-                }
-            });
-            
-            // 실패한 Emitter 제거
-            if (!emittersToRemove.isEmpty()) {
-                Map<String, SseEmitter> currentEmitters = schoolEmitters.get(schoolName);
-                if (currentEmitters != null) {
-                    synchronized (currentEmitters) {
-                        emittersToRemove.forEach(currentEmitters::remove);
-                    }
-                    log.debug("학교 {} - {} 개의 비활성 SSE 연결 제거됨", schoolName, emittersToRemove.size());
+                    idsToRemove.add(id);
                 }
             }
-        });
+            
+            // 실패한 emitter들 제거
+            if (!idsToRemove.isEmpty()) {
+                synchronized (emitters) {
+                    for (String id : idsToRemove) {
+                        emitters.remove(id);
+                    }
+                }
+                log.debug("학교 {} - {} 개의 비활성 SSE 하트비트 연결 제거됨", schoolName, idsToRemove.size());
+            }
+        }
     }
 
     /**
@@ -142,44 +174,60 @@ public class SseServiceImpl implements SseService {
      */
     private void sendEventToSchool(String schoolName, String eventName, Object data) {
         Map<String, SseEmitter> emitters = schoolEmitters.get(schoolName);
-        if (emitters != null) {
-            // 제거할 ID 목록을 저장하기 위한 리스트
-            List<String> emittersToRemove = new ArrayList<>();
-            
-            // emitter 맵의 복사본을 만들어서 반복 도중 동시성 이슈를 방지
-            Map<String, SseEmitter> emittersCopy = new HashMap<>(emitters);
-            
-            emittersCopy.forEach((id, emitter) -> {
-                try {
-                    // 이 시점에서 emitter가 이미 맵에서 제거되었을 수 있으므로 확인
-                    if (!emitters.containsKey(id)) {
-                        return;
-                    }
-                    
-                    emitter.send(SseEmitter.event()
-                            .name(eventName)
-                            .data(data));
-                    log.info("학교 {} - SSE 이벤트 '{}' 전송 성공: {}", schoolName, eventName, id);
-                } catch (Exception e) { // IOException 외에도 모든 예외 처리
-                    log.warn("SSE 전송 실패, 제거 처리: 학교={}, ID={} → {}", schoolName, id, e.getMessage());
-                    try {
-                        emitter.complete();
-                    } catch (Exception ex) {
-                        log.warn("Emitter 완료 처리 중 추가 예외 발생: {}", ex.getMessage());
-                    }
-                    emittersToRemove.add(id);
-                }
-            });
-            
-            // 실패한 Emitter 제거
-            if (!emittersToRemove.isEmpty()) {
-                synchronized (emitters) {
-                    emittersToRemove.forEach(emitters::remove);
-                }
-                log.info("학교 {} - {} 개의 비활성 SSE 연결 제거됨", schoolName, emittersToRemove.size());
-            }
-        } else {
+        if (emitters == null || emitters.isEmpty()) {
             log.info("학교 '{}' 에 연결된 클라이언트가 없습니다.", schoolName);
+            return;
+        }
+        
+        // 현재 작업할 emitter들의 ID 목록을 미리 복사해두어 변경되지 않게 함
+        List<String> emitterIds;
+        synchronized (emitters) {
+            emitterIds = new ArrayList<>(emitters.keySet());
+        }
+        
+        log.debug("학교 '{}' 에 {} 이벤트 전송 시작 (대상: {} 개 클라이언트)", schoolName, eventName, emitterIds.size());
+        
+        // 나중에 제거할 ID들을 보관할 리스트
+        List<String> idsToRemove = new ArrayList<>();
+        
+        // 각 emitter에 대해 개별적으로 작업
+        for (String id : emitterIds) {
+            SseEmitter emitter;
+            
+            // emitter 객체 안전하게 가져오기
+            synchronized (emitters) {
+                emitter = emitters.get(id);
+                if (emitter == null) {
+                    // 이미 제거된 경우 넘어감
+                    continue;
+                }
+            }
+            
+            try {
+                // 이벤트 전송
+                emitter.send(SseEmitter.event()
+                    .name(eventName)
+                    .data(data));
+                log.debug("학교 {} - SSE 이벤트 '{}' 전송 성공: {}", schoolName, eventName, id);
+            } catch (Exception e) {
+                log.warn("SSE 전송 실패, 제거 예정: 학교={}, ID={} → {}", schoolName, id, e.getMessage());
+                try {
+                    emitter.complete();
+                } catch (Exception ex) {
+                    log.warn("Emitter 완료 처리 중 추가 예외: {}", ex.getMessage());
+                }
+                idsToRemove.add(id);
+            }
+        }
+        
+        // 실패한 emitter들 제거
+        if (!idsToRemove.isEmpty()) {
+            synchronized (emitters) {
+                for (String id : idsToRemove) {
+                    emitters.remove(id);
+                }
+            }
+            log.info("학교 {} - {} 개의 비활성 SSE 연결 제거됨", schoolName, idsToRemove.size());
         }
     }
 
@@ -288,6 +336,28 @@ public class SseServiceImpl implements SseService {
         return sortedMenus;
     }
 
+    /**
+     * SseEmitter를 안전하게 제거하는 내부 메서드
+     */
+    private void safeRemoveEmitter(String schoolName, String emitterId) {
+        if (schoolName == null || emitterId == null) {
+            return;
+        }
+        
+        synchronized (schoolEmitters) {
+            Map<String, SseEmitter> emitters = schoolEmitters.get(schoolName);
+            if (emitters != null) {
+                synchronized (emitters) {
+                    emitters.remove(emitterId);
+                    // 학교에 남은 연결이 없으면 학교 맵 자체를 제거
+                    if (emitters.isEmpty()) {
+                        schoolEmitters.remove(schoolName);
+                    }
+                }
+            }
+        }
+    }
+
     // SSE 구독 처리
     @Override
     public SseEmitter subscribe(String token, String schoolName) {
@@ -305,34 +375,40 @@ public class SseServiceImpl implements SseService {
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT);
         
         // 학교별 emitter 맵 가져오기 (없으면 생성)
-        schoolEmitters.computeIfAbsent(schoolName, k -> new ConcurrentHashMap<>())
-            .put(emitterId, emitter);
-
+        Map<String, SseEmitter> schoolEmitterMap;
+        synchronized (schoolEmitters) {
+            schoolEmitterMap = schoolEmitters.computeIfAbsent(schoolName, k -> new ConcurrentHashMap<>());
+        }
+        
+        // 새 emitter를 학교 맵에 추가
+        synchronized (schoolEmitterMap) {
+            schoolEmitterMap.put(emitterId, emitter);
+        }
+        
         // SseEmitter가 완료, 타임아웃, 에러 발생 시 맵에서 제거
         emitter.onCompletion(() -> {
             log.info("SSE 연결 완료(클라이언트 종료): 학교={}, ID={}", schoolName, emitterId);
-            Map<String, SseEmitter> emitters = schoolEmitters.get(schoolName);
-            if (emitters != null) {
-                emitters.remove(emitterId);
-            }
+            safeRemoveEmitter(schoolName, emitterId);
         });
         
         emitter.onTimeout(() -> {
             log.info("SSE 연결 타임아웃 ({}ms): 학교={}, ID={}", SSE_TIMEOUT, schoolName, emitterId);
-            emitter.complete();
-            Map<String, SseEmitter> emitters = schoolEmitters.get(schoolName);
-            if (emitters != null) {
-                emitters.remove(emitterId);
+            try {
+                emitter.complete();
+            } catch (Exception e) {
+                log.warn("타임아웃 처리 중 예외 발생: {}", e.getMessage());
             }
+            safeRemoveEmitter(schoolName, emitterId);
         });
         
         emitter.onError(e -> {
             log.warn("SSE 연결 에러 발생: 학교={}, ID={}, 메시지={}", schoolName, emitterId, e.getMessage());
-            emitter.complete();
-            Map<String, SseEmitter> emitters = schoolEmitters.get(schoolName);
-            if (emitters != null) {
-                emitters.remove(emitterId);
+            try {
+                emitter.complete();
+            } catch (Exception ex) {
+                log.warn("에러 처리 중 예외 발생: {}", ex.getMessage());
             }
+            safeRemoveEmitter(schoolName, emitterId);
         });
 
         Long userPk = jwtService.getUserId(token);
@@ -347,14 +423,20 @@ public class SseServiceImpl implements SseService {
         // 최초 연결 시 더미 이벤트 전송 (연결 유지 목적)
         try {
             emitter.send(SseEmitter.event().name("connect").data("SSE 연결됨!"));
+            log.debug("SSE 초기 연결 이벤트 전송 성공: 학교={}, ID={}", schoolName, emitterId);
             
             // 초기 연결 시 오늘의 메뉴 만족도 정보 전송
-            List<MenuSatisfactionDto> menuSatisfactions = getTodayMenuSatisfactions(schoolName);
-            emitter.send(SseEmitter.event()
-                    .name("initial-satisfaction")
-                    .data(menuSatisfactions));
-            
-            log.info("초기 메뉴 만족도 데이터 전송 완료 (학교: {}, 메뉴 수: {})", schoolName, menuSatisfactions.size());
+            try {
+                List<MenuSatisfactionDto> menuSatisfactions = getTodayMenuSatisfactions(schoolName);
+                emitter.send(SseEmitter.event()
+                        .name("initial-satisfaction")
+                        .data(menuSatisfactions));
+                
+                log.info("초기 메뉴 만족도 데이터 전송 완료 (학교: {}, 메뉴 수: {})", schoolName, menuSatisfactions.size());
+            } catch (Exception e) {
+                log.warn("초기 메뉴 만족도 데이터 전송 실패: {}", e.getMessage());
+                // 계속 진행 - 부분적인 실패를 허용
+            }
 
             // 초기 연결 시 실시간 잔반율 정보 전송
             School school = user.getSchool();
@@ -364,60 +446,74 @@ public class SseServiceImpl implements SseService {
             List<Menu> menus = menuRepository.findBySchoolAndMenuDate(school, today);
             
             if (!menus.isEmpty()) {
-                // 오늘 날짜의 전체 잔반율 정보 조회
-                List<MenuLeftoverRate> leftoverRates = leftoverRepository.findAverageLeftoverRateByDate(today);
-                
-                // 해당 학교 메뉴와 잔반율 정보 매핑
-                List<MenuLeftoverDto> menuLeftovers = menus.stream()
-                    .map(menu -> {
-                        // 해당 메뉴의 잔반율 정보 찾기
-                        Float leftoverRate = leftoverRates.stream()
-                            .filter(rate -> rate.getMenuName().equals(menu.getMenuName()))
-                            .map(MenuLeftoverRate::getLeftoverRate)
-                            .findFirst()
-                            .orElse(0.0f); 
-                        
-                        return MenuLeftoverDto.builder()
-                            .menuName(menu.getMenuName())
-                            .category(menu.getCategory())
-                            .leftoverRate(leftoverRate)
-                            .build();
-                    })
-                    .collect(Collectors.toList());
-                
-                // 카테고리 우선순위에 따라 필터링
-                List<MenuLeftoverDto> filteredLeftovers = filterMenusByCategory(menuLeftovers);
-                
-                // 초기 잔반율 정보 전송
-                emitter.send(SseEmitter.event()
-                        .name("initial-leftover")
-                        .data(filteredLeftovers));
-                
-                log.info("초기 잔반율 데이터 전송 완료 (학교: {}, 메뉴 수: {})", schoolName, filteredLeftovers.size());
+                try {
+                    // 오늘 날짜의 전체 잔반율 정보 조회
+                    List<MenuLeftoverRate> leftoverRates = leftoverRepository.findAverageLeftoverRateByDate(today);
+                    
+                    // 해당 학교 메뉴와 잔반율 정보 매핑
+                    List<MenuLeftoverDto> menuLeftovers = menus.stream()
+                        .map(menu -> {
+                            // 해당 메뉴의 잔반율 정보 찾기
+                            Float leftoverRate = leftoverRates.stream()
+                                .filter(rate -> rate.getMenuName().equals(menu.getMenuName()))
+                                .map(MenuLeftoverRate::getLeftoverRate)
+                                .findFirst()
+                                .orElse(0.0f); 
+                            
+                            return MenuLeftoverDto.builder()
+                                .menuName(menu.getMenuName())
+                                .category(menu.getCategory())
+                                .leftoverRate(leftoverRate)
+                                .build();
+                        })
+                        .collect(Collectors.toList());
+                    
+                    // 카테고리 우선순위에 따라 필터링
+                    List<MenuLeftoverDto> filteredLeftovers = filterMenusByCategory(menuLeftovers);
+                    
+                    // 초기 잔반율 정보 전송
+                    emitter.send(SseEmitter.event()
+                            .name("initial-leftover")
+                            .data(filteredLeftovers));
+                    
+                    log.info("초기 잔반율 데이터 전송 완료 (학교: {}, 메뉴 수: {})", schoolName, filteredLeftovers.size());
+                } catch (Exception e) {
+                    log.warn("초기 잔반율 데이터 전송 실패: {}", e.getMessage());
+                    // 계속 진행 - 부분적인 실패를 허용
+                }
 
-                // 초기 식사 완료율 정보 전송
-                long totalStudents = studentRepository.countBySchool(school);
-                long completedStudents = leftoverRepository.countDistinctStudentByDateAndSchool(today, school);
-                int completionRate = (totalStudents == 0) ? 0 : (int) Math.round((completedStudents * 100.0) / totalStudents);
-                
-                Map<String, Object> completionData = new java.util.HashMap<>();
-                completionData.put("completionRate", completionRate);
-                completionData.put("totalStudents", totalStudents);
-                completionData.put("completedStudents", completedStudents);
-                
-                emitter.send(SseEmitter.event()
-                        .name("initial-completion-rate")
-                        .data(completionData));
-                
-                log.info("초기 식사 완료율 데이터 전송 완료 (학교: {}, 완료율: {}%)", schoolName, completionRate);
+                try {
+                    // 초기 식사 완료율 정보 전송
+                    long totalStudents = studentRepository.countBySchool(school);
+                    long completedStudents = leftoverRepository.countDistinctStudentByDateAndSchool(today, school);
+                    int completionRate = (totalStudents == 0) ? 0 : (int) Math.round((completedStudents * 100.0) / totalStudents);
+                    
+                    Map<String, Object> completionData = new java.util.HashMap<>();
+                    completionData.put("completionRate", completionRate);
+                    completionData.put("totalStudents", totalStudents);
+                    completionData.put("completedStudents", completedStudents);
+                    
+                    emitter.send(SseEmitter.event()
+                            .name("initial-completion-rate")
+                            .data(completionData));
+                    
+                    log.info("초기 식사 완료율 데이터 전송 완료 (학교: {}, 완료율: {}%)", schoolName, completionRate);
+                } catch (Exception e) {
+                    log.warn("초기 식사 완료율 데이터 전송 실패: {}", e.getMessage());
+                    // 계속 진행 - 부분적인 실패를 허용
+                }
             } else {
                 log.info("초기 잔반율 데이터 없음 - 학교 {} 오늘의 메뉴 정보가 없습니다.", schoolName);
                 // 메뉴가 없는 경우 빈 목록 전송
-                emitter.send(SseEmitter.event()
-                        .name("initial-leftover")
-                        .data(List.of()));
+                try {
+                    emitter.send(SseEmitter.event()
+                            .name("initial-leftover")
+                            .data(List.of()));
+                } catch (Exception e) {
+                    log.warn("빈 초기 잔반율 데이터 전송 실패: {}", e.getMessage());
+                }
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.warn("SSE 연결 중 에러 발생: 학교={}, ID={}, 메시지={}", schoolName, emitterId, e.getMessage());
             try {
                 emitter.complete();
@@ -425,15 +521,7 @@ public class SseServiceImpl implements SseService {
                 log.warn("Emitter 완료 처리 중 추가 예외: {}", ex.getMessage());
             }
             
-            Map<String, SseEmitter> emitters = schoolEmitters.get(schoolName);
-            if (emitters != null) {
-                synchronized (emitters) {
-                    emitters.remove(emitterId);
-                }
-            }
-            
-            // 예외 전파하지 않고 처리 완료된 emitter 반환
-            return emitter;
+            safeRemoveEmitter(schoolName, emitterId);
         }
 
         return emitter;
