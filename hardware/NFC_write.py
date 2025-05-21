@@ -42,5 +42,5 @@ def write_ndef_text(student_pk):
     print("NFC 태그에 학생번호가 성공적으로 저장되었습니다!")
 
 if __name__ == "__main__":
-    name = '1 2 6 17 이도윤 남자 식후'
+    name = '1 2 6 8 이도윤 남자 식전'
     write_ndef_text(name)
