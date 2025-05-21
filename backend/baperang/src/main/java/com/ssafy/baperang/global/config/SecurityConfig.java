@@ -19,27 +19,19 @@ import lombok.RequiredArgsConstructor;
 public class SecurityConfig {
     
     private static final String[] AUTH_WHITELIST = {
+            // 사용자 인증 관련 엔드포인트
             "/user",
             "/user/**",
-            "/v2/api-docs",
-            "/v3/api-docs/**",
-            "/configuration/ui",
-            "/swagger-resources/**",
-            "/configuration/security",
-            "/swagger-ui.html",
-            "/webjars/**",
-            "/file/**",
-            "/image/**",
+            // Swagger 관련 엔드포인트
             "/swagger/**",
             "/swagger-ui/**",
-            "/h2/**",
-            "/ws/**",
-            "/room/**",
-            "/images/**",
-            "/monsters/**",
-            "/characters/**",
-            "/api/v1/sse/**", // SSE 엔드포인트 접근 허용
-            "/**" // 모든 경로 허용
+            "/v3/api-docs/**",
+            // API 엔드포인트
+            "/api/v1/sse/**",
+            "/api/v1/user/**",
+            // 기타 허용할 엔드포인트
+            "/api/v1/school/**",
+            "/error"
     };
 
     @Bean
