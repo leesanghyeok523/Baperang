@@ -139,7 +139,7 @@ async def download_image_async(url: str, session: aiohttp.ClientSession) -> np.n
             print(f"[ERROR] download_image_async failed for {url}: {str(e)}")
         raise Exception(f"이미지 다운로드 실패: {str(e)}")
 
-def crop_center(img, crop_ratio=0.1, cache_key=None):
+def crop_center(img, crop_ratio=0.2, cache_key=None):
     start = time.time()
     h, w = img.shape[:2]
     ch, cw = int(h * crop_ratio), int(w * crop_ratio)
