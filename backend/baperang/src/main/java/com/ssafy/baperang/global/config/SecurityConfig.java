@@ -7,9 +7,12 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import com.ssafy.baperang.global.jwt.JwtFilter;
 
 import lombok.RequiredArgsConstructor;
 
@@ -17,6 +20,8 @@ import lombok.RequiredArgsConstructor;
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
+    
+    private final JwtFilter jwtFilter;
     
     private static final String[] AUTH_WHITELIST = {
             // 사용자 인증 관련 엔드포인트
@@ -44,6 +49,7 @@ public class SecurityConfig {
                         .requestMatchers(AUTH_WHITELIST).permitAll() // 특정 경로 허용
                         .anyRequest().authenticated() // 나머지 요청은 인증 필요
                 )
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class) // JWT 필터 추가
                 .formLogin(form -> form.disable()) // 기본 로그인 폼 비활성화
                 .httpBasic(httpBasic -> httpBasic.disable()); // HTTP Basic 인증 비활성화
         return http.build();
