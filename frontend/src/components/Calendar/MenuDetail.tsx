@@ -364,7 +364,7 @@ const MenuDetail = ({ selectedDate, menuData, onMenuUpdate }: MenuDetailProps) =
         </div>
       </div>
 
-      <div className="mt-2 text-center font-semibold text-gray-700 text-base">
+      {/* <div className="mt-2 text-center font-semibold text-gray-700 text-base">
         {dailyCalories !== undefined ? (
           <>
             총 열량: {' '}
@@ -375,7 +375,7 @@ const MenuDetail = ({ selectedDate, menuData, onMenuUpdate }: MenuDetailProps) =
         ) : (
           ''
         )}
-      </div>
+      </div> */}
 
 
       {/* 대체 메뉴 또는 영양소 정보 말풍선 팝업 */}
