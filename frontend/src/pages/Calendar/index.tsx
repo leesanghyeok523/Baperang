@@ -89,7 +89,7 @@ const parseMenuResponse = (rawData: unknown): MenuResponse => {
     else {
       // 빈 days 배열 반환 (days는 이미 빈 배열로 초기화됨)
     }
-  } catch (error) {
+  } catch {
     // 오류 처리
   }
 
@@ -238,7 +238,7 @@ const Calendar = () => {
       if (isForceUpdate) {
         setIsForceUpdate(false);
       }
-    } catch (error) {
+    } catch {
       // 강제 업데이트 후 플래그 초기화
       if (isForceUpdate) {
         setIsForceUpdate(false);
@@ -293,7 +293,7 @@ const Calendar = () => {
       }
 
       return [];
-    } catch (error) {
+    } catch {
       return [];
     }
   };
@@ -371,7 +371,7 @@ const Calendar = () => {
 
       // 해당 날짜에 잔반률 데이터가 없는 경우
       return [{ name: '잔반률 데이터 없음', 잔반률: 0 }];
-    } catch (error) {
+    } catch {
       // 해당 날짜에 메뉴가 있는 경우 월간 데이터에서 가져온 평균 잔반률로 표시
       if (dateString in menuData && menuData[dateString].menu) {
         const dayWasteRate = monthlyWasteData.find((data) => data.date === dateString);

@@ -163,8 +163,7 @@ const InventoryPage: React.FC = () => {
       setInventory(transformedData);
       setFilteredData(transformedData);
       setTotalPages(Math.ceil(transformedData.length / itemsPerPage));
-    } catch (err) {
-      console.error('재고 데이터 로드 중 오류 발생:', err);
+    } catch {
       setError('재고 데이터를 불러오는 중 오류가 발생했습니다.');
       showErrorAlert('데이터 로드 실패', '재고 데이터를 불러오는 중 오류가 발생했습니다.');
     } finally {

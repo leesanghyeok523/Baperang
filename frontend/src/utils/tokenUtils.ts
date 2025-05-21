@@ -36,7 +36,7 @@ export const validateToken = async (): Promise<boolean> => {
     }
 
     return false;
-  } catch (_) {
+  } catch {
     return false;
   }
 };
