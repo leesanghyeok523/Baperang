@@ -272,7 +272,7 @@ const MyPage: React.FC = () => {
       setIsLoggingOut(true);
 
       // 로그아웃 API 호출
-      await apiClient.post(
+      await apiClient.delete(
         API_CONFIG.ENDPOINTS.AUTH.LOGOUT,
         {} // 빈 객체를 두 번째 인자로 전달
       );
