@@ -152,12 +152,12 @@ export const useAuthStore = create<AuthState>()(
               });
               return true;
             }
-          } catch (_) {
+          } catch {
             // 응답 본문 처리 중 오류가 있어도 무시
           }
 
           return false;
-        } catch (_) {
+        } catch {
           return false;
         }
       },
@@ -193,7 +193,7 @@ export const useAuthStore = create<AuthState>()(
           }
 
           return false;
-        } catch (error) {
+        } catch {
           return false;
         }
       },
@@ -232,7 +232,7 @@ export const useAuthStore = create<AuthState>()(
                   // 사용자 정보 가져오기 실패 시 로그아웃
                   await get().logout();
                 }
-              } catch (error) {
+              } catch {
                 // 사용자 정보 가져오기 오류 시 로그아웃
                 await get().logout();
               }
@@ -243,7 +243,7 @@ export const useAuthStore = create<AuthState>()(
           } else {
             set({ isAuthenticated: false });
           }
-        } catch (error) {
+        } catch {
           await get().logout();
         } finally {
           set({ isLoading: false });

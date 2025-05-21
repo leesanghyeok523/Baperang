@@ -40,18 +40,16 @@ const MainPage = () => {
 
     // 토큰 유효성 검사 및 필요시 갱신
     const authStore = useAuthStore.getState();
-    let isTokenValid = await authStore.validateCurrentToken();
+    const isTokenValid = await authStore.validateCurrentToken();
     
     // 토큰이 유효하지 않고 갱신에 실패한 경우
     if (!isTokenValid) {
-      console.error('토큰이 유효하지 않고 갱신 실패');
       return;
     }
     
     // 갱신 후 최신 토큰 가져오기
     const updatedToken = authStore.accessToken;
     if (!updatedToken) {
-      console.error('액세스 토큰이 없습니다');
       return;
     }
 
@@ -70,7 +68,6 @@ const MainPage = () => {
       ? updatedToken
       : `Bearer ${updatedToken}`;
 
-    console.log('SSE 연결 시도 중 - 토큰 유효성 확인 완료');
     
     // EventSourcePolyfill 사용 (헤더 지원)
     const eventSource = new EventSourcePolyfill(subscribeUrlWithSchool, {
@@ -84,7 +81,6 @@ const MainPage = () => {
     eventSource.addEventListener('initial-satisfaction', (event: SSEMessageEvent) => {
       try {
         const menuSatisfactions = JSON.parse(event.data);
-        console.log('[SSE] 초기 선호도 데이터 수신:', menuSatisfactions);
 
         if (Array.isArray(menuSatisfactions)) {
           // 수신된 데이터를 WasteData 배열로 변환
@@ -104,8 +100,8 @@ const MainPage = () => {
             setTodayWasteData(initialData);
           }
         }
-      } catch (err) {
-        console.error('초기 선호도 데이터 처리 중 오류:', err);
+      } catch {
+        // err
       }
     });
 
@@ -113,7 +109,6 @@ const MainPage = () => {
     eventSource.addEventListener('initial-leftover', (event: SSEMessageEvent) => {
       try {
         const menuLeftovers = JSON.parse(event.data);
-        console.log('[SSE] 초기 잔반율 데이터 수신:', menuLeftovers);
 
         if (Array.isArray(menuLeftovers)) {
           // 수신된 데이터를 WasteData 배열로 변환
@@ -139,8 +134,8 @@ const MainPage = () => {
             setTodayLeftoverData(initialData);
           }
         }
-      } catch (err) {
-        console.error('초기 잔반률 데이터 처리 중 오류:', err);
+      } catch {
+        // err
       }
     });
 
@@ -148,7 +143,6 @@ const MainPage = () => {
     eventSource.addEventListener('initial-completion-rate', (event: SSEMessageEvent) => {
       try {
         const completionData = JSON.parse(event.data);
-        console.log('[SSE] 초기 식사 완료율 데이터 수신:', completionData);
 
         if (completionData && typeof completionData === 'object') {
           setMealCompletionData({
@@ -157,8 +151,8 @@ const MainPage = () => {
             completionRate: completionData.completionRate || 0,
           });
         }
-      } catch (err) {
-        console.error('초기 식사 완료율 데이터 처리 중 오류:', err);
+      } catch {
+        // err
       }
     });
 
@@ -166,7 +160,6 @@ const MainPage = () => {
     eventSource.addEventListener('satisfaction-update', (event: SSEMessageEvent) => {
       try {
         const data = JSON.parse(event.data) as SatisfactionUpdate;
-        console.log('[SSE] 실시간 선호도 업데이트 수신:', data);
 
         // 만족도 데이터만 업데이트 (잔반률과 연관짓지 않음)
         if (data.menuName && data.averageSatisfaction) {
@@ -231,8 +224,8 @@ const MainPage = () => {
             return updatedData;
           });
         }
-      } catch (err) {
-        console.error('SSE 데이터 처리 중 오류:', err);
+      } catch {
+        // err
       }
     });
 
@@ -240,7 +233,6 @@ const MainPage = () => {
     eventSource.addEventListener('leftover-update', (event: SSEMessageEvent) => {
       try {
         const data = JSON.parse(event.data);
-        console.log('[SSE] 실시간 잔반율 업데이트 수신:', data);
 
         if (Array.isArray(data)) {
           // 전체 데이터를 한번에 받는 경우
@@ -291,8 +283,8 @@ const MainPage = () => {
             return updatedData;
           });
         }
-      } catch (err) {
-        console.error('잔반률 데이터 처리 중 오류:', err);
+      } catch {
+        // err
       }
     });
 
@@ -300,7 +292,6 @@ const MainPage = () => {
     eventSource.addEventListener('completion-rate-update', (event: SSEMessageEvent) => {
       try {
         const data = JSON.parse(event.data);
-        console.log('[SSE] 실시간 식사 완료율 업데이트 수신:', data);
 
         if (data && typeof data === 'object') {
           setMealCompletionData({
@@ -309,8 +300,8 @@ const MainPage = () => {
             completionRate: data.completionRate || 0,
           });
         }
-      } catch (err) {
-        console.error('식사 완료율 데이터 처리 중 오류:', err);
+      } catch {
+        // err
       }
     });
 
@@ -328,8 +319,8 @@ const MainPage = () => {
     eventSource.onmessage = () => {};
 
     // 에러 처리
-    eventSource.onerror = async (error: Event) => {
-      console.error('SSE 연결 오류:', error);
+    eventSource.onerror = async () => {
+ 
       eventSource.close();
 
       // 연결 오류 발생 시 토큰 유효성을 먼저 확인
@@ -337,10 +328,8 @@ const MainPage = () => {
       const wasTokenRefreshed = await authStore.refreshToken();
       
       if (wasTokenRefreshed) {
-        console.log('토큰 갱신 성공, 즉시 SSE 재연결 시도');
         setupSSEConnection(); // 토큰 갱신 성공시 즉시 재연결
       } else {
-        console.log('토큰 갱신 실패 또는 다른 오류, 5초 후 재연결 시도');
         // 토큰 갱신 실패 또는 다른 오류인 경우 5초 후 재연결 시도
         setTimeout(() => {
           setupSSEConnection();
@@ -373,7 +362,6 @@ const MainPage = () => {
 
   // 식사 완료율 상태 변화 추적을 위한 useEffect
   useEffect(() => {
-    console.log('[상태 업데이트] 현재 식사 완료율 데이터:', mealCompletionData);
   }, [mealCompletionData]);
 
   // 일별 메뉴 데이터 가져오기
@@ -383,7 +371,6 @@ const MainPage = () => {
       const { accessToken } = useAuthStore.getState();
 
       if (!accessToken) {
-        console.error('인증 토큰이 없습니다. 로그인이 필요합니다.');
         return;
       }
 
@@ -447,8 +434,7 @@ const MainPage = () => {
       } else {
         setCurrentMenuItems(defaultMenu);
       }
-    } catch (error) {
-      console.error('메뉴 데이터 가져오기 오류:', error);
+    } catch {
       // 오류 발생 시 기본 메뉴 설정
       setCurrentMenuItems(defaultMenu);
     } finally {
@@ -475,7 +461,6 @@ const MainPage = () => {
     fetchDailyMenu(dateStr);
     // 날짜가 변경되면 선택된 메뉴 초기화
     setSelectedMenu(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentDate]);
 
   // 이전/다음 날짜 이동

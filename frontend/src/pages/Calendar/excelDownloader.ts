@@ -157,7 +157,7 @@ export const downloadMenuExcel = async (
 
     saveAs(new Blob([wbout], { type: 'application/octet-stream' }), `${year}년 ${month + 1}월 식단표.xlsx`);
     showSuccessAlert('엑셀 파일 다운로드 완료');
-  } catch (_) {
+  } catch {
     showErrorAlert('엑셀 파일 다운로드 오류', '영양소 정보를 포함하는 데 실패했습니다.');
   }
 };

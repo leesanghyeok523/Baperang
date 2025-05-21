@@ -42,7 +42,7 @@ const TaggingPage = () => {
       if (data.streamUrl) {
         setCameraStream(data.streamUrl);
       }
-    } catch (_) {
+    } catch {
       // 오류 처리
     }
   };
@@ -64,7 +64,7 @@ const TaggingPage = () => {
           isTagged: true,
         });
       }
-    } catch (_) {
+    } catch {
       // 오류 처리
     }
   };

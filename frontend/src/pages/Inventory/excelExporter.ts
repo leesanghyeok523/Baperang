@@ -46,7 +46,7 @@ export const exportInventoryToExcel = (
     XLSX.writeFile(workbook, filename);
 
     showSuccessAlert('엑셀 파일 다운로드 완료');
-  } catch (_) {
+  } catch {
     showErrorAlert('엑셀 파일 다운로드 오류', '엑셀 파일 다운로드 중 오류가 발생했습니다.');
   }
 };
