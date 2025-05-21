@@ -7,20 +7,20 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
-cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
+cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 fourcc = cv2.VideoWriter_fourcc(*'MJPG')
 cap.set(cv2.CAP_PROP_FOURCC, fourcc)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 960)
 pk_queue = queue.Queue()
 
-global is_detected, cnt_record, detection_flag, processing_flag, curremt_student_info
+global is_detected, cnt_record, detection_flag, processing_flag, curremt_student_info, status_now
 current_student_info = {"isTagged": False}
 processing_flag = False
 detection_flag = False
 is_detected = False
 cnt_record = 0
-
+status_now = ""
 
 SERVER_URL=os.environ["SERVER_URL"]
 AWS_ACCESS_KEY_ID=os.environ["AWS_ACCESS_KEY_ID"]
@@ -123,7 +123,7 @@ def start_nfc_monitor():
     logging.info("start")
 
 def get_current_student_info():
-    global current_student_info, processing_flag
+    global current_student_info, processing_flag, status_now
 
     if processing_flag and current_student_info["isTagged"]:
         return current_student_info
@@ -133,6 +133,9 @@ def get_current_student_info():
             if pk_queue.queue:
                 text_data = pk_queue.queue[0]
                 student_pk, grade, class_num, number, student_name, gender, status = text_data.split()
+
+                status_now = status
+
                 current_student_info = {
                     "pk":       student_pk,
                     "grade":    grade,
@@ -331,11 +334,11 @@ def index():
 
 @app.route('/detection-status')
 def detection_status():
-    global detection_flag
+    global detection_flag, status_now
     flag = detection_flag
     processing = processing_flag
     detection_flag = False
-    return jsonify({'detected': flag, 'processing': processing})
+    return jsonify({'detected': flag, 'processing': processing, 'status': status_now})
 
 @app.route('/video_feed')
 def video_feed():
