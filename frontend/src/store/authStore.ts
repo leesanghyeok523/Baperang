@@ -94,7 +94,7 @@ export const useAuthStore = create<AuthState>()(
       logout: async () => {
         try {
           await fetch(API_CONFIG.getUrl(API_CONFIG.ENDPOINTS.AUTH.LOGOUT), {
-            method: 'POST',
+            method: 'DELETE',
             headers: {
               Authorization: `Bearer ${get().accessToken}`,
             },
