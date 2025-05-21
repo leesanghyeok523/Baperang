@@ -93,17 +93,20 @@ export const useAuthStore = create<AuthState>()(
 
       logout: async () => {
         try {
+          const token = get().accessToken;
+          if (!token) return; // 토큰이 없으면 API 호출 안함
+          
           await fetch(API_CONFIG.getUrl(API_CONFIG.ENDPOINTS.AUTH.LOGOUT), {
             method: 'DELETE',
             headers: {
-              Authorization: `Bearer ${get().accessToken}`,
+              Authorization: token, // Bearer 접두사 포함된 형태 그대로 전송
             },
             credentials: 'include',
-          });
-        } finally {
-          set({ accessToken: null, user: null, isAuthenticated: false });
-        }
-      },
+            });
+          } finally {
+            set({ accessToken: null, user: null, isAuthenticated: false });
+          }
+        },
 
       // 토큰 리프레시 함수
       refreshToken: async () => {
