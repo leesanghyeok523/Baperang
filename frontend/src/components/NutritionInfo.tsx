@@ -48,7 +48,7 @@ const NutritionInfo: React.FC<NutritionInfoProps> = ({ selectedMenu, currentDate
         } else {
           setNutritionData({});
         }
-      } catch (error) {
+      } catch {
         setNutritionData({});
       } finally {
         setLoading(false);

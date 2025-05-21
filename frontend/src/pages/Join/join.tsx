@@ -104,9 +104,8 @@ const JoinPage: React.FC = () => {
         // 응답이 객체일 경우 cities 배열 추출
         setCities(data.cities || []);
       }
-    } catch (error) {
+    } catch {
       // 오류 처리
-      console.error('도시 목록을 가져오는 중 오류 발생:', error);
     }
   };
 
@@ -158,9 +157,8 @@ const JoinPage: React.FC = () => {
       // 상태 업데이트
       setSchools(schoolsList);
       setShowSchoolDropdown(schoolsList.length > 0);
-    } catch (error) {
+    } catch {
       setShowSchoolDropdown(false);
-      console.error('학교 검색 중 오류 발생:', error);
     } finally {
       setIsLoadingSchools(false);
     }
@@ -288,12 +286,11 @@ const JoinPage: React.FC = () => {
           loginId: '이미 사용 중인 아이디입니다.',
         }));
       }
-    } catch (error) {
+    } catch {
       setErrors((prev) => ({
         ...prev,
         loginId: '중복 확인 중 오류가 발생했습니다.',
       }));
-      console.error('아이디 중복 확인 중 오류 발생:', error);
     } finally {
       setIdCheckLoading(false);
     }

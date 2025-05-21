@@ -566,8 +566,8 @@ const StudentManagement = () => {
 
       // PDF 다운로드
       pdf.save(fileName);
-    } catch (error) {
-      console.error('PDF 생성 중 오류 발생:', error);
+    } catch {
+      // err
     }
   };
 

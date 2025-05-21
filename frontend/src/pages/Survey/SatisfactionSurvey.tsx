@@ -148,7 +148,7 @@ const SatisfactionSurvey = () => {
     };
 
     // 초기 만족도 데이터 처리
-    eventSource.addEventListener('initial-satisfaction', (event: any) => {
+    eventSource.addEventListener('initial-satisfaction', (event: MessageEvent) => {
       try {
         const data = JSON.parse(event.data) as MenuSatisfactionDto[];
 
@@ -190,15 +190,14 @@ const SatisfactionSurvey = () => {
           setError('메뉴 데이터를 불러오는데 실패했습니다');
           setIsLoading(false);
         }
-      } catch (error) {
-        console.error('초기 만족도 데이터 처리 중 오류 발생:', error);
+      } catch {
         setError('메뉴 데이터를 불러오는데 실패했습니다');
         setIsLoading(false);
       }
     });
 
     // 투표 이벤트 처리
-    eventSource.addEventListener('satisfaction-update', (event: any) => {
+    eventSource.addEventListener('satisfaction-update', (event: MessageEvent) => {
       try {
         const data = JSON.parse(event.data);
 
@@ -330,8 +329,8 @@ const SatisfactionSurvey = () => {
             }
           });
         }
-      } catch (error) {
-        console.error('SSE 데이터 처리 중 오류 발생:', error);
+      } catch {
+        // err
       }
     });
 
@@ -346,8 +345,7 @@ const SatisfactionSurvey = () => {
     });
 
     // 에러 처리
-    eventSource.onerror = (error: any) => {
-      console.error('SSE 연결 오류:', error);
+    eventSource.onerror = () => {
       eventSource.close();
     };
 
@@ -421,8 +419,8 @@ const SatisfactionSurvey = () => {
       // 선호도 데이터 업데이트
       const updatedPreferenceData = updatePreferenceData(updatedMenus);
       setPreferenceData(updatedPreferenceData);
-    } catch (error) {
-      console.error('만족도 처리 중 오류 발생:', error);
+    } catch {
+      // err
     }
   };
 
@@ -459,7 +457,7 @@ const SatisfactionSurvey = () => {
       setIsLoading(true);
 
       // 마감 데이터 준비
-      const submissionData = todayMenus.map((menu) => {
+      todayMenus.map((menu) => {
         const preference = preferenceData.find((item) => item.name === menu.name);
         // 잔반률에서 다시 만족도로 변환 (5점 만점 기준)
         const avgSatisfaction = preference ? 5 - preference.잔반률 / 20 : 3;
@@ -472,19 +470,10 @@ const SatisfactionSurvey = () => {
         };
       });
 
-      // 개발용 로그
-      console.log('만족도 마감 데이터:', {
-        date: new Date().toISOString().split('T')[0],
-        data: submissionData,
-        totalVotes: totalVotes,
-        isClosed: true,
-      });
-
       setIsClosed(true);
       setShowConfirmation(false);
       showSuccessAlert('만족도 조사가 마감되었습니다.');
-    } catch (err) {
-      console.error('만족도 제출 중 오류 발생:', err);
+    } catch {
       showErrorAlert('만족도 제출에 실패했습니다.');
     } finally {
       setIsLoading(false);
