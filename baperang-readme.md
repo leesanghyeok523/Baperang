@@ -1,7 +1,7 @@
 # 밥이랑 (Baperang) - AI 기반 스마트 급식 관리 시스템
 
 <div align="center">
-  <img src="https://github.com/your-username/baperang/raw/main/assets/logo.png" alt="밥이랑 로고" width="200"/>
+  <img src="frontend/public/images/logo/logo.png" alt="밥이랑 로고" width="200"/>
   <p><i>스마트한 급식 관리, 건강한 식생활의 시작</i></p>
 </div>
 
@@ -62,10 +62,10 @@
 - 📋 **영양사 맞춤형 식단 관리 도구**: 직관적인 UI로 식단 계획 및 관리 효율화
 - 📲 **학생/학부모 피드백 시스템**: 선호도 조사와 영양 정보 제공으로 참여 독려
 
-## 시스템 구성도
+## 시스템 아키텍쳐
 
 <div align="center">
-  <img src="https://github.com/your-username/baperang/raw/main/assets/system-architecture.png" alt="시스템 구성도" width="800"/>
+  <img src="docs\images\System Architecture.png" alt="시스템 구성도" width="400"/>
 </div>
 
 ## 기술 스택
@@ -75,7 +75,7 @@
 - TypeScript 5.7.2
 - Vite 6.3.1
 - TailwindCSS 3.4.1
-- Chart.js 4.4.9
+- ReCharts.js 4.4.9
 - Zustand 5.0.3
 
 ### Backend
@@ -84,11 +84,11 @@
 - Spring Security
 - Spring Data JPA
 - QueryDSL 5.0.0
-- MySQL/PostgreSQL
+- MySQL
 - JWT
 
 ### AI
-- Python 3.8+
+- Python 3.10+
 - PyTorch 2.1+
 - FastAPI 0.110+
 - MiDaS/DPT (깊이 추정)
@@ -97,7 +97,7 @@
 - LangChain 0.0.268+ (식단 추천)
 
 ### Hardware
-- Python
+- Python 3.9.13
 - Flask
 - NFC Reader Integration
 - Embedded Linux
@@ -170,13 +170,17 @@ python app.py
 ### 1. AI 기반 식단 관리
 - 영양소 균형 자동 계산
 - 급식 선호도 기반 메뉴 추천
-- NEIS 업무를 위한 Excel 저장장
+- NEIS 업무를 위한 Excel 저장
+
+<img src="docs\images\식단관리.gif" alt="식단 관리" width="400"/>
 
 ### 2. 잔반량 모니터링 시스템
 - 다중 AI 모델 융합 분석 (역투영, 깊이 추정, ResNet)
 - 음식 종류별 잔반량 자동 측정
-- 개인/학급/학년별 통계 대시보드
-- 개인화 건강 리포트 생성성
+- 개인/학급/학년별 통계
+- 개인화 건강 리포트 생성
+
+<img src="docs\images\개인화 레포트 생성.gif" alt="개인화 레포트 생성" width="400"/>
 
 ### 3. NFC 기반 식수 관리
 - 학생증/카드 기반 비접촉 체크인
@@ -187,11 +191,17 @@ python app.py
 - 식자재 재고 관리 및 알림
 - 식재료 이력 추적
 
+<img src="docs\images\재고관리.gif" alt="재고 관리" width="400"/>
+
 ### 5. 데이터 분석 대시보드
 - 영양사용 관리 패널
-- 학교/기관 관리자용 통계
-- 학생/학부모용 영양 정보
-- 데이터 기반 개선 제안
+- 메뉴별 실시간 선호도 확인
+- 실시간 식사 완료율
+- 실시간 잔반률
+
+<img src="docs\images\대시보드.gif" alt="대시보드" width="400"/>
+
+<img src="docs\images\메인.gif" alt="메인" width="400"/>
 
 ## 프로젝트 구조
 ```
@@ -235,67 +245,13 @@ S12P31E102/
 └── .gitignore           # Git 무시 파일 목록
 ```
 
-## API 문서
+## API 명세서
 
-각 서비스의 API 문서는 다음 링크에서 확인할 수 있습니다:
+[https://www.notion.so/API-1d5552e551b781dca170dd9e6ca29490](https://www.notion.so/API-1d5552e551b781dca170dd9e6ca29490)
 
-- Frontend API: [http://localhost:3000/api-docs](http://localhost:3000/api-docs)
-- Backend API: [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
-- AI Service API: [http://localhost:8000/docs](http://localhost:8000/docs)
-
-## 개발 가이드라인
-
-### 브랜치 전략
-- `main`: 프로덕션 브랜치
-- `develop`: 개발 브랜치
-- `feature/*`: 기능 개발 브랜치 (예: `feature/user-auth`)
-- `hotfix/*`: 긴급 수정 브랜치 (예: `hotfix/login-bug`)
-
-### 커밋 컨벤션
-- `Feat`: 새로운 기능 추가
-- `Fix`: 버그 수정
-- `Docs`: 문서 수정
-- `Style`: 코드 포맷팅, 세미콜론 누락 등 (기능 변경 없음)
-- `Refactor`: 코드 리팩토링
-- `Test`: 테스트 코드 추가
-- `Chore`: 빌드 업무 수정, 패키지 매니저 설정 등
-
-예시: `Feat: 사용자 로그인 기능 구현`
-
-### 코드 리뷰 가이드라인
-- PR 템플릿 사용 (`.github/PULL_REQUEST_TEMPLATE.md`)
-- 최소 1명 이상의 리뷰어 승인 필요
-- 모든 테스트 통과 확인
-- 코드 스타일 가이드 준수 여부 확인
-
-
-## 팀원
-
-- **Frontend**: 김도연
-- **Backend**: 이건욱
-- **AI**: 이종화, 이상혁
-- **Infra** : 백민우
-- **Hardware**: 이상화화
 
 ## 문의
 
 - 프로젝트 링크: [https://lab.ssafy.com/s12-final/S12P31E102.git](hhttps://lab.ssafy.com/s12-final/S12P31E102.git)
 - 웹사이트: [https://k12e102.p.ssafy.io/](https://k12e102.p.ssafy.io/)
 
-## 스크린샷
-
-<div align="center">
-  <img src="https://github.com/your-username/baperang/raw/main/assets/screenshot1.png" alt="대시보드" width="400"/>
-  <img src="https://github.com/your-username/baperang/raw/main/assets/screenshot2.png" alt="식단 관리" width="400"/>
-  <img src="https://github.com/your-username/baperang/raw/main/assets/screenshot3.png" alt="잔반 분석" width="400"/>
-  <img src="https://github.com/your-username/baperang/raw/main/assets/screenshot4.png" alt="통계 보고서" width="400"/>
-</div>
-
-## 프로젝트 상태
-
-현재 이 프로젝트는 활발히 개발 중이며, 버전 1.0 출시를 목표로 하고 있습니다. 이슈 트래커를 통해 진행 상황을 확인할 수 있습니다.
-
-## 감사의 말
-
-- 지원과 조언을 아끼지 않은 [SSAFY]에게 감사드립니다.
-- 이 프로젝트는 [SSAFY]의 지원을 받아 개발되었습니다.
