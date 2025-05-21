@@ -271,12 +271,6 @@ const MyPage: React.FC = () => {
     try {
       setIsLoggingOut(true);
 
-      // 로그아웃 API 호출
-      await apiClient.delete(
-        API_CONFIG.ENDPOINTS.AUTH.LOGOUT,
-        {} // 빈 객체를 두 번째 인자로 전달
-      );
-
       // 로그아웃 처리 (상태 초기화)
       logout();
 
