@@ -333,7 +333,7 @@ const MenuDetail = ({ selectedDate, menuData, onMenuUpdate }: MenuDetailProps) =
       </div>
 
       <div className="mt-2 text-center font-semibold text-gray-700 text-base">
-        {dailyCalories !== undefined ? (
+        {!checkIfNextMonth(selectedDate!) && dailyCalories !== undefined ? (
           <>
             총 열량: {' '}
             <span className="text-orange-500">
