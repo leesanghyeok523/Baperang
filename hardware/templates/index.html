@@ -135,14 +135,12 @@
         let lastPk = null;
         let detectionRunning = false;
         let name = "";
-        let status = "";
+
         // 1) 학생증/NFC 폴링
         async function pollNfc() {
           try {
             const res = await fetch("/nfc-info");
             const data = await res.json();
-
-            status = data.status;
 
             if (data.isTagged && data.pk !== lastPk) {
               lastPk = data.pk;
@@ -160,8 +158,8 @@
               document.getElementById("student-icon").src =
                 '{{ url_for("static", filename="image/student/blank.png") }}';
             }
-          } catch (e) {
-            console.error("NFC poll error", e);
+          } catch {
+            // error
           }
         }
 
@@ -170,7 +168,7 @@
           try {
             const res = await fetch("/detection-status");
             if (!res.ok) return;
-            const { detected, processing } = await res.json();
+            const { detected, processing, status } = await res.json();
 
             if (processing) {
               spinnerEl.style.visibility = "visible";
@@ -203,8 +201,8 @@
                 }
               }, 3000);
             }
-          } catch (e) {
-            console.error("Detection poll error", e);
+          } catch {
+            // error
           }
         }
 
