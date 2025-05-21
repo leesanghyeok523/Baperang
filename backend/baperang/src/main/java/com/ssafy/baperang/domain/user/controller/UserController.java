@@ -1,9 +1,22 @@
 package com.ssafy.baperang.domain.user.controller;
 
-import com.ssafy.baperang.domain.user.dto.request.*;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
+import com.ssafy.baperang.domain.user.dto.request.FindIdRequestDto;
+import com.ssafy.baperang.domain.user.dto.request.LoginRequestDto;
+import com.ssafy.baperang.domain.user.dto.request.NewPasswordRequestDto;
+import com.ssafy.baperang.domain.user.dto.request.SignupRequestDto;
+import com.ssafy.baperang.domain.user.dto.request.UpdateUserRequestDto;
+import com.ssafy.baperang.domain.user.dto.request.ValidateIdRequestDto;
 import com.ssafy.baperang.domain.user.dto.response.ErrorResponseDto;
 import com.ssafy.baperang.domain.user.dto.response.ValidateIdResponseDto;
 import com.ssafy.baperang.domain.user.service.UserService;
@@ -74,7 +87,7 @@ public class UserController {
              HttpServletResponse response) {
         log.info("logout 컨트롤러 함수 호출");
 
-        String token = authorizationHeader.substring(7);
+        String token = authorizationHeader.substring(7).trim();
 
         Object result = userService.logout(token, response);
 
@@ -92,7 +105,7 @@ public class UserController {
     public ResponseEntity<?> validateToken(@RequestHeader("Authorization") String authorizationHeader) {
         log.info("validateToken 컨트롤러 함수 호출");
 
-        String token = authorizationHeader.substring(7);
+        String token = authorizationHeader.substring(7).trim();
 
         Object result = userService.validateToken(token);
 
