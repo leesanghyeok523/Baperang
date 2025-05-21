@@ -239,6 +239,22 @@ public class MenuServiceImpl implements MenuService {
                     Menu dbMenu = menuRepository.findBySchoolAndMenuDateAndMenuName(school, parsedDate, menuName);
                     if (dbMenu != null) {
                         List<MenuNutrient> menuNutrients = menuNutrientRepository.findByMenu(dbMenu);
+                        // 영양소 정보가 없으면
+                        if (menuNutrients.isEmpty()) {
+                            // 같은 이름의 다른 메뉴를 조회
+                            List<Menu> sameNameMenus = menuRepository.findBySchoolAndMenuName(school, menuName);
+                            for (Menu pastMenu : sameNameMenus) {
+                                if (!pastMenu.getId().equals(dbMenu.getId())) {
+                                    List<MenuNutrient> pastNutrients = menuNutrientRepository.findByMenu(pastMenu);
+                                    if (!pastNutrients.isEmpty()) {
+                                        menuNutrients = pastNutrients;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // 이후 열량 계산 로직은 동일하게 유지
                         for (MenuNutrient nutrient : menuNutrients) {
                             // "열량", "칼로리", "에너지" 등의 이름을 가진 영양소 찾기
                             String nutrientName = nutrient.getNutrient().getNutrientName();
