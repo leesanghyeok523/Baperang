@@ -36,7 +36,8 @@ public class SecurityConfig {
             "/api/v1/user/**",
             // 기타 허용할 엔드포인트
             "/api/v1/school/**",
-            "/error"
+            "/error",
+            "/api/v1/student/nfc/**"
     };
 
     @Bean
