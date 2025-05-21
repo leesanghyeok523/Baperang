@@ -20,12 +20,12 @@
 ## 👥 팀 소개
 <table style="text-align: center;" width="100%">
   <tr>
-    <th style="text-align: center;" width="16.66%"><img src="exec\images\sanghyeok.png" width="150" height="150"/></th>
-    <th style="text-align: center;" width="16.66%"><img src="exec\images\jongwha.png" width="150" height="150"/></th>
-    <th style="text-align: center;" width="16.66%"><img src="exec\images\gunwook.jpg" width="150" height="150"/></th>
-    <th style="text-align: center;" width="16.66%"><img src="exec\images\doyeon.png" width="150" height="150"/></th>
-    <th style="text-align: center;" width="16.66%"><img src="exec\images\sanghwa.png" width="150" height="150"/></th>
-    <th style="text-align: center;" width="16.66%"><img src="exec\images\minwoo.png" width="150" height="150"/></th>
+    <th style="text-align: center;" width="16.66%"><img src="images\sanghyeok.png" width="150" height="150"/></th>
+    <th style="text-align: center;" width="16.66%"><img src="images\jongwha.png" width="150" height="150"/></th>
+    <th style="text-align: center;" width="16.66%"><img src="images\gunwook.jpg" width="150" height="150"/></th>
+    <th style="text-align: center;" width="16.66%"><img src="images\doyeon.png" width="150" height="150"/></th>
+    <th style="text-align: center;" width="16.66%"><img src="images\sanghwa.png" width="150" height="150"/></th>
+    <th style="text-align: center;" width="16.66%"><img src="images\minwoo.png" width="150" height="150"/></th>
   </tr>
   <tr>
     <td style="text-align: center;" width="16.66%">이상혁<br/><a href="https://github.com/lsh950523">@lsh950523</a></td>
@@ -57,7 +57,7 @@
 ## 시스템 아키텍쳐
 
 <div align="center">
-  <img src="exec\images\System_Architecture.png" alt="시스템 구성도" width="400"/>
+  <img src="images\System_Architecture.png" alt="시스템 구성도" width="400"/>
 </div>
 
 ## 기술 스택
@@ -164,7 +164,7 @@ python app.py
 - 급식 선호도 기반 메뉴 추천
 - NEIS 업무를 위한 Excel 저장
 
-<img src="exec\images\foodmanage.gif" alt="식단 관리" width="400"/>
+<img src="images\foodmanage.gif" alt="식단 관리" width="400"/>
 
 ### 2. 잔반량 모니터링 시스템
 - 다중 AI 모델 융합 분석 (역투영, 깊이 추정, ResNet)
@@ -172,7 +172,7 @@ python app.py
 - 개인/학급/학년별 통계
 - 개인화 건강 리포트 생성
 
-<img src="exec\images\report.gif" alt="개인화 레포트 생성" width="400"/>
+<img src="images\report.gif" alt="개인화 레포트 생성" width="400"/>
 
 ### 3. NFC 기반 식수 관리
 - 학생증/카드 기반 비접촉 체크인
@@ -183,7 +183,7 @@ python app.py
 - 식자재 재고 관리 및 알림
 - 식재료 이력 추적
 
-<img src="exec\images\manage.gif" alt="재고 관리" width="400"/>
+<img src="images\manage.gif" alt="재고 관리" width="400"/>
 
 ### 5. 데이터 분석 대시보드
 - 영양사용 관리 패널
@@ -191,9 +191,9 @@ python app.py
 - 실시간 식사 완료율
 - 실시간 잔반률
 
-<img src="exec\images\dashboard.gif" alt="대시보드" width="400"/>
+<img src="images\dashboard.gif" alt="대시보드" width="400"/>
 
-<img src="exec\images\main.gif" alt="메인" width="400"/>
+<img src="images\main.gif" alt="메인" width="400"/>
 
 ## 프로젝트 구조
 ```
