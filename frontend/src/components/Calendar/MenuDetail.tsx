@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { MenuDataType } from '../../pages/Calendar/index';
 import axios from 'axios';
 import API_CONFIG from '../../config/api';
@@ -228,6 +228,8 @@ const MenuDetail = ({ selectedDate, menuData, onMenuUpdate }: MenuDetailProps) =
           }
         }
 
+        fetchCalories();
+
         // 성공 메시지 표시
         showToast('메뉴가 업데이트되었습니다.', 'success');
       } else {
@@ -242,6 +244,36 @@ const MenuDetail = ({ selectedDate, menuData, onMenuUpdate }: MenuDetailProps) =
       setLoading(false);
     }
   };
+
+  const fetchCalories = useCallback(async () => {
+    if (!selectedDate || !accessToken) {
+      setDailyCalories(null);
+      return;
+    }
+    try {
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const token = accessToken.startsWith('Bearer ')
+        ? accessToken
+        : `Bearer ${accessToken}`;
+      // /api/v1/menu/oneday?date=YYYY-MM-DD
+      const url = API_CONFIG.getUrl(
+        API_CONFIG.ENDPOINTS.MEAL.ONE_DAY,
+        { date: selectedDate }
+      );
+      const res = await axios.get<{ menu: string[]; totalCalories: number }>(url, {
+        headers: { Authorization: token }
+      });
+      setDailyCalories(res.data.totalCalories);
+    } catch {
+      setDailyCalories(null);
+    }
+  }, [selectedDate, accessToken]);
+
+  // 그리고 useEffect를 아래와 같이 수정하세요
+  useEffect(() => {
+    fetchCalories();
+  }, [fetchCalories]);
 
   // 모달 닫기
   const closeModal = () => {
@@ -333,7 +365,7 @@ const MenuDetail = ({ selectedDate, menuData, onMenuUpdate }: MenuDetailProps) =
       </div>
 
       <div className="mt-2 text-center font-semibold text-gray-700 text-base">
-        {!checkIfNextMonth(selectedDate!) && dailyCalories !== undefined ? (
+        {dailyCalories !== undefined ? (
           <>
             총 열량: {' '}
             <span className="text-orange-500">
