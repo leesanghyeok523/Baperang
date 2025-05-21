@@ -171,7 +171,7 @@ const MenuDetail = ({ selectedDate, menuData, onMenuUpdate }: MenuDetailProps) =
           showToast('영양소 정보가 없습니다.', 'info');
         }
       }
-    } catch (error) {
+    } catch {
       showToast('정보를 가져오는데 실패했습니다.', 'error');
     } finally {
       setLoading(false);
@@ -238,7 +238,7 @@ const MenuDetail = ({ selectedDate, menuData, onMenuUpdate }: MenuDetailProps) =
 
       // 모달 닫기
       setShowModal(false);
-    } catch (error) {
+    } catch {
       showToast('메뉴 업데이트에 실패했습니다.', 'error');
     } finally {
       setLoading(false);
@@ -364,7 +364,7 @@ const MenuDetail = ({ selectedDate, menuData, onMenuUpdate }: MenuDetailProps) =
         </div>
       </div>
 
-      <div className="mt-2 text-center font-semibold text-gray-700 text-base">
+      {/* <div className="mt-2 text-center font-semibold text-gray-700 text-base">
         {dailyCalories !== undefined ? (
           <>
             총 열량: {' '}
@@ -375,7 +375,7 @@ const MenuDetail = ({ selectedDate, menuData, onMenuUpdate }: MenuDetailProps) =
         ) : (
           ''
         )}
-      </div>
+      </div> */}
 
 
       {/* 대체 메뉴 또는 영양소 정보 말풍선 팝업 */}

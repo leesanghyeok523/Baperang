@@ -81,8 +81,8 @@ const ForgotAccountPage: React.FC = () => {
       } else {
         setCities(data.cities || []);
       }
-    } catch (_) {
-      // console.error('도시 목록을 가져오는 중 오류 발생:', error);
+    } catch {
+      // err
     }
   };
 
@@ -121,9 +121,8 @@ const ForgotAccountPage: React.FC = () => {
 
       setSchools(schoolsList);
       setShowSchoolDropdown(schoolsList.length > 0);
-    } catch (error) {
+    } catch {
       setShowSchoolDropdown(false);
-      console.error('학교 검색 중 오류 발생:', error);
     } finally {
       setIsLoadingSchools(false);
     }
@@ -266,7 +265,7 @@ const ForgotAccountPage: React.FC = () => {
       const data = await response.json();
 
       showToast(`아이디: ${data.loginId}`, 'info');
-    } catch (_) {
+    } catch {
       setError('입력한 정보와 일치하는 계정을 찾을 수 없습니다.');
     } finally {
       setIsLoading(false);
@@ -326,7 +325,7 @@ const ForgotAccountPage: React.FC = () => {
         newPassword: '',
         confirmPassword: '',
       });
-    } catch (_) {
+    } catch {
       setError('입력한 정보와 일치하는 계정을 찾을 수 없거나 비밀번호 재설정에 실패했습니다.');
     } finally {
       setIsLoading(false);

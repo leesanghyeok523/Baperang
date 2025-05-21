@@ -69,7 +69,7 @@ class ApiClient {
       }
 
       return await response.text();
-    } catch (_) {
+    } catch {
       throw new Error('API 요청 오류');
     }
   }

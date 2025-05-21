@@ -120,13 +120,11 @@ const CalendarHeader = ({
   handleExcelDownload,
   isFutureMonth,
   isNextMonth,
-  hasMenu,
   token,
   selectedYear,
   selectedMonth,
   updateMenuData,
   onMenuGenerated,
-  generatingMenu,
   setGeneratingMenu,
 }: CalendarHeaderProps) => {
   // 메뉴 데이터 조회 함수
@@ -337,14 +335,14 @@ const CalendarHeader = ({
 
       // 메뉴 생성 기능 호출
       makeMonthMenu()
-        .then((result) => {
+        .then(() => {
           // onMenuGenerated 콜백이 없는 경우만 로컬에서 데이터 로드 (이중 로드 방지)
           // onMenuGenerated가 없는 경우에만 로컬에서 loadCurrentMonthMenuData 호출
           if (!onMenuGenerated) {
             loadCurrentMonthMenuData();
           }
         })
-        .catch((error) => {
+        .catch(() => {
           // 오류 발생 시 로딩 상태 해제
           if (setGeneratingMenu) {
             setGeneratingMenu(false);
